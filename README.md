@@ -100,10 +100,9 @@ flutter run -d chrome
 
 ## Équipe
 
-**Famory Josué Sissoko**
+**Famory Josué Sissoko** & 
 **Hamath Oumar Diallo**
 
-Projet réalisé dans le cadre de la formation **Orange Digital Center — Mali**.
 
 ---
 
