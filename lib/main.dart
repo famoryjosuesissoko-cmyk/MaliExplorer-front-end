@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'core/constants/app_strings.dart';
+import 'core/routes/app_routes.dart';
+import 'core/services/firebase_service.dart';
+import 'core/services/storage_service.dart';
 import 'core/theme/app_theme.dart';
-import 'router/app_router.dart';
-import 'services/supabase_service.dart';
+import 'providers/theme_provider.dart';
 
 void main() async {
-  // S'assure que le moteur Flutter est prêt avant d'invoquer le code natif
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialisation de Firebase
-  await Firebase.initializeApp();
-
-  // Initialisation de Supabase
-  await SupabaseService.init();
+  // Initialisation des services
+  await FirebaseService.init();
+  await StorageService.init();
 
   runApp(
     const ProviderScope(
@@ -22,16 +21,20 @@ void main() async {
   );
 }
 
-class MaliExplorerApp extends StatelessWidget {
+class MaliExplorerApp extends ConsumerWidget {
   const MaliExplorerApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+
     return MaterialApp.router(
-      title: 'MaliExplorer',
+      title: AppStrings.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      routerConfig: appRouter,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeMode,
+      routerConfig: AppRoutes.router,
     );
   }
 }
