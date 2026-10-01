@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_strings.dart';
+import '../core/constants/app_colors.dart';
+import '../core/constants/app_strings.dart';
 
 /// Écran Splash d'introduction à MaliExplorer.
 class SplashScreen extends StatefulWidget {

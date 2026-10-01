@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 
 /// Constantes pour les requêtes HTTP vers l'API backend Spring Boot.
 class ApiConstants {
@@ -5,20 +6,14 @@ class ApiConstants {
 
   static const Duration timeout = Duration(seconds: 15);
 
-  /// URL personnalisable en cours d'exécution.
-  static String _customBaseUrl = '';
-
-  /// URL de base pour joindre le backend Spring Boot :
-  /// - Par défaut : `http://localhost:8080/api` (Fonctionne pour Web et Téléphone USB via `adb reverse tcp:8080 tcp:8080`)
-  /// - Wi-Fi direct : `http://192.168.10.255:8080/api`
-  /// - Émulateur Android : `http://10.0.2.2:8080/api`
   static String get baseUrl {
-    if (_customBaseUrl.isNotEmpty) return _customBaseUrl;
-    return 'http://localhost:8080/api';
-  }
-
-  static set baseUrl(String url) {
-    _customBaseUrl = url.trim();
+    if (kIsWeb) {
+      return 'http://localhost:8080/api';
+    } else if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:8080/api';
+    } else {
+      return 'http://localhost:8080/api';
+    }
   }
 
   // Endpoints Authentification
