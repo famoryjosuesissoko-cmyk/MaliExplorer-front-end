@@ -4,7 +4,6 @@ import 'core/constants/app_strings.dart';
 import 'core/services/firebase_service.dart';
 import 'core/services/storage_service.dart';
 import 'core/theme/app_theme.dart';
-import 'router/app_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,11 +26,15 @@ class MaliExplorerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
+    return MaterialApp(
       title: AppStrings.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      routerConfig: appRouter,
+      home: const Scaffold(
+        body: Center(
+          child: Text(AppStrings.appName),
+        ),
+      ),
     );
   }
 }

@@ -10,11 +10,7 @@ void main() {
       ),
     );
 
-    // Vérifie le montage de l'application
+    // Vérifie que l'application démarre bien avec le widget racine
     expect(find.byType(MaliExplorerApp), findsOneWidget);
-
-    // Écoulement du timer de SplashScreen pour éviter les timers pendants
-    await tester.pump(const Duration(seconds: 3));
-    await tester.pumpAndSettle();
   });
 }
