@@ -317,12 +317,16 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: () {
                 if (index == 0) {
                   context.push(AppRouter.cityDetail);
+                  context.push(AppRouter.villesList);
                 } else if (index == 1) {
                   context.push(AppRouter.ethnicityDetail);
+                  context.push(AppRouter.ethniesList);
                 } else if (index == 2) {
                   context.push(AppRouter.dishDetail);
+                  context.push(AppRouter.gastronomieList);
                 } else {
                   context.push(AppRouter.cityDetail);
+                  context.push(AppRouter.villesList);
                 }
               },
               borderRadius: BorderRadius.circular(16),
