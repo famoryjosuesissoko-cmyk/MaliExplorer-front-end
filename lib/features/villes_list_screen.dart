@@ -89,7 +89,7 @@ class _VillesListScreenState extends State<VillesListScreen> {
                       Row(
                         children: [
                           IconButton(
-                            onPressed: () => context.pop(),
+                            onPressed: () => context.go('/home'),
                             icon: const Icon(
                               Icons.arrow_back_ios_new_rounded,
                               color: Colors.white,

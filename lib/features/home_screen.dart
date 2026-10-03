@@ -574,6 +574,15 @@ class _HomeScreenState extends State<HomeScreen> {
           setState(() {
             _selectedNavIndex = index;
           });
+          if (index == 0) {
+            // Déjà sur l'accueil
+          } else if (index == 2) {
+            context.push(AppRouter.monParcours);
+          } else if (index == 3) {
+            context.push(AppRouter.quizList);
+          } else if (index == 4) {
+            context.push(AppRouter.profil);
+          }
         },
         borderRadius: BorderRadius.circular(30),
         child: Column(
