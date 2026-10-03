@@ -4,49 +4,52 @@ import 'package:go_router/go_router.dart';
 import '../core/constants/app_colors.dart';
 import '../router/app_router.dart';
 
-class GastronomieListScreen extends StatefulWidget {
-  const GastronomieListScreen({super.key});
+class ArtisansScreen extends StatefulWidget {
+  const ArtisansScreen({super.key});
 
   @override
-  State<GastronomieListScreen> createState() => _GastronomieListScreenState();
+  State<ArtisansScreen> createState() => _ArtisansScreenState();
 }
 
-class _GastronomieListScreenState extends State<GastronomieListScreen> {
+class _ArtisansScreenState extends State<ArtisansScreen> {
   final TextEditingController _searchController = TextEditingController();
   int _selectedNavIndex = 0;
 
-  final List<DishListItem> _dishes = [
-    DishListItem(
-      title: 'Tiguadèguè na',
-      description:
-          'Sauce crémeuse à la pâte d\'arachide servie traditionnellement...',
+  final List<ArtisanItem> _artisans = [
+    ArtisanItem(
+      name: 'Mariam Doumbia',
+      craft: 'Potière',
+      phone: 'telephone : 88888888',
       imageUrl:
-          'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600&auto=format&fit=crop',
-      isFavorite: false,
+          'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?q=80&w=600&auto=format&fit=crop',
     ),
-    DishListItem(
-      title: 'Saka-saka',
-      description:
-          'Ragoût savoureux de feuilles de manioc pilées, d\'huile de palme et d...',
+    ArtisanItem(
+      name: 'Mohamed Coulibaly',
+      craft: 'Artisan sculpteur',
+      phone: 'telephone : 88888888',
       imageUrl:
-          'https://images.unsplash.com/photo-1512058564366-18510be2db19?q=80&w=600&auto=format&fit=crop',
-      isFavorite: false,
+          'https://images.unsplash.com/photo-1544717305-2782549b5136?q=80&w=600&auto=format&fit=crop',
     ),
-    DishListItem(
-      title: 'Fakoye',
-      description:
-          'Sauce emblématique du Nord, préparée à base de feuilles de corèt...',
+    ArtisanItem(
+      name: 'Moussa Touré',
+      craft: 'Ferronnier & bronzier',
+      phone: 'telephone : 88888888',
       imageUrl:
-          'https://images.unsplash.com/photo-1547592180-85f173990554?q=80&w=600&auto=format&fit=crop',
-      isFavorite: false,
+          'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?q=80&w=600&auto=format&fit=crop',
     ),
-    DishListItem(
-      title: 'Tô',
-      description:
-          'Pâte de mil compacte servie avec une sauce gluante au gombo ou à l\'...',
+    ArtisanItem(
+      name: 'Ousmane Diarra',
+      craft: 'Teinturier Bogolan',
+      phone: 'telephone : 88888888',
       imageUrl:
-          'https://images.unsplash.com/photo-1540420773420-3366772f4999?q=80&w=600&auto=format&fit=crop',
-      isFavorite: false,
+          'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=600&auto=format&fit=crop',
+    ),
+    ArtisanItem(
+      name: 'Fanta Traoré',
+      craft: 'Bijoutière Touareg',
+      phone: 'telephone : 88888888',
+      imageUrl:
+          'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=600&auto=format&fit=crop',
     ),
   ];
 
@@ -65,10 +68,10 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
       backgroundColor: const Color(0xFF075E4D),
       body: Stack(
         children: [
-          // 1. Structure globale en colonne : En-tête vert + Fiche blanche
+          // Structure globale : En-tête vert + Fiche blanche
           Column(
             children: [
-              // En-tête vert (Titre & sous-titre)
+              // En-tête vert
               SafeArea(
                 bottom: false,
                 child: Padding(
@@ -79,7 +82,7 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
                       Row(
                         children: [
                           IconButton(
-                            onPressed: () => context.go('/home'),
+                            onPressed: () => context.pop(),
                             icon: const Icon(
                               Icons.arrow_back_ios_new_rounded,
                               color: Colors.white,
@@ -91,7 +94,7 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
                           const SizedBox(width: 12),
                           const Expanded(
                             child: Text(
-                              'Gastronomie',
+                              'Artisans',
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.w800,
@@ -106,7 +109,7 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
                       const Padding(
                         padding: EdgeInsets.only(left: 32.0),
                         child: Text(
-                          'Découvrez les saveurs gourmandes et authentiques du Mali',
+                          'Rencontrez les artisans maliens et decouvrez leur savoir-faire unique',
                           style: TextStyle(
                             fontSize: 13,
                             color: Colors.white70,
@@ -119,7 +122,7 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
                 ),
               ),
 
-              // 2. Fiche blanche contenant la liste des plats
+              // Fiche blanche contenant la liste des artisans
               Expanded(
                 child: Container(
                   width: double.infinity,
@@ -139,8 +142,8 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
 
                         const SizedBox(height: 18),
 
-                        // Liste des plats
-                        ..._dishes.map((dish) => _buildDishCard(dish)),
+                        // Liste des cartes d'artisans
+                        ..._artisans.map((a) => _buildArtisanCard(a)),
                       ],
                     ),
                   ),
@@ -149,7 +152,7 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
             ],
           ),
 
-          // 3. Barre de navigation inférieure flottante
+          // Barre de navigation inférieure flottante
           Positioned(
             left: math.max(16.0, screenWidth * 0.04),
             right: math.max(16.0, screenWidth * 0.04),
@@ -177,7 +180,7 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
             child: TextField(
               controller: _searchController,
               decoration: const InputDecoration(
-                hintText: 'Rechercher une spécialité...',
+                hintText: 'Rechercher un artisan...',
                 hintStyle: TextStyle(
                   color: Color(0xFF8B9B95),
                   fontSize: 13.5,
@@ -194,9 +197,10 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
     );
   }
 
-  Widget _buildDishCard(DishListItem dish) {
+  Widget _buildArtisanCard(ArtisanItem artisan) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -209,89 +213,76 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
         ],
         border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            // Navigation vers la page détail du plat (Sakasaka)
-            context.push(AppRouter.dishDetail);
-          },
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Row(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Image carrée / arrondie de l'artisan à l'œuvre
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              artisan.imageUrl,
+              width: 76,
+              height: 76,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                width: 76,
+                height: 76,
+                color: const Color(0xFFD6A23A).withValues(alpha: 0.2),
+                child: const Icon(
+                  Icons.handyman_rounded,
+                  color: Color(0xFF075E4D),
+                  size: 30,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+
+          // Informations textuelles
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Image carrée du plat
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    dish.imageUrl,
-                    width: 76,
-                    height: 76,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      width: 76,
-                      height: 76,
-                      color: const Color(0xFFD6A23A).withValues(alpha: 0.2),
-                      child: const Icon(
-                        Icons.restaurant_menu_rounded,
-                        color: Color(0xFF075E4D),
-                        size: 32,
+                Text(
+                  artisan.name,
+                  style: const TextStyle(
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF075E4D),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  artisan.craft,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF6C7C77),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.phone_rounded,
+                      color: Color(0xFF0E8F76),
+                      size: 14,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      artisan.phone,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: Color(0xFF6C7C77),
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 14),
-
-                // Titre et description
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        dish.title,
-                        style: const TextStyle(
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF075E4D),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        dish.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF6C7C77),
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Bouton favori
-                IconButton(
-                  onPressed: () {
-                    setState(() {
-                      dish.isFavorite = !dish.isFavorite;
-                    });
-                  },
-                  icon: Icon(
-                    dish.isFavorite
-                        ? Icons.favorite_rounded
-                        : Icons.favorite_border_rounded,
-                    color: dish.isFavorite
-                        ? const Color(0xFFE53935)
-                        : const Color(0xFF9E9E9E),
-                    size: 20,
-                  ),
+                  ],
                 ),
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -402,16 +393,16 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
   }
 }
 
-class DishListItem {
-  final String title;
-  final String description;
+class ArtisanItem {
+  final String name;
+  final String craft;
+  final String phone;
   final String imageUrl;
-  bool isFavorite;
 
-  DishListItem({
-    required this.title,
-    required this.description,
+  ArtisanItem({
+    required this.name,
+    required this.craft,
+    required this.phone,
     required this.imageUrl,
-    this.isFavorite = false,
   });
 }

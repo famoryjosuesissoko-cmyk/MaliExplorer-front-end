@@ -4,49 +4,52 @@ import 'package:go_router/go_router.dart';
 import '../core/constants/app_colors.dart';
 import '../router/app_router.dart';
 
-class GastronomieListScreen extends StatefulWidget {
-  const GastronomieListScreen({super.key});
+class GuidesScreen extends StatefulWidget {
+  const GuidesScreen({super.key});
 
   @override
-  State<GastronomieListScreen> createState() => _GastronomieListScreenState();
+  State<GuidesScreen> createState() => _GuidesScreenState();
 }
 
-class _GastronomieListScreenState extends State<GastronomieListScreen> {
+class _GuidesScreenState extends State<GuidesScreen> {
   final TextEditingController _searchController = TextEditingController();
   int _selectedNavIndex = 0;
 
-  final List<DishListItem> _dishes = [
-    DishListItem(
-      title: 'Tiguadèguè na',
-      description:
-          'Sauce crémeuse à la pâte d\'arachide servie traditionnellement...',
+  final List<GuideItem> _guides = [
+    GuideItem(
+      name: 'Oumar Traoré',
+      role: 'Guide certifié (Tombouctou & Pays Dogon)',
+      phone: 'telephone : 88888888',
       imageUrl:
-          'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600&auto=format&fit=crop',
-      isFavorite: false,
+          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=400&auto=format&fit=crop',
     ),
-    DishListItem(
-      title: 'Saka-saka',
-      description:
-          'Ragoût savoureux de feuilles de manioc pilées, d\'huile de palme et d...',
+    GuideItem(
+      name: 'Awa Keita',
+      role: 'Guide écotourisme & patrimoine culturel',
+      phone: 'telephone : 88888888',
       imageUrl:
-          'https://images.unsplash.com/photo-1512058564366-18510be2db19?q=80&w=600&auto=format&fit=crop',
-      isFavorite: false,
+          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop',
     ),
-    DishListItem(
-      title: 'Fakoye',
-      description:
-          'Sauce emblématique du Nord, préparée à base de feuilles de corèt...',
+    GuideItem(
+      name: 'Moussa Touré',
+      role: 'Guide historique (Djenné & Ségou)',
+      phone: 'telephone : 88888888',
       imageUrl:
-          'https://images.unsplash.com/photo-1547592180-85f173990554?q=80&w=600&auto=format&fit=crop',
-      isFavorite: false,
+          'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=400&auto=format&fit=crop',
     ),
-    DishListItem(
-      title: 'Tô',
-      description:
-          'Pâte de mil compacte servie avec une sauce gluante au gombo ou à l\'...',
+    GuideItem(
+      name: 'Issa Doumbia',
+      role: 'Guide nature & randonnées sahariennes',
+      phone: 'telephone : 88888888',
       imageUrl:
-          'https://images.unsplash.com/photo-1540420773420-3366772f4999?q=80&w=600&auto=format&fit=crop',
-      isFavorite: false,
+          'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?q=80&w=400&auto=format&fit=crop',
+    ),
+    GuideItem(
+      name: 'Fatoumata Diallo',
+      role: 'Guide interprète (Français, Anglais, Bambara)',
+      phone: 'telephone : 88888888',
+      imageUrl:
+          'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=400&auto=format&fit=crop',
     ),
   ];
 
@@ -65,10 +68,10 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
       backgroundColor: const Color(0xFF075E4D),
       body: Stack(
         children: [
-          // 1. Structure globale en colonne : En-tête vert + Fiche blanche
+          // Structure globale : En-tête vert + Fiche blanche
           Column(
             children: [
-              // En-tête vert (Titre & sous-titre)
+              // En-tête vert
               SafeArea(
                 bottom: false,
                 child: Padding(
@@ -79,7 +82,7 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
                       Row(
                         children: [
                           IconButton(
-                            onPressed: () => context.go('/home'),
+                            onPressed: () => context.pop(),
                             icon: const Icon(
                               Icons.arrow_back_ios_new_rounded,
                               color: Colors.white,
@@ -91,7 +94,7 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
                           const SizedBox(width: 12),
                           const Expanded(
                             child: Text(
-                              'Gastronomie',
+                              'Guides',
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.w800,
@@ -106,7 +109,7 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
                       const Padding(
                         padding: EdgeInsets.only(left: 32.0),
                         child: Text(
-                          'Découvrez les saveurs gourmandes et authentiques du Mali',
+                          'Des guides passionnés pour une expérience inoubliable au Mali !',
                           style: TextStyle(
                             fontSize: 13,
                             color: Colors.white70,
@@ -119,15 +122,13 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
                 ),
               ),
 
-              // 2. Fiche blanche contenant la liste des plats
+              // Fiche blanche contenant la liste des guides
               Expanded(
                 child: Container(
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     color: Color(0xFFF7F8F5),
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(28),
-                    ),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
                   ),
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
@@ -139,8 +140,8 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
 
                         const SizedBox(height: 18),
 
-                        // Liste des plats
-                        ..._dishes.map((dish) => _buildDishCard(dish)),
+                        // Liste des cartes de guides
+                        ..._guides.map((g) => _buildGuideCard(g)),
                       ],
                     ),
                   ),
@@ -149,7 +150,7 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
             ],
           ),
 
-          // 3. Barre de navigation inférieure flottante
+          // Barre de navigation inférieure flottante
           Positioned(
             left: math.max(16.0, screenWidth * 0.04),
             right: math.max(16.0, screenWidth * 0.04),
@@ -177,7 +178,7 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
             child: TextField(
               controller: _searchController,
               decoration: const InputDecoration(
-                hintText: 'Rechercher une spécialité...',
+                hintText: 'Rechercher un guide...',
                 hintStyle: TextStyle(
                   color: Color(0xFF8B9B95),
                   fontSize: 13.5,
@@ -194,9 +195,10 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
     );
   }
 
-  Widget _buildDishCard(DishListItem dish) {
+  Widget _buildGuideCard(GuideItem guide) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -209,89 +211,68 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
         ],
         border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            // Navigation vers la page détail du plat (Sakasaka)
-            context.push(AppRouter.dishDetail);
-          },
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Row(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Photo de profil arrondie du guide
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              guide.imageUrl,
+              width: 76,
+              height: 76,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                width: 76,
+                height: 76,
+                color: const Color(0xFF075E4D).withValues(alpha: 0.15),
+                child: const Icon(Icons.person, color: Color(0xFF075E4D), size: 32),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+
+          // Informations textuelles
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Image carrée du plat
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    dish.imageUrl,
-                    width: 76,
-                    height: 76,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      width: 76,
-                      height: 76,
-                      color: const Color(0xFFD6A23A).withValues(alpha: 0.2),
-                      child: const Icon(
-                        Icons.restaurant_menu_rounded,
-                        color: Color(0xFF075E4D),
-                        size: 32,
+                Text(
+                  guide.name,
+                  style: const TextStyle(
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF075E4D),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  guide.role,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF6C7C77),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(Icons.phone_rounded, color: Color(0xFF0E8F76), size: 14),
+                    const SizedBox(width: 5),
+                    Text(
+                      guide.phone,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: Color(0xFF6C7C77),
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 14),
-
-                // Titre et description
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        dish.title,
-                        style: const TextStyle(
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF075E4D),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        dish.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF6C7C77),
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Bouton favori
-                IconButton(
-                  onPressed: () {
-                    setState(() {
-                      dish.isFavorite = !dish.isFavorite;
-                    });
-                  },
-                  icon: Icon(
-                    dish.isFavorite
-                        ? Icons.favorite_rounded
-                        : Icons.favorite_border_rounded,
-                    color: dish.isFavorite
-                        ? const Color(0xFFE53935)
-                        : const Color(0xFF9E9E9E),
-                    size: 20,
-                  ),
+                  ],
                 ),
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -314,49 +295,17 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem(
-            0,
-            Icons.home_rounded,
-            'Accueil',
-            isSelected: _selectedNavIndex == 0,
-            onTap: () => context.go(AppRouter.home),
-          ),
-          _buildNavItem(
-            1,
-            Icons.menu_book_rounded,
-            'Carte',
-            isSelected: _selectedNavIndex == 1,
-          ),
-          _buildNavItem(
-            2,
-            Icons.explore_outlined,
-            'Découvrir',
-            isSelected: _selectedNavIndex == 2,
-          ),
-          _buildNavItem(
-            3,
-            Icons.help_outline_rounded,
-            'Quiz',
-            isSelected: _selectedNavIndex == 3,
-          ),
-          _buildNavItem(
-            4,
-            Icons.person_outline_rounded,
-            'Profil',
-            isSelected: _selectedNavIndex == 4,
-          ),
+          _buildNavItem(0, Icons.home_rounded, 'Accueil', isSelected: _selectedNavIndex == 0, onTap: () => context.go(AppRouter.home)),
+          _buildNavItem(1, Icons.menu_book_rounded, 'Carte', isSelected: _selectedNavIndex == 1),
+          _buildNavItem(2, Icons.explore_outlined, 'Découvrir', isSelected: _selectedNavIndex == 2),
+          _buildNavItem(3, Icons.help_outline_rounded, 'Quiz', isSelected: _selectedNavIndex == 3),
+          _buildNavItem(4, Icons.person_outline_rounded, 'Profil', isSelected: _selectedNavIndex == 4),
         ],
       ),
     );
   }
 
-  Widget _buildNavItem(
-    int index,
-    IconData icon,
-    String label, {
-    required bool isSelected,
-    VoidCallback? onTap,
-  }) {
+  Widget _buildNavItem(int index, IconData icon, String label, {required bool isSelected, VoidCallback? onTap}) {
     return Expanded(
       child: InkWell(
         onTap: () {
@@ -389,9 +338,7 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected
-                      ? const Color(0xFF075E4D)
-                      : const Color(0xFF6C7C77),
+                  color: isSelected ? const Color(0xFF075E4D) : const Color(0xFF6C7C77),
                 ),
               ),
             ),
@@ -402,16 +349,16 @@ class _GastronomieListScreenState extends State<GastronomieListScreen> {
   }
 }
 
-class DishListItem {
-  final String title;
-  final String description;
+class GuideItem {
+  final String name;
+  final String role;
+  final String phone;
   final String imageUrl;
-  bool isFavorite;
 
-  DishListItem({
-    required this.title,
-    required this.description,
+  GuideItem({
+    required this.name,
+    required this.role,
+    required this.phone,
     required this.imageUrl,
-    this.isFavorite = false,
   });
 }
