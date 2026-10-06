@@ -32,15 +32,21 @@ void main() async {
   );
 }
 
-class MaliExplorerApp extends StatelessWidget {
+final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.light);
+
+class MaliExplorerApp extends ConsumerWidget {
   const MaliExplorerApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+
     return MaterialApp.router(
       title: AppStrings.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeMode,
       routerConfig: AppRouter.router,
     );
   }

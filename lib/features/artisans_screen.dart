@@ -1,57 +1,21 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../core/constants/app_colors.dart';
 import '../router/app_router.dart';
 
-class ArtisansScreen extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/artisan_model.dart';
+import '../providers/artisans_provider.dart';
+
+class ArtisansScreen extends ConsumerStatefulWidget {
   const ArtisansScreen({super.key});
 
   @override
-  State<ArtisansScreen> createState() => _ArtisansScreenState();
+  ConsumerState<ArtisansScreen> createState() => _ArtisansScreenState();
 }
 
-class _ArtisansScreenState extends State<ArtisansScreen> {
+class _ArtisansScreenState extends ConsumerState<ArtisansScreen> {
   final TextEditingController _searchController = TextEditingController();
-  int _selectedNavIndex = 0;
-
-  final List<ArtisanItem> _artisans = [
-    ArtisanItem(
-      name: 'Mariam Doumbia',
-      craft: 'Potière',
-      phone: 'telephone : 88888888',
-      imageUrl:
-          'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?q=80&w=600&auto=format&fit=crop',
-    ),
-    ArtisanItem(
-      name: 'Mohamed Coulibaly',
-      craft: 'Artisan sculpteur',
-      phone: 'telephone : 88888888',
-      imageUrl:
-          'https://images.unsplash.com/photo-1544717305-2782549b5136?q=80&w=600&auto=format&fit=crop',
-    ),
-    ArtisanItem(
-      name: 'Moussa Touré',
-      craft: 'Ferronnier & bronzier',
-      phone: 'telephone : 88888888',
-      imageUrl:
-          'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?q=80&w=600&auto=format&fit=crop',
-    ),
-    ArtisanItem(
-      name: 'Ousmane Diarra',
-      craft: 'Teinturier Bogolan',
-      phone: 'telephone : 88888888',
-      imageUrl:
-          'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=600&auto=format&fit=crop',
-    ),
-    ArtisanItem(
-      name: 'Fanta Traoré',
-      craft: 'Bijoutière Touareg',
-      phone: 'telephone : 88888888',
-      imageUrl:
-          'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=600&auto=format&fit=crop',
-    ),
-  ];
 
   @override
   void dispose() {
@@ -142,22 +106,89 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
 
                         const SizedBox(height: 18),
 
-                        // Liste des cartes d'artisans
-                        ..._artisans.map((a) => _buildArtisanCard(a)),
+                        // Liste des cartes d'artisans connectée à Riverpod
+                        ref.watch(filteredArtisansProvider).when(
+                              data: (artisans) {
+                                if (artisans.isEmpty) {
+                                  return const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 40),
+                                    child: Center(
+                                      child: Column(
+                                        children: [
+                                          Icon(Icons.handyman_outlined,
+                                              size: 48,
+                                              color: Color(0xFF8B9B95)),
+                                          SizedBox(height: 12),
+                                          Text(
+                                            'Aucun artisan trouvé.',
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF6C7C77),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return Column(
+                                  children: artisans
+                                      .map((a) => _buildArtisanCard(a))
+                                      .toList(),
+                                );
+                              },
+                              loading: () => const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 50),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    color: Color(0xFF075E4D),
+                                  ),
+                                ),
+                              ),
+                              error: (error, stack) => Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 30),
+                                child: Center(
+                                  child: Column(
+                                    children: [
+                                      const Icon(Icons.error_outline_rounded,
+                                          size: 44, color: Colors.redAccent),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Erreur de chargement des artisans',
+                                        style: TextStyle(
+                                            color: Colors.red[700],
+                                            fontWeight: FontWeight.w600),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      ElevatedButton.icon(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              const Color(0xFF075E4D),
+                                          foregroundColor: Colors.white,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                          ),
+                                        ),
+                                        onPressed: () =>
+                                            ref.refresh(artisansProvider),
+                                        icon: const Icon(Icons.refresh_rounded,
+                                            size: 18),
+                                        label: const Text('Réessayer'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
                       ],
                     ),
                   ),
                 ),
               ),
             ],
-          ),
-
-          // Barre de navigation inférieure flottante
-          Positioned(
-            left: math.max(16.0, screenWidth * 0.04),
-            right: math.max(16.0, screenWidth * 0.04),
-            bottom: math.max(12.0, MediaQuery.of(context).padding.bottom + 6.0),
-            child: _buildBottomNavigationBar(),
           ),
         ],
       ),
@@ -179,6 +210,9 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
           Expanded(
             child: TextField(
               controller: _searchController,
+              onChanged: (val) {
+                ref.read(artisanSearchQueryProvider.notifier).state = val;
+              },
               decoration: const InputDecoration(
                 hintText: 'Rechercher un artisan...',
                 hintStyle: TextStyle(
@@ -197,7 +231,7 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
     );
   }
 
-  Widget _buildArtisanCard(ArtisanItem artisan) {
+  Widget _buildArtisanCard(ArtisanModel artisan) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(10),
@@ -220,7 +254,7 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: Image.network(
-              artisan.imageUrl,
+              artisan.photoUrl,
               width: 76,
               height: 76,
               fit: BoxFit.cover,
@@ -244,7 +278,7 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  artisan.name,
+                  artisan.fullName,
                   style: const TextStyle(
                     fontSize: 15.5,
                     fontWeight: FontWeight.w800,
@@ -253,7 +287,7 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  artisan.craft,
+                  artisan.typeArtisanat,
                   style: const TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w500,
@@ -264,17 +298,21 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
                 Row(
                   children: [
                     const Icon(
-                      Icons.phone_rounded,
+                      Icons.location_on_rounded,
                       color: Color(0xFF0E8F76),
                       size: 14,
                     ),
                     const SizedBox(width: 5),
-                    Text(
-                      artisan.phone,
-                      style: const TextStyle(
-                        fontSize: 11.5,
-                        color: Color(0xFF6C7C77),
-                        fontWeight: FontWeight.w500,
+                    Expanded(
+                      child: Text(
+                        artisan.adresse,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          color: Color(0xFF6C7C77),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
@@ -286,123 +324,4 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
       ),
     );
   }
-
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      height: 66,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(36),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 18,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(
-            0,
-            Icons.home_rounded,
-            'Accueil',
-            isSelected: _selectedNavIndex == 0,
-            onTap: () => context.go(AppRouter.home),
-          ),
-          _buildNavItem(
-            1,
-            Icons.menu_book_rounded,
-            'Carte',
-            isSelected: _selectedNavIndex == 1,
-          ),
-          _buildNavItem(
-            2,
-            Icons.explore_outlined,
-            'Découvrir',
-            isSelected: _selectedNavIndex == 2,
-          ),
-          _buildNavItem(
-            3,
-            Icons.help_outline_rounded,
-            'Quiz',
-            isSelected: _selectedNavIndex == 3,
-          ),
-          _buildNavItem(
-            4,
-            Icons.person_outline_rounded,
-            'Profil',
-            isSelected: _selectedNavIndex == 4,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(
-    int index,
-    IconData icon,
-    String label, {
-    required bool isSelected,
-    VoidCallback? onTap,
-  }) {
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedNavIndex = index;
-          });
-          if (onTap != null) onTap();
-        },
-        borderRadius: BorderRadius.circular(30),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (isSelected)
-              Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF075E4D),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: Colors.white, size: 20),
-              )
-            else
-              Icon(icon, color: const Color(0xFF6C7C77), size: 22),
-            const SizedBox(height: 2.5),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected
-                      ? const Color(0xFF075E4D)
-                      : const Color(0xFF6C7C77),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class ArtisanItem {
-  final String name;
-  final String craft;
-  final String phone;
-  final String imageUrl;
-
-  ArtisanItem({
-    required this.name,
-    required this.craft,
-    required this.phone,
-    required this.imageUrl,
-  });
 }

@@ -1,19 +1,20 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../core/constants/app_colors.dart';
+import '../models/ville_model.dart';
+import '../providers/villes_provider.dart';
 import '../router/app_router.dart';
 
-class VillesListScreen extends StatefulWidget {
+class VillesListScreen extends ConsumerStatefulWidget {
   const VillesListScreen({super.key});
 
   @override
-  State<VillesListScreen> createState() => _VillesListScreenState();
+  ConsumerState<VillesListScreen> createState() => _VillesListScreenState();
 }
 
-class _VillesListScreenState extends State<VillesListScreen> {
+class _VillesListScreenState extends ConsumerState<VillesListScreen> {
   final TextEditingController _searchController = TextEditingController();
-  int _selectedNavIndex = 0;
 
   final List<CityListItem> _cities = [
     CityListItem(
@@ -147,36 +148,71 @@ class _VillesListScreenState extends State<VillesListScreen> {
 
                         const SizedBox(height: 18),
 
-                        // Grille 2 colonnes de cartes de villes
-                        GridView.builder(
-                          physics: const NeverScrollableScrollPhysics(),
-                          shrinkWrap: true,
-                          padding: EdgeInsets.zero,
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 14,
-                            childAspectRatio: 0.74,
-                          ),
-                          itemCount: _cities.length,
-                          itemBuilder: (context, index) {
-                            return _buildCityCard(_cities[index]);
-                          },
-                        ),
+                        // Grille 2 colonnes connectée à Riverpod
+                        ref.watch(filteredVillesProvider).when(
+                              data: (villes) {
+                                final displayVilles = villes.isNotEmpty
+                                    ? villes
+                                    : _cities
+                                        .map((c) => VilleModel(
+                                              id: 0,
+                                              nom: c.name,
+                                              region: c.region,
+                                              description: c.description,
+                                              imageUrl: c.imageUrl,
+                                            ))
+                                        .toList();
+                                return GridView.builder(
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  shrinkWrap: true,
+                                  padding: EdgeInsets.zero,
+                                  gridDelegate:
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 14,
+                                    childAspectRatio: 0.74,
+                                  ),
+                                  itemCount: displayVilles.length,
+                                  itemBuilder: (context, index) {
+                                    final v = displayVilles[index];
+                                    return _buildCityCardFromModel(v);
+                                  },
+                                );
+                              },
+                              loading: () => const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 50),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    color: Color(0xFF075E4D),
+                                  ),
+                                ),
+                              ),
+                              error: (_, _) {
+                                return GridView.builder(
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  shrinkWrap: true,
+                                  padding: EdgeInsets.zero,
+                                  gridDelegate:
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 14,
+                                    childAspectRatio: 0.74,
+                                  ),
+                                  itemCount: _cities.length,
+                                  itemBuilder: (context, index) {
+                                    return _buildCityCard(_cities[index]);
+                                  },
+                                );
+                              },
+                            ),
                       ],
                     ),
                   ),
                 ),
               ),
             ],
-          ),
-
-          // Barre de navigation inférieure
-          Positioned(
-            left: math.max(16.0, screenWidth * 0.04),
-            right: math.max(16.0, screenWidth * 0.04),
-            bottom: math.max(12.0, MediaQuery.of(context).padding.bottom + 6.0),
-            child: _buildBottomNavigationBar(),
           ),
         ],
       ),
@@ -198,6 +234,9 @@ class _VillesListScreenState extends State<VillesListScreen> {
           Expanded(
             child: TextField(
               controller: _searchController,
+              onChanged: (val) {
+                ref.read(villeSearchQueryProvider.notifier).state = val;
+              },
               decoration: const InputDecoration(
                 hintText: 'Rechercher une ville...',
                 hintStyle: TextStyle(
@@ -307,76 +346,93 @@ class _VillesListScreenState extends State<VillesListScreen> {
     );
   }
 
-  Widget _buildBottomNavigationBar() {
+  Widget _buildCityCardFromModel(VilleModel ville) {
     return Container(
-      height: 66,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(36),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 18,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
+        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(0, Icons.home_rounded, 'Accueil', isSelected: _selectedNavIndex == 0, onTap: () => context.go(AppRouter.home)),
-          _buildNavItem(1, Icons.menu_book_rounded, 'Carte', isSelected: _selectedNavIndex == 1),
-          _buildNavItem(2, Icons.explore_outlined, 'Découvrir', isSelected: _selectedNavIndex == 2),
-          _buildNavItem(3, Icons.help_outline_rounded, 'Quiz', isSelected: _selectedNavIndex == 3),
-          _buildNavItem(4, Icons.person_outline_rounded, 'Profil', isSelected: _selectedNavIndex == 4),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(int index, IconData icon, String label, {required bool isSelected, VoidCallback? onTap}) {
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedNavIndex = index;
-          });
-          if (onTap != null) onTap();
-        },
-        borderRadius: BorderRadius.circular(30),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (isSelected)
-              Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF075E4D),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: Colors.white, size: 20),
-              )
-            else
-              Icon(icon, color: const Color(0xFF6C7C77), size: 22),
-            const SizedBox(height: 2.5),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? const Color(0xFF075E4D) : const Color(0xFF6C7C77),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            context.push(AppRouter.cityDetail, extra: ville);
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+                child: Image.network(
+                  ville.imageUrl,
+                  height: 98,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: 98,
+                    color: const Color(0xFFD6A23A).withValues(alpha: 0.2),
+                    child: const Icon(
+                      Icons.location_city_rounded,
+                      color: Color(0xFF075E4D),
+                      size: 32,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      ville.nom,
+                      style: const TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF075E4D),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      ville.region,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFD6A23A),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      ville.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF6C7C77),
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
 }
 
 class CityListItem {

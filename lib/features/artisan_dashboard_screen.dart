@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../core/constants/app_colors.dart';
 import '../router/app_router.dart';
 
 class ArtisanDashboardScreen extends StatefulWidget {
@@ -12,8 +11,6 @@ class ArtisanDashboardScreen extends StatefulWidget {
 }
 
 class _ArtisanDashboardScreenState extends State<ArtisanDashboardScreen> {
-  int _selectedNavIndex = 4;
-
   final List<ArtisanProductItem> _products = [
     ArtisanProductItem(
       title: "Canari d'argile soudanais de luxe",
@@ -166,14 +163,6 @@ class _ArtisanDashboardScreenState extends State<ArtisanDashboardScreen> {
               ),
             ],
           ),
-
-          // Barre de navigation inférieure
-          Positioned(
-            left: math.max(16.0, screenWidth * 0.04),
-            right: math.max(16.0, screenWidth * 0.04),
-            bottom: math.max(12.0, MediaQuery.of(context).padding.bottom + 6.0),
-            child: _buildBottomNavigationBar(),
-          ),
         ],
       ),
     );
@@ -296,77 +285,6 @@ class _ArtisanDashboardScreenState extends State<ArtisanDashboardScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      height: 66,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(36),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 18,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(0, Icons.home_rounded, 'Accueil', isSelected: _selectedNavIndex == 0, onTap: () => context.go(AppRouter.home)),
-          _buildNavItem(1, Icons.menu_book_rounded, 'Carte', isSelected: _selectedNavIndex == 1),
-          _buildNavItem(2, Icons.explore_outlined, 'Découvrir', isSelected: _selectedNavIndex == 2, onTap: () => context.push(AppRouter.monParcours)),
-          _buildNavItem(3, Icons.help_outline_rounded, 'Quiz', isSelected: _selectedNavIndex == 3, onTap: () => context.push(AppRouter.quizList)),
-          _buildNavItem(4, Icons.person_rounded, 'Profil', isSelected: _selectedNavIndex == 4, onTap: () => context.push(AppRouter.profil)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(int index, IconData icon, String label, {required bool isSelected, VoidCallback? onTap}) {
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedNavIndex = index;
-          });
-          if (onTap != null) onTap();
-        },
-        borderRadius: BorderRadius.circular(30),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (isSelected)
-              Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF075E4D),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: Colors.white, size: 20),
-              )
-            else
-              Icon(icon, color: const Color(0xFF6C7C77), size: 22),
-            const SizedBox(height: 2.5),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? const Color(0xFF075E4D) : const Color(0xFF6C7C77),
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

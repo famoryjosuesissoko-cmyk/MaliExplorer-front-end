@@ -8,7 +8,7 @@ plugins {
 
 android {
     namespace = "com.maliexplorer.mali_explorer_frontend"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

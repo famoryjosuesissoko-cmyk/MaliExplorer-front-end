@@ -6,11 +6,16 @@ class ApiConstants {
 
   static const Duration timeout = Duration(seconds: 15);
 
+  static const String fallbackLanUrl = 'http://10.117.204.142:8080/api';
+
   static String get baseUrl {
+    const fromEnv = String.fromEnvironment('API_BASE_URL');
+    if (fromEnv.isNotEmpty) return fromEnv;
     if (kIsWeb) {
       return 'http://localhost:8080/api';
     } else if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:8080/api';
+      // 127.0.0.1 fonctionne directement pour le téléphone physique connecté en adb reverse
+      return 'http://127.0.0.1:8080/api';
     } else {
       return 'http://localhost:8080/api';
     }

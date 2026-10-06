@@ -1,50 +1,21 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../core/constants/app_colors.dart';
 import '../router/app_router.dart';
 
-class EthniesListScreen extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/ethnie_model.dart';
+import '../providers/ethnies_provider.dart';
+
+class EthniesListScreen extends ConsumerStatefulWidget {
   const EthniesListScreen({super.key});
 
   @override
-  State<EthniesListScreen> createState() => _EthniesListScreenState();
+  ConsumerState<EthniesListScreen> createState() => _EthniesListScreenState();
 }
 
-class _EthniesListScreenState extends State<EthniesListScreen> {
+class _EthniesListScreenState extends ConsumerState<EthniesListScreen> {
   final TextEditingController _searchController = TextEditingController();
-  int _selectedNavIndex = 0;
-
-  final List<EthnicityListItem> _ethnicities = [
-    EthnicityListItem(
-      title: 'Dogon',
-      description:
-          'Célèbres pour leur cosmogonie complexe, leurs masques spectaculaires et leur architecture unique.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?q=80&w=800&auto=format&fit=crop',
-    ),
-    EthnicityListItem(
-      title: 'Bambara',
-      description:
-          'Majoritaires, historiquement liés au grand empire de Ségou, réputés pour leur art et contes rituels.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1578922746465-3a80a228f223?q=80&w=800&auto=format&fit=crop',
-    ),
-    EthnicityListItem(
-      title: 'Peul',
-      description:
-          'Pasteurs et nomades réputés pour leur élégance, leurs parures et leur riche tradition orale.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1516426122078-c23e76319801?q=80&w=800&auto=format&fit=crop',
-    ),
-    EthnicityListItem(
-      title: 'Touareg',
-      description:
-          'Les "hommes bleus du désert", gardiens des oasis sahariennes et maîtres de la musique Tichumaren.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=800&auto=format&fit=crop',
-    ),
-  ];
 
   @override
   void dispose() {
@@ -133,22 +104,89 @@ class _EthniesListScreenState extends State<EthniesListScreen> {
 
                         const SizedBox(height: 18),
 
-                        // Grandes cartes d'ethnies
-                        ..._ethnicities.map((eth) => _buildEthnicityCard(eth)),
+                        // Grandes cartes d'ethnies connectées à Riverpod
+                        ref.watch(filteredEthniesProvider).when(
+                              data: (ethnies) {
+                                if (ethnies.isEmpty) {
+                                  return const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 40),
+                                    child: Center(
+                                      child: Column(
+                                        children: [
+                                          Icon(Icons.theater_comedy_rounded,
+                                              size: 48,
+                                              color: Color(0xFF8B9B95)),
+                                          SizedBox(height: 12),
+                                          Text(
+                                            'Aucune ethnie trouvée.',
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF6C7C77),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return Column(
+                                  children: ethnies
+                                      .map((eth) => _buildEthnicityCard(eth))
+                                      .toList(),
+                                );
+                              },
+                              loading: () => const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 50),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    color: Color(0xFF075E4D),
+                                  ),
+                                ),
+                              ),
+                              error: (error, stack) => Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 30),
+                                child: Center(
+                                  child: Column(
+                                    children: [
+                                      const Icon(Icons.error_outline_rounded,
+                                          size: 44, color: Colors.redAccent),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Erreur de chargement des ethnies',
+                                        style: TextStyle(
+                                            color: Colors.red[700],
+                                            fontWeight: FontWeight.w600),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      ElevatedButton.icon(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              const Color(0xFF075E4D),
+                                          foregroundColor: Colors.white,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                          ),
+                                        ),
+                                        onPressed: () =>
+                                            ref.refresh(ethniesProvider),
+                                        icon: const Icon(Icons.refresh_rounded,
+                                            size: 18),
+                                        label: const Text('Réessayer'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
                       ],
                     ),
                   ),
                 ),
               ),
             ],
-          ),
-
-          // Barre de navigation inférieure
-          Positioned(
-            left: math.max(16.0, screenWidth * 0.04),
-            right: math.max(16.0, screenWidth * 0.04),
-            bottom: math.max(12.0, MediaQuery.of(context).padding.bottom + 6.0),
-            child: _buildBottomNavigationBar(),
           ),
         ],
       ),
@@ -170,6 +208,9 @@ class _EthniesListScreenState extends State<EthniesListScreen> {
           Expanded(
             child: TextField(
               controller: _searchController,
+              onChanged: (val) {
+                ref.read(ethnieSearchQueryProvider.notifier).state = val;
+              },
               decoration: const InputDecoration(
                 hintText: 'Rechercher une ethnie...',
                 hintStyle: TextStyle(
@@ -188,7 +229,7 @@ class _EthniesListScreenState extends State<EthniesListScreen> {
     );
   }
 
-  Widget _buildEthnicityCard(EthnicityListItem eth) {
+  Widget _buildEthnicityCard(EthnieModel eth) {
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
       decoration: BoxDecoration(
@@ -207,8 +248,8 @@ class _EthniesListScreenState extends State<EthniesListScreen> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            // Navigation vers la page détail d'ethnie (Les Dogons)
-            context.push(AppRouter.ethnicityDetail);
+            // Navigation vers la page détail d'ethnie avec données réelles
+            context.push(AppRouter.ethnicityDetail, extra: eth);
           },
           borderRadius: BorderRadius.circular(18),
           child: Column(
@@ -241,7 +282,7 @@ class _EthniesListScreenState extends State<EthniesListScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      eth.title,
+                      eth.nom,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -267,87 +308,4 @@ class _EthniesListScreenState extends State<EthniesListScreen> {
       ),
     );
   }
-
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      height: 66,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(36),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 18,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(0, Icons.home_rounded, 'Accueil', isSelected: _selectedNavIndex == 0, onTap: () => context.go(AppRouter.home)),
-          _buildNavItem(1, Icons.menu_book_rounded, 'Carte', isSelected: _selectedNavIndex == 1),
-          _buildNavItem(2, Icons.explore_outlined, 'Découvrir', isSelected: _selectedNavIndex == 2),
-          _buildNavItem(3, Icons.help_outline_rounded, 'Quiz', isSelected: _selectedNavIndex == 3),
-          _buildNavItem(4, Icons.person_outline_rounded, 'Profil', isSelected: _selectedNavIndex == 4),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(int index, IconData icon, String label, {required bool isSelected, VoidCallback? onTap}) {
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedNavIndex = index;
-          });
-          if (onTap != null) onTap();
-        },
-        borderRadius: BorderRadius.circular(30),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (isSelected)
-              Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF075E4D),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: Colors.white, size: 20),
-              )
-            else
-              Icon(icon, color: const Color(0xFF6C7C77), size: 22),
-            const SizedBox(height: 2.5),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? const Color(0xFF075E4D) : const Color(0xFF6C7C77),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class EthnicityListItem {
-  final String title;
-  final String description;
-  final String imageUrl;
-
-  EthnicityListItem({
-    required this.title,
-    required this.description,
-    required this.imageUrl,
-  });
 }

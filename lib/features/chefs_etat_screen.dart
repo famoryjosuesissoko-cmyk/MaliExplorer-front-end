@@ -1,62 +1,21 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../core/constants/app_colors.dart';
 import '../router/app_router.dart';
 
-class ChefsEtatScreen extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/president_model.dart';
+import '../providers/presidents_provider.dart';
+
+class ChefsEtatScreen extends ConsumerStatefulWidget {
   const ChefsEtatScreen({super.key});
 
   @override
-  State<ChefsEtatScreen> createState() => _ChefsEtatScreenState();
+  ConsumerState<ChefsEtatScreen> createState() => _ChefsEtatScreenState();
 }
 
-class _ChefsEtatScreenState extends State<ChefsEtatScreen> {
+class _ChefsEtatScreenState extends ConsumerState<ChefsEtatScreen> {
   final TextEditingController _searchController = TextEditingController();
-  int _selectedNavIndex = 0;
-
-  final List<PresidentItem> _presidents = [
-    PresidentItem(
-      name: 'Modibo Keïta',
-      period: '1960 - 1968',
-      description:
-          'Père de l\'indépendance malienne, fervent défenseur du panafricanisme et du socialisme africain.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=400&auto=format&fit=crop',
-    ),
-    PresidentItem(
-      name: 'Moussa Traoré',
-      period: '1968 - 1991',
-      description:
-          'Militaire de carrière, au pouvoir durant deux décennies caractérisées par de profondes mutations structurelles.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=400&auto=format&fit=crop',
-    ),
-    PresidentItem(
-      name: 'Alpha Oumar Konaré',
-      period: '1992 - 2002',
-      description:
-          'Premier président de la IIIe République, reconnu pour son engagement démocratique et culturel.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=400&auto=format&fit=crop',
-    ),
-    PresidentItem(
-      name: 'Amadou Toumani Touré',
-      period: '2002 - 2012',
-      description:
-          'Surnommé "ATT", artisan de la transition démocratique et grand bâtisseur d\'infrastructures.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=400&auto=format&fit=crop',
-    ),
-    PresidentItem(
-      name: 'Ibrahim Boubacar Keïta',
-      period: '2013 - 2020',
-      description:
-          'Connu sous le nom de "IBK", engagé pour le rayonnement diplomatique et la préservation de l\'unité nationale.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=400&auto=format&fit=crop',
-    ),
-  ];
 
   @override
   void dispose() {
@@ -145,22 +104,89 @@ class _ChefsEtatScreenState extends State<ChefsEtatScreen> {
 
                         const SizedBox(height: 18),
 
-                        // Liste des cartes de présidents
-                        ..._presidents.map((p) => _buildPresidentCard(p)),
+                        // Liste des cartes de présidents connectée à Riverpod
+                        ref.watch(filteredPresidentsProvider).when(
+                              data: (presidents) {
+                                if (presidents.isEmpty) {
+                                  return const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 40),
+                                    child: Center(
+                                      child: Column(
+                                        children: [
+                                          Icon(Icons.person_off_rounded,
+                                              size: 48,
+                                              color: Color(0xFF8B9B95)),
+                                          SizedBox(height: 12),
+                                          Text(
+                                            'Aucun chef d\'état trouvé.',
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF6C7C77),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return Column(
+                                  children: presidents
+                                      .map((p) => _buildPresidentCard(p))
+                                      .toList(),
+                                );
+                              },
+                              loading: () => const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 50),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    color: Color(0xFF075E4D),
+                                  ),
+                                ),
+                              ),
+                              error: (error, stack) => Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 30),
+                                child: Center(
+                                  child: Column(
+                                    children: [
+                                      const Icon(Icons.error_outline_rounded,
+                                          size: 44, color: Colors.redAccent),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Erreur de chargement des présidents',
+                                        style: TextStyle(
+                                            color: Colors.red[700],
+                                            fontWeight: FontWeight.w600),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      ElevatedButton.icon(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              const Color(0xFF075E4D),
+                                          foregroundColor: Colors.white,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                          ),
+                                        ),
+                                        onPressed: () =>
+                                            ref.refresh(presidentsProvider),
+                                        icon: const Icon(Icons.refresh_rounded,
+                                            size: 18),
+                                        label: const Text('Réessayer'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
                       ],
                     ),
                   ),
                 ),
               ),
             ],
-          ),
-
-          // Barre de navigation inférieure flottante
-          Positioned(
-            left: math.max(16.0, screenWidth * 0.04),
-            right: math.max(16.0, screenWidth * 0.04),
-            bottom: math.max(12.0, MediaQuery.of(context).padding.bottom + 6.0),
-            child: _buildBottomNavigationBar(),
           ),
         ],
       ),
@@ -182,6 +208,9 @@ class _ChefsEtatScreenState extends State<ChefsEtatScreen> {
           Expanded(
             child: TextField(
               controller: _searchController,
+              onChanged: (val) {
+                ref.read(presidentSearchQueryProvider.notifier).state = val;
+              },
               decoration: const InputDecoration(
                 hintText: 'Rechercher un chef d\'état...',
                 hintStyle: TextStyle(
@@ -200,7 +229,7 @@ class _ChefsEtatScreenState extends State<ChefsEtatScreen> {
     );
   }
 
-  Widget _buildPresidentCard(PresidentItem president) {
+  Widget _buildPresidentCard(PresidentModel president) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(12),
@@ -225,17 +254,20 @@ class _ChefsEtatScreenState extends State<ChefsEtatScreen> {
             height: 60,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFF075E4D).withValues(alpha: 0.2), width: 2),
+              border: Border.all(
+                  color: const Color(0xFF075E4D).withValues(alpha: 0.2),
+                  width: 2),
             ),
             child: ClipOval(
               child: Image.network(
-                president.imageUrl,
+                president.photoUrl,
                 width: 60,
                 height: 60,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) => Container(
                   color: const Color(0xFF075E4D).withValues(alpha: 0.15),
-                  child: const Icon(Icons.person, color: Color(0xFF075E4D), size: 30),
+                  child: const Icon(Icons.person,
+                      color: Color(0xFF075E4D), size: 30),
                 ),
               ),
             ),
@@ -253,7 +285,7 @@ class _ChefsEtatScreenState extends State<ChefsEtatScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        president.name,
+                        president.fullName,
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
@@ -262,7 +294,7 @@ class _ChefsEtatScreenState extends State<ChefsEtatScreen> {
                       ),
                     ),
                     Text(
-                      president.period,
+                      president.periodeMandat,
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -275,7 +307,7 @@ class _ChefsEtatScreenState extends State<ChefsEtatScreen> {
 
                 // Description biographique
                 Text(
-                  president.description,
+                  president.biographie,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -291,89 +323,4 @@ class _ChefsEtatScreenState extends State<ChefsEtatScreen> {
       ),
     );
   }
-
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      height: 66,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(36),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 18,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(0, Icons.home_rounded, 'Accueil', isSelected: _selectedNavIndex == 0, onTap: () => context.go(AppRouter.home)),
-          _buildNavItem(1, Icons.menu_book_rounded, 'Carte', isSelected: _selectedNavIndex == 1),
-          _buildNavItem(2, Icons.explore_outlined, 'Découvrir', isSelected: _selectedNavIndex == 2),
-          _buildNavItem(3, Icons.help_outline_rounded, 'Quiz', isSelected: _selectedNavIndex == 3),
-          _buildNavItem(4, Icons.person_outline_rounded, 'Profil', isSelected: _selectedNavIndex == 4),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(int index, IconData icon, String label, {required bool isSelected, VoidCallback? onTap}) {
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedNavIndex = index;
-          });
-          if (onTap != null) onTap();
-        },
-        borderRadius: BorderRadius.circular(30),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (isSelected)
-              Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF075E4D),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: Colors.white, size: 20),
-              )
-            else
-              Icon(icon, color: const Color(0xFF6C7C77), size: 22),
-            const SizedBox(height: 2.5),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? const Color(0xFF075E4D) : const Color(0xFF6C7C77),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class PresidentItem {
-  final String name;
-  final String period;
-  final String description;
-  final String imageUrl;
-
-  PresidentItem({
-    required this.name,
-    required this.period,
-    required this.description,
-    required this.imageUrl,
-  });
 }

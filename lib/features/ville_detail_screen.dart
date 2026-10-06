@@ -1,22 +1,25 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/constants/app_colors.dart';
-import '../router/app_router.dart';
+import '../models/ville_model.dart';
+import '../providers/favoris_provider.dart';
 
-/// Page Détail d'une Ville / Lieu historique (Exemple : Tombouctou)
-class CityDetailScreen extends StatefulWidget {
-  const CityDetailScreen({super.key});
+/// Page Détail d'une Ville / Lieu historique
+class CityDetailScreen extends ConsumerStatefulWidget {
+  final VilleModel? ville;
+
+  const CityDetailScreen({super.key, this.ville});
 
   @override
-  State<CityDetailScreen> createState() => _CityDetailScreenState();
+  ConsumerState<CityDetailScreen> createState() => _CityDetailScreenState();
 }
 
-class _CityDetailScreenState extends State<CityDetailScreen> {
-  bool _isFavorite = true;
-  int _selectedNavIndex = 0;
+class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
 
-  final List<String> _galleryPhotos = const [
+  List<String> get _galleryPhotos => [
+    if (widget.ville?.imageUrl != null && widget.ville!.imageUrl.isNotEmpty)
+      widget.ville!.imageUrl,
     'https://images.unsplash.com/photo-1578922746465-3a80a228f223?q=80&w=1000&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?q=80&w=1000&auto=format&fit=crop',
   ];
@@ -27,6 +30,22 @@ class _CityDetailScreenState extends State<CityDetailScreen> {
     final double screenWidth = screenSize.width;
     final double screenHeight = screenSize.height;
     final double heroHeight = (screenHeight * 0.38).clamp(260.0, 340.0);
+
+    final String nomVille = widget.ville?.nom ?? 'Tombouctou';
+    final String badgeVille =
+        widget.ville?.region != null && widget.ville!.region.isNotEmpty
+        ? 'Région: ${widget.ville!.region}'
+        : 'Lieu historique';
+    final String description =
+        widget.ville?.description ??
+        'Dotée de la prestigieuse université coranique de Sankoré et d\'autres medersa, Tombouctou était aux XVe et XVIe siècles une capitale intellectuelle et spirituelle et un centre de propagation de l\'islam en Afrique. Ses trois grandes mosquées (Djingareyber, Sankoré et Sidi Yahia) témoignent de son âge d\'or. Bien que restaurés au XVIe siècle, ces monuments sont aujourd\'hui menacés par l\'avancée du sable.';
+    final String population =
+        widget.ville?.nbreHbt != null && widget.ville!.nbreHbt!.isNotEmpty
+        ? '${widget.ville!.nbreHbt} hab.'
+        : '85 000';
+    final String langue = widget.ville?.region.isNotEmpty == true
+        ? 'Bambara, langues locales'
+        : 'songhaï, tamasheq, bambara';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8F5),
@@ -39,7 +58,7 @@ class _CityDetailScreenState extends State<CityDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. Image Hero (Grande Mosquée de Tombouctou) avec boutons Retour & Favoris
+                // 1. Image Hero avec boutons Retour & Favoris
                 _buildHeroImage(context, heroHeight),
 
                 // 2. Fiche descriptive blanche
@@ -68,9 +87,9 @@ class _CityDetailScreenState extends State<CityDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Titre & Badge
-                        const Text(
-                          'Tombouctou',
-                          style: TextStyle(
+                        Text(
+                          nomVille,
+                          style: const TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.w800,
                             color: AppColors.textPrimary,
@@ -87,9 +106,9 @@ class _CityDetailScreenState extends State<CityDetailScreen> {
                             color: const Color(0xFFFDF0D5),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Text(
-                            'Lieu historique',
-                            style: TextStyle(
+                          child: Text(
+                            badgeVille,
+                            style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               color: AppColors.solarYellow,
@@ -100,9 +119,9 @@ class _CityDetailScreenState extends State<CityDetailScreen> {
                         const SizedBox(height: 18),
 
                         // Texte de description
-                        const Text(
-                          'Dotée de la prestigieuse université coranique de Sankoré et d\'autres medersa, Tombouctou était aux XVe et XVIe siècles une capitale intellectuelle et spirituelle et un centre de propagation de l\'islam en Afrique. Ses trois grandes mosquées (Djingareyber, Sankoré et Sidi Yahia) témoignent de son âge d\'or. Bien que restaurés au XVIe siècle, ces monuments sont aujourd\'hui menacés par l\'avancée du sable.',
-                          style: TextStyle(
+                        Text(
+                          description,
+                          style: const TextStyle(
                             fontSize: 13.5,
                             color: AppColors.textSecondary,
                             height: 1.55,
@@ -119,7 +138,7 @@ class _CityDetailScreenState extends State<CityDetailScreen> {
                               child: _buildInfoCard(
                                 icon: Icons.people_alt_outlined,
                                 title: 'Populations',
-                                value: '85 000',
+                                value: population,
                                 iconColor: AppColors.solarYellow,
                               ),
                             ),
@@ -129,7 +148,7 @@ class _CityDetailScreenState extends State<CityDetailScreen> {
                               child: _buildInfoCard(
                                 icon: Icons.chat_bubble_outline_rounded,
                                 title: 'Langues',
-                                value: 'songhaï, tamasheq, bambara',
+                                value: langue,
                                 iconColor: AppColors.solarYellow,
                               ),
                             ),
@@ -170,14 +189,6 @@ class _CityDetailScreenState extends State<CityDetailScreen> {
                 ),
               ],
             ),
-          ),
-
-          // 3. Barre de navigation inférieure flottante
-          Positioned(
-            left: math.max(16.0, screenWidth * 0.04),
-            right: math.max(16.0, screenWidth * 0.04),
-            bottom: math.max(12.0, MediaQuery.of(context).padding.bottom + 6.0),
-            child: _buildBottomNavigationBar(),
           ),
         ],
       ),
@@ -235,15 +246,18 @@ class _CityDetailScreenState extends State<CityDetailScreen> {
   Widget _buildHeroImage(BuildContext context, double height) {
     return Stack(
       children: [
-        // Image de Tombouctou
+        // Image de la ville
         Container(
           height: height,
           width: double.infinity,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: AppColors.textPrimary,
             image: DecorationImage(
               image: NetworkImage(
-                'https://images.unsplash.com/photo-1578922746465-3a80a228f223?q=80&w=1000&auto=format&fit=crop',
+                widget.ville?.imageUrl != null &&
+                        widget.ville!.imageUrl.isNotEmpty
+                    ? widget.ville!.imageUrl
+                    : 'https://images.unsplash.com/photo-1578922746465-3a80a228f223?q=80&w=1000&auto=format&fit=crop',
               ),
               fit: BoxFit.cover,
             ),
@@ -284,148 +298,58 @@ class _CityDetailScreenState extends State<CityDetailScreen> {
                     ),
                   ),
                 ),
-                InkWell(
-                  onTap: () {
-                    setState(() {
-                      _isFavorite = !_isFavorite;
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(30),
-                  child: Container(
-                    width: 38,
-                    height: 38,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 6,
-                          offset: Offset(0, 2),
+                // Bouton Favoris (Cœur rouge réactif)
+                Builder(
+                  builder: (context) {
+                    ref.watch(favorisNotifierProvider);
+                    final nomVille = widget.ville?.nom ?? 'Djenné';
+                    final isFav = ref.read(favorisNotifierProvider.notifier).isFavorite(nomVille);
+
+                    return InkWell(
+                      onTap: () async {
+                        await ref.read(favorisNotifierProvider.notifier).toggleFavori(
+                          titre: nomVille,
+                          categorie: widget.ville?.region != null ? 'Région : ${widget.ville!.region}' : 'Lieu historique',
+                          imageUrl: widget.ville?.imageUrl ??
+                              'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?q=80&w=1000&auto=format&fit=crop',
+                          route: '/cityDetail',
+                          referenceId: widget.ville?.id,
+                          isLieu: true,
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(30),
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 6,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Icon(
-                      _isFavorite
-                          ? Icons.favorite_rounded
-                          : Icons.favorite_border_rounded,
-                      color: _isFavorite
-                          ? const Color(0xFFE53935)
-                          : const Color(0xFF6C7C77),
-                      size: 20,
-                    ),
-                  ),
+                        child: Icon(
+                          isFav
+                              ? Icons.favorite_rounded
+                              : Icons.favorite_border_rounded,
+                          color: isFav
+                              ? const Color(0xFFE53935)
+                              : const Color(0xFF6C7C77),
+                          size: 20,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      height: 66,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(36),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 18,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(
-            0,
-            Icons.home_rounded,
-            'Accueil',
-            isSelected: _selectedNavIndex == 0,
-            onTap: () => context.go(AppRouter.home),
-          ),
-          _buildNavItem(
-            1,
-            Icons.menu_book_rounded,
-            'Carte',
-            isSelected: _selectedNavIndex == 1,
-          ),
-          _buildNavItem(
-            2,
-            Icons.explore_outlined,
-            'Découvrir',
-            isSelected: _selectedNavIndex == 2,
-          ),
-          _buildNavItem(
-            3,
-            Icons.help_outline_rounded,
-            'Quiz',
-            isSelected: _selectedNavIndex == 3,
-          ),
-          _buildNavItem(
-            4,
-            Icons.person_outline_rounded,
-            'Profil',
-            isSelected: _selectedNavIndex == 4,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(
-    int index,
-    IconData icon,
-    String label, {
-    required bool isSelected,
-    VoidCallback? onTap,
-  }) {
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedNavIndex = index;
-          });
-          if (onTap != null) onTap();
-        },
-        borderRadius: BorderRadius.circular(30),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (isSelected)
-              Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryForest,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: Colors.white, size: 20),
-              )
-            else
-              Icon(icon, color: AppColors.textSecondary, size: 22),
-            const SizedBox(height: 2.5),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected
-                      ? AppColors.secondaryEmerald
-                      : AppColors.textSecondary,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

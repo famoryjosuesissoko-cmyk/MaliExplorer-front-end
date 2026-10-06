@@ -1,19 +1,20 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../core/constants/app_colors.dart';
+import '../models/guide_model.dart';
+import '../providers/guides_provider.dart';
 import '../router/app_router.dart';
 
-class GuidesScreen extends StatefulWidget {
+class GuidesScreen extends ConsumerStatefulWidget {
   const GuidesScreen({super.key});
 
   @override
-  State<GuidesScreen> createState() => _GuidesScreenState();
+  ConsumerState<GuidesScreen> createState() => _GuidesScreenState();
 }
 
-class _GuidesScreenState extends State<GuidesScreen> {
+class _GuidesScreenState extends ConsumerState<GuidesScreen> {
   final TextEditingController _searchController = TextEditingController();
-  int _selectedNavIndex = 0;
 
   final List<GuideItem> _guides = [
     GuideItem(
@@ -140,22 +141,54 @@ class _GuidesScreenState extends State<GuidesScreen> {
 
                         const SizedBox(height: 18),
 
-                        // Liste des cartes de guides
-                        ..._guides.map((g) => _buildGuideCard(g)),
+                        // Liste des cartes de guides connectée à Riverpod
+                        ref.watch(filteredGuidesProvider).when(
+                              data: (guides) {
+                                final displayGuides = guides.isNotEmpty
+                                    ? guides
+                                    : _guides
+                                        .map((g) => GuideModel(
+                                              idUsers: 0,
+                                              prenom: g.name.split(' ').first,
+                                              nom: g.name.split(' ').length > 1
+                                                  ? g.name.split(' ').sublist(1).join(' ')
+                                                  : '',
+                                              email: '',
+                                              adresse: '',
+                                              photoUrl: g.imageUrl,
+                                              role: 'guide',
+                                              experience: 5,
+                                              description: g.role,
+                                              langue: 'Français, Bambara',
+                                              recherchePartenariat: false,
+                                            ))
+                                        .toList();
+                                return Column(
+                                  children: displayGuides
+                                      .map((guide) => _buildGuideCardFromModel(guide))
+                                      .toList(),
+                                );
+                              },
+                              loading: () => const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 50),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    color: Color(0xFF075E4D),
+                                  ),
+                                ),
+                              ),
+                              error: (_, _) => Column(
+                                children: _guides
+                                    .map((g) => _buildGuideCard(g))
+                                    .toList(),
+                              ),
+                            ),
                       ],
                     ),
                   ),
                 ),
               ),
             ],
-          ),
-
-          // Barre de navigation inférieure flottante
-          Positioned(
-            left: math.max(16.0, screenWidth * 0.04),
-            right: math.max(16.0, screenWidth * 0.04),
-            bottom: math.max(12.0, MediaQuery.of(context).padding.bottom + 6.0),
-            child: _buildBottomNavigationBar(),
           ),
         ],
       ),
@@ -177,6 +210,9 @@ class _GuidesScreenState extends State<GuidesScreen> {
           Expanded(
             child: TextField(
               controller: _searchController,
+              onChanged: (val) {
+                ref.read(guideSearchQueryProvider.notifier).state = val;
+              },
               decoration: const InputDecoration(
                 hintText: 'Rechercher un guide...',
                 hintStyle: TextStyle(
@@ -277,73 +313,93 @@ class _GuidesScreenState extends State<GuidesScreen> {
     );
   }
 
-  Widget _buildBottomNavigationBar() {
+  Widget _buildGuideCardFromModel(GuideModel guide) {
+    final photo = guide.photoUrl.isNotEmpty
+        ? guide.photoUrl
+        : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=400&auto=format&fit=crop';
+
     return Container(
-      height: 66,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(36),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 18,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
+        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _buildNavItem(0, Icons.home_rounded, 'Accueil', isSelected: _selectedNavIndex == 0, onTap: () => context.go(AppRouter.home)),
-          _buildNavItem(1, Icons.menu_book_rounded, 'Carte', isSelected: _selectedNavIndex == 1),
-          _buildNavItem(2, Icons.explore_outlined, 'Découvrir', isSelected: _selectedNavIndex == 2),
-          _buildNavItem(3, Icons.help_outline_rounded, 'Quiz', isSelected: _selectedNavIndex == 3),
-          _buildNavItem(4, Icons.person_outline_rounded, 'Profil', isSelected: _selectedNavIndex == 4),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(int index, IconData icon, String label, {required bool isSelected, VoidCallback? onTap}) {
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedNavIndex = index;
-          });
-          if (onTap != null) onTap();
-        },
-        borderRadius: BorderRadius.circular(30),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (isSelected)
-              Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF075E4D),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: Colors.white, size: 20),
-              )
-            else
-              Icon(icon, color: const Color(0xFF6C7C77), size: 22),
-            const SizedBox(height: 2.5),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? const Color(0xFF075E4D) : const Color(0xFF6C7C77),
-                ),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              photo,
+              width: 76,
+              height: 76,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                width: 76,
+                height: 76,
+                color: const Color(0xFF075E4D).withValues(alpha: 0.15),
+                child: const Icon(Icons.person, color: Color(0xFF075E4D), size: 32),
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  guide.fullName,
+                  style: const TextStyle(
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF075E4D),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  guide.description.isNotEmpty
+                      ? guide.description
+                      : 'Guide touristique (${guide.experience} ans d\'expérience)',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF6C7C77),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(Icons.language_rounded, color: Color(0xFF0E8F76), size: 14),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text(
+                        guide.langue.isNotEmpty ? guide.langue : 'Bambara, Français',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          color: Color(0xFF6C7C77),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

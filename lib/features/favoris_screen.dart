@@ -1,63 +1,19 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../core/constants/app_colors.dart';
 import '../router/app_router.dart';
 
-class FavorisScreen extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/favori_model.dart';
+import '../providers/favoris_provider.dart';
+
+class FavorisScreen extends ConsumerStatefulWidget {
   const FavorisScreen({super.key});
 
   @override
-  State<FavorisScreen> createState() => _FavorisScreenState();
+  ConsumerState<FavorisScreen> createState() => _FavorisScreenState();
 }
 
-class _FavorisScreenState extends State<FavorisScreen> {
-  int _selectedNavIndex = 4; // Profil / Favoris actif
-
-  final List<FavoriteItem> _favorites = [
-    FavoriteItem(
-      title: 'Mosquée de Djenné',
-      category: 'Lieu traditionnel',
-      imageUrl:
-          'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?q=80&w=600&auto=format&fit=crop',
-      route: AppRouter.cityDetail,
-    ),
-    FavoriteItem(
-      title: 'Saka-Saka',
-      category: 'Plat',
-      imageUrl:
-          'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600&auto=format&fit=crop',
-      route: AppRouter.dishDetail,
-    ),
-    FavoriteItem(
-      title: 'Les dogons',
-      category: 'Ethnie',
-      imageUrl:
-          'https://images.unsplash.com/photo-1578922746465-3a80a228f223?q=80&w=600&auto=format&fit=crop',
-      route: AppRouter.ethnicityDetail,
-    ),
-    FavoriteItem(
-      title: 'Tigadegué',
-      category: 'Plat',
-      imageUrl:
-          'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=600&auto=format&fit=crop',
-      route: AppRouter.dishDetail,
-    ),
-    FavoriteItem(
-      title: 'Mosquée de Djenné',
-      category: 'Lieu traditionnel',
-      imageUrl:
-          'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?q=80&w=600&auto=format&fit=crop',
-      route: AppRouter.cityDetail,
-    ),
-    FavoriteItem(
-      title: 'Tigadegué',
-      category: 'Plat',
-      imageUrl:
-          'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=600&auto=format&fit=crop',
-      route: AppRouter.dishDetail,
-    ),
-  ];
+class _FavorisScreenState extends ConsumerState<FavorisScreen> {
 
   @override
   Widget build(BuildContext context) {
@@ -120,30 +76,69 @@ class _FavorisScreenState extends State<FavorisScreen> {
                     color: Color(0xFFF7F8F5),
                     borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
                   ),
-                  child: _favorites.isEmpty
-                      ? _buildEmptyState()
-                      : ListView.separated(
-                          physics: const BouncingScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(18, 20, 18, 110),
-                          itemCount: _favorites.length,
-                          separatorBuilder: (context, index) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final item = _favorites[index];
-                            return _buildFavoriteCard(item, index);
-                          },
+                  child: ref.watch(favorisProvider).when(
+                        loading: () => const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF075E4D),
+                          ),
                         ),
+                        error: (error, _) => Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.error_outline_rounded,
+                                size: 48,
+                                color: Color(0xFFE53935),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Erreur de chargement des favoris',
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF16332D),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              ElevatedButton(
+                                onPressed: () => ref.invalidate(favorisProvider),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF075E4D),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: const Text('Réessayer'),
+                              ),
+                            ],
+                          ),
+                        ),
+                        data: (favorites) {
+                          if (favorites.isEmpty) {
+                            return _buildEmptyState();
+                          }
+                          return RefreshIndicator(
+                            color: const Color(0xFF075E4D),
+                            onRefresh: () async => ref.read(favorisNotifierProvider.notifier).loadFavoris(),
+                            child: ListView.separated(
+                              physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                              padding: const EdgeInsets.fromLTRB(18, 20, 18, 110),
+                              itemCount: favorites.length,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 12),
+                              itemBuilder: (context, index) {
+                                final item = favorites[index];
+                                return _buildFavoriteCard(item, index);
+                              },
+                            ),
+                          );
+                        },
+                      ),
                 ),
               ),
             ],
-          ),
-
-          // Barre de navigation inférieure
-          Positioned(
-            left: math.max(16.0, screenWidth * 0.04),
-            right: math.max(16.0, screenWidth * 0.04),
-            bottom: math.max(12.0, MediaQuery.of(context).padding.bottom + 6.0),
-            child: _buildBottomNavigationBar(),
           ),
         ],
       ),
@@ -182,21 +177,21 @@ class _FavorisScreenState extends State<FavorisScreen> {
     );
   }
 
-  Widget _buildFavoriteCard(FavoriteItem item, int index) {
+  Widget _buildFavoriteCard(FavoriModel item, int index) {
     return Dismissible(
-      key: Key('${item.title}_$index'),
+      key: Key('${item.titre}_${item.id}_$index'),
       direction: DismissDirection.endToStart,
-      onDismissed: (direction) {
-        setState(() {
-          _favorites.removeAt(index);
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${item.title} retiré des favoris'),
-            duration: const Duration(seconds: 2),
-            backgroundColor: const Color(0xFF075E4D),
-          ),
-        );
+      onDismissed: (direction) async {
+        await ref.read(favorisNotifierProvider.notifier).removeFavori(item);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${item.titre} retiré des favoris'),
+              duration: const Duration(seconds: 2),
+              backgroundColor: const Color(0xFF075E4D),
+            ),
+          );
+        }
       },
       background: Container(
         alignment: Alignment.centerRight,
@@ -209,8 +204,8 @@ class _FavorisScreenState extends State<FavorisScreen> {
       ),
       child: InkWell(
         onTap: () {
-          if (item.route != null) {
-            context.push(item.route!);
+          if (item.route.isNotEmpty) {
+            context.push(item.route);
           }
         },
         borderRadius: BorderRadius.circular(16),
@@ -260,7 +255,7 @@ class _FavorisScreenState extends State<FavorisScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item.title,
+                      item.titre,
                       style: const TextStyle(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w700,
@@ -269,7 +264,7 @@ class _FavorisScreenState extends State<FavorisScreen> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      item.category,
+                      item.categorie,
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
@@ -280,12 +275,9 @@ class _FavorisScreenState extends State<FavorisScreen> {
                 ),
               ),
 
-              // Icône cœur rouge / favori
               IconButton(
-                onPressed: () {
-                  setState(() {
-                    _favorites.removeAt(index);
-                  });
+                onPressed: () async {
+                  await ref.read(favorisNotifierProvider.notifier).removeFavori(item);
                 },
                 icon: const Icon(
                   Icons.favorite_rounded,
@@ -299,89 +291,4 @@ class _FavorisScreenState extends State<FavorisScreen> {
       ),
     );
   }
-
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      height: 66,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(36),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 18,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(0, Icons.home_rounded, 'Accueil', isSelected: _selectedNavIndex == 0, onTap: () => context.go(AppRouter.home)),
-          _buildNavItem(1, Icons.menu_book_rounded, 'Carte', isSelected: _selectedNavIndex == 1),
-          _buildNavItem(2, Icons.explore_outlined, 'Découvrir', isSelected: _selectedNavIndex == 2, onTap: () => context.push(AppRouter.monParcours)),
-          _buildNavItem(3, Icons.help_outline_rounded, 'Quiz', isSelected: _selectedNavIndex == 3, onTap: () => context.push(AppRouter.quizList)),
-          _buildNavItem(4, Icons.person_rounded, 'Profil', isSelected: _selectedNavIndex == 4, onTap: () => context.push(AppRouter.profil)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(int index, IconData icon, String label, {required bool isSelected, VoidCallback? onTap}) {
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedNavIndex = index;
-          });
-          if (onTap != null) onTap();
-        },
-        borderRadius: BorderRadius.circular(30),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (isSelected)
-              Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF075E4D),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: Colors.white, size: 20),
-              )
-            else
-              Icon(icon, color: const Color(0xFF6C7C77), size: 22),
-            const SizedBox(height: 2.5),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? const Color(0xFF075E4D) : const Color(0xFF6C7C77),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class FavoriteItem {
-  final String title;
-  final String category;
-  final String imageUrl;
-  final String? route;
-
-  FavoriteItem({
-    required this.title,
-    required this.category,
-    required this.imageUrl,
-    this.route,
-  });
 }

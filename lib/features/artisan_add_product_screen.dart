@@ -1,7 +1,9 @@
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../core/constants/app_colors.dart';
+import 'package:image_picker/image_picker.dart';
+import '../core/services/storage_service.dart';
 import '../router/app_router.dart';
 
 class ArtisanAddProductScreen extends StatefulWidget {
@@ -12,12 +14,13 @@ class ArtisanAddProductScreen extends StatefulWidget {
 }
 
 class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
-  int _selectedNavIndex = 4;
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
+  final ImagePicker _imagePicker = ImagePicker();
 
-  int _selectedImagesCount = 0;
+  final List<({Uint8List bytes, String name})> _selectedImages = [];
+  bool _isPublishing = false;
 
   @override
   void dispose() {
@@ -27,7 +30,44 @@ class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
     super.dispose();
   }
 
-  void _onPublish() {
+  Future<void> _pickImages() async {
+    if (_selectedImages.length >= 4) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Limite de 4 images atteinte.'),
+          backgroundColor: Color(0xFFE65151),
+        ),
+      );
+      return;
+    }
+
+    try {
+      final List<XFile> pickedList = await _imagePicker.pickMultiImage(imageQuality: 85);
+      if (pickedList.isNotEmpty) {
+        for (final img in pickedList) {
+          if (_selectedImages.length >= 4) break;
+          final bytes = await img.readAsBytes();
+          if (bytes.lengthInBytes <= StorageService.maxFileSizeBytes) {
+            _selectedImages.add((bytes: bytes, name: img.name));
+          } else {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('L\'image ${img.name} dépasse 10 Mo et a été ignorée.'),
+                  backgroundColor: const Color(0xFFE65151),
+                ),
+              );
+            }
+          }
+        }
+        setState(() {});
+      }
+    } catch (e) {
+      debugPrint('[ArtisanAddProduct] Erreur sélection images: $e');
+    }
+  }
+
+  Future<void> _onPublish() async {
     if (_nameController.text.trim().isEmpty || _priceController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -37,6 +77,32 @@ class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
       );
       return;
     }
+
+    setState(() {
+      _isPublishing = true;
+    });
+
+    final List<String> uploadedUrls = [];
+    try {
+      for (final img in _selectedImages) {
+        final url = await StorageService.uploadFile(
+          folder: 'artisans',
+          fileName: img.name,
+          bytes: img.bytes,
+        );
+        uploadedUrls.add(url);
+      }
+    } catch (e) {
+      debugPrint('[ArtisanAddProduct] Erreur téléversement images: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPublishing = false;
+        });
+      }
+    }
+
+    if (!mounted) return;
 
     showDialog(
       context: context,
@@ -243,7 +309,7 @@ class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
                               child: SizedBox(
                                 height: 48,
                                 child: ElevatedButton(
-                                  onPressed: _onPublish,
+                                  onPressed: _isPublishing ? null : _onPublish,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF075E4D),
                                     foregroundColor: Colors.white,
@@ -252,13 +318,22 @@ class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
                                       borderRadius: BorderRadius.circular(16),
                                     ),
                                   ),
-                                  child: const Text(
-                                    'Publier l\'article',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
+                                  child: _isPublishing
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text(
+                                          'Publier l\'article',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
                                 ),
                               ),
                             ),
@@ -271,77 +346,151 @@ class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
               ),
             ],
           ),
-
-          // Barre de navigation inférieure
-          Positioned(
-            left: math.max(16.0, screenWidth * 0.04),
-            right: math.max(16.0, screenWidth * 0.04),
-            bottom: math.max(12.0, MediaQuery.of(context).padding.bottom + 6.0),
-            child: _buildBottomNavigationBar(),
-          ),
         ],
       ),
     );
   }
 
   Widget _buildImageUploadBox() {
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedImagesCount = (_selectedImagesCount + 1) % 5;
-        });
-      },
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF0FDF8),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: const Color(0xFF0E8F76).withValues(alpha: 0.5),
-            style: BorderStyle.solid,
-            width: 1.5,
+    if (_selectedImages.isEmpty) {
+      return InkWell(
+        onTap: _pickImages,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0FDF8),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: const Color(0xFF0E8F76).withValues(alpha: 0.5),
+              style: BorderStyle.solid,
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFE65151).withValues(alpha: 0.12),
+                ),
+                child: const Icon(
+                  Icons.add_photo_alternate_outlined,
+                  color: Color(0xFFE65151),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Importer plusieurs images (max. 4)',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF16332D),
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Formats supportés : JPG, PNG (max. 10 Mo par photo)',
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w400,
+                  color: Color(0xFF94A3B8),
+                ),
+              ),
+            ],
           ),
         ),
-        child: Column(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFE65151).withValues(alpha: 0.12),
-              ),
-              child: const Icon(
-                Icons.add_rounded,
-                color: Color(0xFFE65151),
-                size: 24,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _selectedImagesCount > 0
-                  ? '$_selectedImagesCount image(s) sélectionnée(s)'
-                  : 'Importer plusieurs images (max. 4)',
-              style: const TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF16332D),
-              ),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Formats supportés : JPG, PNG (min. 500px)',
-              style: TextStyle(
-                fontSize: 10.5,
-                fontWeight: FontWeight.w400,
-                color: Color(0xFF94A3B8),
-              ),
-            ),
-          ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 90,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _selectedImages.length + (_selectedImages.length < 4 ? 1 : 0),
+            separatorBuilder: (context, index) => const SizedBox(width: 10),
+            itemBuilder: (ctx, idx) {
+              if (idx < _selectedImages.length) {
+                final img = _selectedImages[idx];
+                return Stack(
+                  children: [
+                    Container(
+                      width: 90,
+                      height: 90,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFF0E8F76), width: 1.5),
+                        image: DecorationImage(
+                          image: MemoryImage(img.bytes),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedImages.removeAt(idx);
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: const BoxDecoration(
+                            color: Colors.redAccent,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close, color: Colors.white, size: 14),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              } else {
+                return InkWell(
+                  onTap: _pickImages,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FDF8),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: const Color(0xFF0E8F76).withValues(alpha: 0.5),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add, color: Color(0xFF0E8F76), size: 28),
+                        Text(
+                          'Ajouter',
+                          style: TextStyle(fontSize: 11, color: Color(0xFF0E8F76), fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+            },
+          ),
         ),
-      ),
+        const SizedBox(height: 6),
+        Text(
+          '${_selectedImages.length}/4 photo(s) sélectionnée(s)',
+          style: const TextStyle(fontSize: 11.5, color: Color(0xFF0E8F76), fontWeight: FontWeight.w600),
+        ),
+      ],
     );
   }
 
@@ -390,77 +539,6 @@ class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      height: 66,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(36),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 18,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(0, Icons.home_rounded, 'Accueil', isSelected: _selectedNavIndex == 0, onTap: () => context.go(AppRouter.home)),
-          _buildNavItem(1, Icons.menu_book_rounded, 'Carte', isSelected: _selectedNavIndex == 1),
-          _buildNavItem(2, Icons.explore_outlined, 'Découvrir', isSelected: _selectedNavIndex == 2, onTap: () => context.push(AppRouter.monParcours)),
-          _buildNavItem(3, Icons.help_outline_rounded, 'Quiz', isSelected: _selectedNavIndex == 3, onTap: () => context.push(AppRouter.quizList)),
-          _buildNavItem(4, Icons.person_rounded, 'Profil', isSelected: _selectedNavIndex == 4, onTap: () => context.push(AppRouter.profil)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(int index, IconData icon, String label, {required bool isSelected, VoidCallback? onTap}) {
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedNavIndex = index;
-          });
-          if (onTap != null) onTap();
-        },
-        borderRadius: BorderRadius.circular(30),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (isSelected)
-              Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF075E4D),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: Colors.white, size: 20),
-              )
-            else
-              Icon(icon, color: const Color(0xFF6C7C77), size: 22),
-            const SizedBox(height: 2.5),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? const Color(0xFF075E4D) : const Color(0xFF6C7C77),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
