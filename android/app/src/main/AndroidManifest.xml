@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="mali_explorer_frontend"
+        android:label="MaliExplorer"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

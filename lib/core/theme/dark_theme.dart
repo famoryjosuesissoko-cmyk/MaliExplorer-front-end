@@ -8,9 +8,9 @@ ThemeData get darkTheme {
     useMaterial3: true,
     brightness: Brightness.dark,
     scaffoldBackgroundColor: AppColors.darkBackground,
-    primaryColor: AppColors.primaryForest,
+    primaryColor: AppColors.primaryInteractive,
     colorScheme: const ColorScheme.dark(
-      primary: AppColors.secondaryEmerald,
+      primary: AppColors.primaryInteractive,
       secondary: AppColors.sahelGold,
       surface: AppColors.darkSurface,
       onPrimary: AppColors.pureWhite,
@@ -47,7 +47,7 @@ ThemeData get darkTheme {
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.secondaryEmerald,
+        backgroundColor: AppColors.primaryInteractive,
         foregroundColor: AppColors.pureWhite,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
@@ -56,26 +56,31 @@ ThemeData get darkTheme {
       ),
     ),
     cardTheme: CardThemeData(
-      color: AppColors.darkCard,
+      color: AppColors.darkSurfaceElevated,
       elevation: AppDimensions.cardElevation,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        side: const BorderSide(color: AppColors.darkBorder, width: 0.8),
       ),
+    ),
+    dividerTheme: const DividerThemeData(
+      color: AppColors.darkBorder,
+      thickness: 1,
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: AppColors.darkSurface,
+      fillColor: AppColors.darkSurfaceElevated,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-        borderSide: const BorderSide(color: Color(0xFF2C3E37)),
+        borderSide: const BorderSide(color: AppColors.darkBorder),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-        borderSide: const BorderSide(color: Color(0xFF2C3E37)),
+        borderSide: const BorderSide(color: AppColors.darkBorder),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-        borderSide: const BorderSide(color: AppColors.sahelGold, width: 2),
+        borderSide: const BorderSide(color: AppColors.primaryInteractive, width: 2),
       ),
     ),
   );
