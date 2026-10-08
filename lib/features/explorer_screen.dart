@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../core/constants/app_colors.dart';
 import '../router/app_router.dart';
 
 class ExplorerScreen extends StatefulWidget {
@@ -79,8 +80,10 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
           (cat['sousTitre'] as String).toLowerCase().contains(q);
     }).toList();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF075E4D),
+      backgroundColor: isDark ? AppColors.darkBackgroundSecondary : const Color(0xFF075E4D),
       body: Column(
         children: [
           // En-tête vert
@@ -127,11 +130,12 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
                   Container(
                     height: 48,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: isDark ? AppColors.darkSurface : Colors.white,
                       borderRadius: BorderRadius.circular(24),
+                      border: isDark ? Border.all(color: AppColors.darkBorder) : null,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
+                          color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.08),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -140,13 +144,24 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
                     child: TextField(
                       controller: _searchController,
                       onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                      style: TextStyle(color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D)),
                       decoration: InputDecoration(
                         hintText: 'Rechercher villes, plats, ethnies, guides...',
-                        hintStyle: const TextStyle(color: Color(0xFF8B9B95), fontSize: 13),
-                        prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF075E4D)),
+                        hintStyle: TextStyle(
+                          color: isDark ? AppColors.darkTextDisabled : const Color(0xFF8B9B95),
+                          fontSize: 13,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search_rounded,
+                          color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
+                        ),
                         suffixIcon: _searchQuery.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.clear, color: Color(0xFF6C7C77), size: 18),
+                                icon: Icon(
+                                  Icons.clear,
+                                  color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                                  size: 18,
+                                ),
                                 onPressed: () {
                                   _searchController.clear();
                                   setState(() => _searchQuery = '');
@@ -167,9 +182,9 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
           Expanded(
             child: Container(
               width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Color(0xFFF7F8F5),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkBackground : const Color(0xFFF7F8F5),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
               ),
               child: ListView.separated(
                 physics: const BouncingScrollPhysics(),
@@ -178,7 +193,7 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
                 separatorBuilder: (context, index) => const SizedBox(height: 14),
                 itemBuilder: (context, index) {
                   final cat = filtered[index];
-                  return _buildCategoryCard(cat);
+                  return _buildCategoryCard(cat, isDark);
                 },
               ),
             ),
@@ -188,19 +203,19 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
     );
   }
 
-  Widget _buildCategoryCard(Map<String, dynamic> cat) {
+  Widget _buildCategoryCard(Map<String, dynamic> cat, bool isDark) {
     return InkWell(
       onTap: () => context.push(cat['route'] as String),
       borderRadius: BorderRadius.circular(20),
       child: Container(
         height: 110,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? AppColors.darkSurface : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.04),
               blurRadius: 10,
               offset: const Offset(0, 3),
             ),
@@ -245,15 +260,17 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF075E4D).withValues(alpha: 0.10),
+                            color: isDark
+                                ? AppColors.darkSurfaceElevated
+                                : const Color(0xFF075E4D).withValues(alpha: 0.10),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
                             cat['badge'] as String,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10.5,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF075E4D),
+                              color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
                             ),
                           ),
                         ),
@@ -262,10 +279,10 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
                     const SizedBox(height: 5),
                     Text(
                       cat['titre'] as String,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15.5,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF16332D),
+                        color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
                       ),
                     ),
                     const SizedBox(height: 3),
@@ -273,9 +290,9 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
                       cat['sousTitre'] as String,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF6C7C77),
+                        color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
                       ),
                     ),
                   ],
@@ -284,9 +301,13 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
             ),
 
             // Flèche droite
-            const Padding(
-              padding: EdgeInsets.only(right: 14.0),
-              child: Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFF8B9B95), size: 16),
+            Padding(
+              padding: const EdgeInsets.only(right: 14.0),
+              child: Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8B9B95),
+                size: 16,
+              ),
             ),
           ],
         ),

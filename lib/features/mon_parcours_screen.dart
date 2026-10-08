@@ -1,24 +1,39 @@
-import 'dart:math' as math;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../core/constants/app_colors.dart';
+import '../core/services/badge_progression_service.dart';
+import '../features/auth/auth_controller.dart';
+import '../models/progression_model.dart';
 import '../router/app_router.dart';
 
-class MonParcoursScreen extends StatefulWidget {
+class MonParcoursScreen extends ConsumerStatefulWidget {
   const MonParcoursScreen({super.key});
 
   @override
-  State<MonParcoursScreen> createState() => _MonParcoursScreenState();
+  ConsumerState<MonParcoursScreen> createState() => _MonParcoursScreenState();
 }
 
-class _MonParcoursScreenState extends State<MonParcoursScreen> {
-
+class _MonParcoursScreenState extends ConsumerState<MonParcoursScreen> {
   @override
   Widget build(BuildContext context) {
-    final Size screenSize = MediaQuery.of(context).size;
-    final double screenWidth = screenSize.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final progressionAsync = ref.watch(userProgressionProvider);
+    final user = FirebaseAuth.instance.currentUser;
+    final authState = ref.watch(authControllerProvider);
+    final userMap = authState.user;
+
+    final String displayName = (user?.displayName != null && user!.displayName!.trim().isNotEmpty)
+        ? user.displayName!
+        : (userMap != null && (userMap['prenom'] != null || userMap['nom'] != null))
+            ? '${userMap['prenom'] ?? ''} ${userMap['nom'] ?? ''}'.trim()
+            : 'Explorateur MaliExplorer';
+
+    final String? photoUrl = user?.photoURL ?? userMap?['photoUrl'];
 
     return Scaffold(
-      backgroundColor: const Color(0xFF075E4D),
+      backgroundColor: isDark ? AppColors.darkBackgroundSecondary : const Color(0xFF075E4D),
       body: Stack(
         children: [
           Column(
@@ -69,79 +84,55 @@ class _MonParcoursScreenState extends State<MonParcoursScreen> {
               Expanded(
                 child: Container(
                   width: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF7F8F5),
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkBackground : const Color(0xFFF7F8F5),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
                   ),
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(18, 20, 18, 110),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Carte utilisateur & progression
-                        _buildUserProfileProgressCard(),
-
-                        const SizedBox(height: 18),
-
-                        // 3 Statistiques
-                        _buildStatsRow(),
-
-                        const SizedBox(height: 24),
-
-                        // Section Mes Badges
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Mes Badge',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF16332D),
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () {},
-                              style: TextButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: const Text(
-                                'Voir tout',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF075E4D),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        // Liste des 3 Badges de niveau
-                        _buildBadgesRow(),
-
-                        const SizedBox(height: 24),
-
-                        // Section Récompense spéciale
-                        const Text(
-                          'Recompence speciale',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF16332D),
+                  child: RefreshIndicator(
+                    color: const Color(0xFF075E4D),
+                    onRefresh: () async {
+                      ref.invalidate(userProgressionProvider);
+                    },
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
+                      padding: const EdgeInsets.fromLTRB(18, 20, 18, 110),
+                      child: progressionAsync.when(
+                        loading: () => const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(40),
+                            child: CircularProgressIndicator(color: Color(0xFF075E4D)),
                           ),
                         ),
-
-                        const SizedBox(height: 14),
-
-                        // 3 Récompenses spéciales
-                        _buildSpecialRewardsRow(),
-                      ],
+                        error: (error, stack) => _buildContent(
+                          isDark: isDark,
+                          displayName: displayName,
+                          photoUrl: photoUrl,
+                          progression: const ProgressionModel(
+                            points: 0,
+                            badge: 'Kalanden',
+                            nextBadge: 'Fasoden',
+                            pointsToNextBadge: 100,
+                            progression: 0.0,
+                            message: 'Continuez vos quiz pour débloquer le badge Fasoden !',
+                          ),
+                        ),
+                        data: (data) => _buildContent(
+                          isDark: isDark,
+                          displayName: displayName,
+                          photoUrl: photoUrl,
+                          progression: data ??
+                              const ProgressionModel(
+                                points: 0,
+                                badge: 'Kalanden',
+                                nextBadge: 'Fasoden',
+                                pointsToNextBadge: 100,
+                                progression: 0.0,
+                                message: 'Participez à des quiz pour cumuler des points !',
+                              ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -153,16 +144,103 @@ class _MonParcoursScreenState extends State<MonParcoursScreen> {
     );
   }
 
-  /// Carte utilisateur avec Avatar, Nom, Tags et Jauge de points
-  Widget _buildUserProfileProgressCard() {
+  Widget _buildContent({
+    required bool isDark,
+    required String displayName,
+    required String? photoUrl,
+    required ProgressionModel progression,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Carte utilisateur & progression dynamique
+        _buildUserProfileProgressCard(
+          displayName: displayName,
+          photoUrl: photoUrl,
+          progression: progression,
+          isDark: isDark,
+        ),
+
+        const SizedBox(height: 18),
+
+        // 3 Statistiques réelles
+        _buildStatsRow(progression, isDark),
+
+        const SizedBox(height: 24),
+
+        // Section Mes Badges Bambara
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Mes Badges Bambara',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
+              ),
+            ),
+            Text(
+              '3 Niveaux',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 12),
+
+        // Liste des 3 Badges de niveau (Kalanden, Fasoden, Fasoden Yuman)
+        _buildBadgesRow(progression.points, isDark),
+
+        const SizedBox(height: 24),
+
+        // Section Récompense spéciale
+        Text(
+          'Récompenses culturelles',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        // 3 Récompenses spéciales
+        _buildSpecialRewardsRow(progression.points, isDark),
+      ],
+    );
+  }
+
+  /// Carte utilisateur avec Avatar, Nom, Tags et Jauge de points dynamique
+  Widget _buildUserProfileProgressCard({
+    required String displayName,
+    required String? photoUrl,
+    required ProgressionModel progression,
+    required bool isDark,
+  }) {
+    final int points = progression.points;
+    final int nextSeuil = points >= 300
+        ? 300
+        : (progression.nextBadge?.toLowerCase().contains('yuman') == true ? 300 : 100);
+
+    final double progressRatio = nextSeuil > 0 ? (points / nextSeuil).clamp(0.0, 1.0) : 1.0;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -177,15 +255,31 @@ class _MonParcoursScreenState extends State<MonParcoursScreen> {
               Container(
                 width: 56,
                 height: 56,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  image: DecorationImage(
-                    image: NetworkImage(
-                      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop',
-                    ),
-                    fit: BoxFit.cover,
+                  color: const Color(0xFFE8F4F0),
+                  border: Border.all(
+                    color: const Color(0xFF075E4D),
+                    width: 2,
                   ),
                 ),
+                child: (photoUrl != null && photoUrl.isNotEmpty)
+                    ? ClipOval(
+                        child: Image.network(
+                          photoUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (ctx, err, stack) => const Icon(
+                            Icons.person_rounded,
+                            color: Color(0xFF075E4D),
+                            size: 32,
+                          ),
+                        ),
+                      )
+                    : const Icon(
+                        Icons.person_rounded,
+                        color: Color(0xFF075E4D),
+                        size: 32,
+                      ),
               ),
               const SizedBox(width: 14),
 
@@ -194,20 +288,22 @@ class _MonParcoursScreenState extends State<MonParcoursScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Famory Sissoko',
+                    Text(
+                      displayName,
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF16332D),
+                        color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
                       ),
                     ),
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        _buildTag('Fasoden'),
+                        _buildTag(progression.badge),
                         const SizedBox(width: 8),
-                        _buildTag('Niveau 2'),
+                        _buildTag(points >= 300
+                            ? 'Niveau 3'
+                            : (points >= 100 ? 'Niveau 2' : 'Niveau 1')),
                       ],
                     ),
                   ],
@@ -221,22 +317,24 @@ class _MonParcoursScreenState extends State<MonParcoursScreen> {
           // Barre de progression
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
-            child: const LinearProgressIndicator(
-              value: 800 / 1500,
+            child: LinearProgressIndicator(
+              value: progressRatio,
               minHeight: 8,
-              backgroundColor: Color(0xFFF1F5F3),
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFF2B544)),
+              backgroundColor: isDark ? AppColors.darkSurfaceElevated : const Color(0xFFF1F5F3),
+              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFF2B544)),
             ),
           ),
           const SizedBox(height: 5),
-          const Align(
+          Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              '800/1500 points',
+              points >= 300
+                  ? '$points points (Niveau maximal atteint !)'
+                  : '$points / $nextSeuil points pour ${progression.nextBadge ?? "le palier supérieur"}',
               style: TextStyle(
                 fontSize: 10.5,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF94A3B8),
+                color: isDark ? AppColors.darkTextSecondary : const Color(0xFF94A3B8),
               ),
             ),
           ),
@@ -263,16 +361,21 @@ class _MonParcoursScreenState extends State<MonParcoursScreen> {
     );
   }
 
-  /// Ligne des 3 statistiques
-  Widget _buildStatsRow() {
+  /// Ligne des 3 statistiques dynamiques
+  Widget _buildStatsRow(ProgressionModel progression, bool isDark) {
+    final int points = progression.points;
+    final int badgesDebloques = points >= 300 ? 3 : (points >= 100 ? 2 : (points > 0 ? 1 : 0));
+    final int quizEstimes = points > 0 ? (points / 25).ceil() : 0;
+
     return Row(
       children: [
         Expanded(
           child: _buildStatItem(
             icon: Icons.star_rounded,
             iconColor: const Color(0xFFF2B544),
-            value: '800',
+            value: points.toString(),
             label: 'Points',
+            isDark: isDark,
           ),
         ),
         const SizedBox(width: 10),
@@ -280,8 +383,9 @@ class _MonParcoursScreenState extends State<MonParcoursScreen> {
           child: _buildStatItem(
             icon: Icons.assignment_outlined,
             iconColor: const Color(0xFF075E4D),
-            value: '12',
-            label: 'Quiz realisés',
+            value: quizEstimes.toString(),
+            label: 'Activités\nréalisées',
+            isDark: isDark,
           ),
         ),
         const SizedBox(width: 10),
@@ -289,8 +393,9 @@ class _MonParcoursScreenState extends State<MonParcoursScreen> {
           child: _buildStatItem(
             icon: Icons.emoji_events_outlined,
             iconColor: const Color(0xFFF2B544),
-            value: '5',
+            value: '$badgesDebloques / 3',
             label: 'Badges\ndébloqués',
+            isDark: isDark,
           ),
         ),
       ],
@@ -302,16 +407,20 @@ class _MonParcoursScreenState extends State<MonParcoursScreen> {
     required Color iconColor,
     required String value,
     required String label,
+    required bool isDark,
   }) {
     return Container(
       height: 94,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -324,10 +433,10 @@ class _MonParcoursScreenState extends State<MonParcoursScreen> {
           const SizedBox(height: 3),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF16332D),
+              color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
             ),
           ),
           const SizedBox(height: 1),
@@ -335,10 +444,10 @@ class _MonParcoursScreenState extends State<MonParcoursScreen> {
             label,
             textAlign: TextAlign.center,
             maxLines: 2,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 9.5,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF6C7C77),
+              color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
               height: 1.1,
             ),
           ),
@@ -347,37 +456,40 @@ class _MonParcoursScreenState extends State<MonParcoursScreen> {
     );
   }
 
-  /// Ligne des 3 Badges de niveau (Kalanden, Fasoden, Fasoden Yirize)
-  Widget _buildBadgesRow() {
+  /// Ligne des 3 Badges réels selon les seuils Bambara (0-99, 100-299, 300+)
+  Widget _buildBadgesRow(int points, bool isDark) {
     return Row(
       children: [
         Expanded(
           child: _buildBadgeCard(
             title: 'Kalanden',
-            level: 'Niveau 1',
-            points: '0 - 499 points',
+            level: 'Élève',
+            points: '0 - 99 pts',
             color: const Color(0xFFD6A23A),
             isUnlocked: true,
+            isDark: isDark,
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: _buildBadgeCard(
             title: 'Fasoden',
-            level: 'Niveau 2',
-            points: '500 - 1499 points',
+            level: 'Citoyen',
+            points: '100 - 299 pts',
             color: const Color(0xFF94A3B8),
-            isUnlocked: true,
+            isUnlocked: points >= 100,
+            isDark: isDark,
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: _buildBadgeCard(
-            title: 'Fasoden Yunze',
-            level: 'Niveau 3',
-            points: '1500+ points',
+            title: 'Fasoden Yuman',
+            level: 'Bon citoyen',
+            points: '300+ pts',
             color: const Color(0xFFF2B544),
-            isUnlocked: false,
+            isUnlocked: points >= 300,
+            isDark: isDark,
           ),
         ),
       ],
@@ -390,21 +502,22 @@ class _MonParcoursScreenState extends State<MonParcoursScreen> {
     required String points,
     required Color color,
     required bool isUnlocked,
+    required bool isDark,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isUnlocked
-              ? color.withValues(alpha: 0.35)
-              : Colors.black.withValues(alpha: 0.05),
+              ? color.withValues(alpha: 0.5)
+              : (isDark ? AppColors.darkBorder : Colors.black.withValues(alpha: 0.05)),
           width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -412,46 +525,49 @@ class _MonParcoursScreenState extends State<MonParcoursScreen> {
       ),
       child: Column(
         children: [
-          // Icône médaille / badge
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color.withValues(alpha: 0.12),
-            ),
-            child: Icon(
-              Icons.military_tech_rounded,
-              color: color,
-              size: 28,
+          // Icône médaille / badge avec opacité si verrouillé
+          Opacity(
+            opacity: isUnlocked ? 1.0 : 0.4,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color.withValues(alpha: 0.14),
+              ),
+              child: Icon(
+                isUnlocked ? Icons.military_tech_rounded : Icons.lock_outline_rounded,
+                color: isUnlocked ? color : (isDark ? AppColors.darkTextDisabled : Colors.grey),
+                size: 26,
+              ),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF16332D),
+              color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
             ),
           ),
           const SizedBox(height: 2),
           Text(
             level,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 9.5,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF6C7C77),
+              color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
             ),
           ),
           const SizedBox(height: 2),
           Text(
             points,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 8.5,
               fontWeight: FontWeight.w400,
-              color: Color(0xFF94A3B8),
+              color: isDark ? AppColors.darkTextSecondary : const Color(0xFF94A3B8),
             ),
           ),
         ],
@@ -460,14 +576,16 @@ class _MonParcoursScreenState extends State<MonParcoursScreen> {
   }
 
   /// Ligne des 3 Récompenses spéciales
-  Widget _buildSpecialRewardsRow() {
+  Widget _buildSpecialRewardsRow(int points, bool isDark) {
     return Row(
       children: [
         Expanded(
           child: _buildSpecialRewardItem(
             icon: Icons.history_edu_rounded,
             title: 'Expert en Histoire',
-            iconColor: const Color(0xFF6C7C77),
+            isUnlocked: points >= 50,
+            iconColor: const Color(0xFF075E4D),
+            isDark: isDark,
           ),
         ),
         const SizedBox(width: 10),
@@ -475,7 +593,9 @@ class _MonParcoursScreenState extends State<MonParcoursScreen> {
           child: _buildSpecialRewardItem(
             icon: Icons.soup_kitchen_rounded,
             title: 'Ambassadeur\nGastronomie',
+            isUnlocked: points >= 150,
             iconColor: const Color(0xFFF2B544),
+            isDark: isDark,
           ),
         ),
         const SizedBox(width: 10),
@@ -483,7 +603,9 @@ class _MonParcoursScreenState extends State<MonParcoursScreen> {
           child: _buildSpecialRewardItem(
             icon: Icons.explore_outlined,
             title: 'Explorateur du\nMali',
-            iconColor: const Color(0xFF6C7C77),
+            isUnlocked: points >= 300,
+            iconColor: const Color(0xFF0E8F76),
+            isDark: isDark,
           ),
         ),
       ],
@@ -493,17 +615,24 @@ class _MonParcoursScreenState extends State<MonParcoursScreen> {
   Widget _buildSpecialRewardItem({
     required IconData icon,
     required String title,
+    required bool isUnlocked,
     required Color iconColor,
+    required bool isDark,
   }) {
     return Container(
       height: 110,
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isUnlocked
+              ? iconColor.withValues(alpha: 0.4)
+              : (isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0)),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -512,28 +641,35 @@ class _MonParcoursScreenState extends State<MonParcoursScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFFF7F8F5),
-              border: Border.all(
-                color: iconColor.withValues(alpha: 0.3),
-                width: 1.5,
+          Opacity(
+            opacity: isUnlocked ? 1.0 : 0.4,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isDark ? AppColors.darkSurfaceElevated : const Color(0xFFF7F8F5),
+                border: Border.all(
+                  color: isUnlocked ? iconColor : Colors.grey,
+                  width: 1.5,
+                ),
+              ),
+              child: Icon(
+                isUnlocked ? icon : Icons.lock_outline_rounded,
+                color: isUnlocked ? iconColor : Colors.grey,
+                size: 22,
               ),
             ),
-            child: Icon(icon, color: iconColor, size: 22),
           ),
           const SizedBox(height: 8),
           Text(
             title,
             textAlign: TextAlign.center,
             maxLines: 2,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 9.5,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF16332D),
+              color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
               height: 1.1,
             ),
           ),

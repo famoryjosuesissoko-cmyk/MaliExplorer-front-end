@@ -22,12 +22,14 @@ class QuestionModel {
     }
 
     return QuestionModel(
-      idQuestion: json['idQuestion'] ?? 0,
-      nomQuestion: json['nomQuestion'] ?? '',
-      duree: json['duree'] ?? 30,
+      idQuestion: (json['idQuestion'] as num?)?.toInt() ?? 0,
+      nomQuestion: json['nomQuestion']?.toString() ?? '',
+      duree: (json['duree'] as num?)?.toInt() ?? 30,
       propositions: props,
-      reponse: json['reponse']?.toString(),
-      points: json['points'] as int?,
+      reponse: json['reponse']?.toString() ??
+          json['bonneReponse']?.toString() ??
+          json['correctAnswer']?.toString(),
+      points: (json['points'] as num?)?.toInt() ?? 10,
     );
   }
 

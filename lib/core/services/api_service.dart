@@ -54,17 +54,23 @@ class ApiService {
     return uri;
   }
 
-  /// Exécute une requête avec tentative de secours automatique si la connexion échoue
+  /// Exécute une requête avec tentative de secours automatique sur les URLs candidates
   Future<http.Response> _executeWithFallback(
     Future<http.Response> Function(String baseUrl) requestFn,
   ) async {
     try {
       return await requestFn(_activeBaseUrl);
-    } catch (_) {
-      // Si la première tentative vers 127.0.0.1 échoue (ex: câble débranché), bascule sur l'IP LAN
-      if (_activeBaseUrl != ApiConstants.fallbackLanUrl) {
-        _activeBaseUrl = ApiConstants.fallbackLanUrl;
-        return await requestFn(_activeBaseUrl);
+    } catch (primaryError) {
+      for (final candidate in ApiConstants.candidateUrls) {
+        if (candidate != _activeBaseUrl) {
+          try {
+            final res = await requestFn(candidate);
+            _activeBaseUrl = candidate; // Sauvegarde de l'URL fonctionnelle
+            return res;
+          } catch (_) {
+            continue;
+          }
+        }
       }
       rethrow;
     }
@@ -74,7 +80,7 @@ class ApiService {
   Future<http.Response> get(String endpoint, {Map<String, dynamic>? queryParams, Map<String, String>? headers}) async {
     return _executeWithFallback((baseUrl) async {
       final url = _buildUri(endpoint, queryParams, baseUrl);
-      return await _client.get(url, headers: _buildHeaders(headers)).timeout(ApiConstants.timeout);
+      return await _client.get(url, headers: _buildHeaders(headers)).timeout(ApiConstants.quickTimeout);
     });
   }
 
