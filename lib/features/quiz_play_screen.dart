@@ -2,12 +2,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../core/constants/app_colors.dart';
 import '../core/services/auth_service.dart';
+import '../core/services/badge_progression_service.dart';
+import '../core/services/historique_service.dart';
 import '../core/services/quiz_service.dart';
 import '../features/auth/auth_controller.dart';
 import '../models/quiz_model.dart';
 import '../providers/quiz_provider.dart';
-import '../router/app_router.dart';
 
 class QuizPlayScreen extends ConsumerStatefulWidget {
   final QuizModel? quiz;
@@ -34,44 +36,18 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
   final List<QuestionItem> _questions = [];
   final Map<int, String> _userAnswers = {};
 
-  final List<QuestionItem> _fallbackQuestions = [
-    QuestionItem(
-      idQuestion: 1,
-      question: 'Qui a proclamé l\'indépendance du Mali le 22 septembre 1960 ?',
-      options: ['Modibo Keïta', 'Moussa Traoré', 'Alpha Oumar Konaré', 'Tiéba Traoré'],
-      correctAnswer: 'Modibo Keïta',
-      duree: 30,
-      points: 10,
-    ),
-    QuestionItem(
-      idQuestion: 2,
-      question: 'Quelle bataille historique en 1235 a consacré la victoire de Soundiata Keïta ?',
-      options: ['Bataille de Kirina', 'Bataille de Tondibi', 'Bataille de Kansala', 'Bataille de Sikasso'],
-      correctAnswer: 'Bataille de Kirina',
-      duree: 30,
-      points: 10,
-    ),
-    QuestionItem(
-      idQuestion: 3,
-      question: 'Quel souverain du Mali est réputé pour son célèbre pèlerinage fastueux à La Mecque en 1324 ?',
-      options: ['Kankou Moussa', 'Soundiata Keïta', 'Sony Ali Ber', 'Askia Mohamed'],
-      correctAnswer: 'Kankou Moussa',
-      duree: 30,
-      points: 10,
-    ),
-    QuestionItem(
-      idQuestion: 4,
-      question: 'En quel matériau est principalement construite la Grande Mosquée de Djenné ?',
-      options: ['En terre crue (banco)', 'En marbre blanc', 'En granit taillé', 'En briques cuites'],
-      correctAnswer: 'En terre crue (banco)',
-      duree: 30,
-      points: 10,
-    ),
-  ];
+  // Rapport de fin de partie
+  bool _showEndReport = false;
+  Map<String, dynamic>? _endReportData;
+  List<Map<String, dynamic>> _questionReviewList = [];
+
+  // ID unique de session de jeu pour garantir l'unicité
+  late final String _sessionId;
 
   @override
   void initState() {
     super.initState();
+    _sessionId = 'SESSION_${DateTime.now().millisecondsSinceEpoch}';
     _loadQuizData();
   }
 
@@ -110,7 +86,6 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
   void _handleTimeUp() {
     if (_isAnswerValidated) return;
     if (_selectedOptionIndex == null) {
-      // Temps écoulé sans sélection
       _wrongCount++;
     } else {
       _evaluateCurrentAnswer();
@@ -118,9 +93,17 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     setState(() {
       _isAnswerValidated = true;
     });
+
+    // Passage automatique après délai de 1.5s
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted) {
+        _onNextPressed();
+      }
+    });
   }
 
   Future<void> _loadQuizData() async {
+    // 1. Si le quiz passé en paramètre a déjà ses questions et propositions
     if (widget.quiz != null &&
         widget.quiz!.questions.isNotEmpty &&
         widget.quiz!.questions.first.propositions.isNotEmpty) {
@@ -129,29 +112,58 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
       return;
     }
 
+    // 2. Si le quiz a un ID, charger le modèle depuis le backend /jouer
     if (widget.quiz != null && widget.quiz!.idQuiz > 0) {
       setState(() => _isLoading = true);
       try {
         final loaded = await ref
             .read(quizServiceProvider)
             .getQuizForPlay(widget.quiz!.idQuiz);
-        if (mounted) {
+        if (mounted && loaded.questions.isNotEmpty) {
           _initFromQuizModel(loaded);
           setState(() => _isLoading = false);
           _startTimer();
           return;
         }
       } catch (e) {
-        // Fallback local en cas d'indisponibilité réseau
+        debugPrint('[QuizPlayScreen] Erreur chargement backend: $e');
       }
     }
 
+    // 3. Fallback sur le catalogue vérifié correspondant au quiz cliqué
+    if (widget.quiz != null && widget.quiz!.idQuiz > 0) {
+      try {
+        final quizzes = await ref.read(quizServiceProvider).getQuizzes();
+        final match = quizzes.firstWhere(
+          (q) => q.idQuiz == widget.quiz!.idQuiz,
+          orElse: () => widget.quiz!,
+        );
+        if (match.questions.isNotEmpty) {
+          if (mounted) {
+            setState(() => _isLoading = false);
+            _initFromQuizModel(match);
+            _startTimer();
+            return;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 4. Fallback final sur le Quiz 1 Histoire si aucune source n'a répondu
     if (mounted) {
-      setState(() {
-        _isLoading = false;
+      setState(() => _isLoading = false);
+      try {
+        final quizzes = await ref.read(quizServiceProvider).getQuizzes();
+        if (quizzes.isNotEmpty && quizzes.first.questions.isNotEmpty) {
+          _initFromQuizModel(quizzes.first);
+        } else {
+          _questions.clear();
+          _questions.addAll(_defaultFallbackQuestions);
+        }
+      } catch (_) {
         _questions.clear();
-        _questions.addAll(_fallbackQuestions);
-      });
+        _questions.addAll(_defaultFallbackQuestions);
+      }
       _startTimer();
     }
   }
@@ -171,15 +183,39 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
       ));
     }
     if (_questions.isEmpty) {
-      _questions.addAll(_fallbackQuestions);
+      _questions.addAll(_defaultFallbackQuestions);
     }
   }
 
   void _onOptionSelected(int index) {
-    if (_isAnswerValidated) return; // Empêcher la modification après validation
+    if (_isAnswerValidated || _isSubmitting) return; // Choix unique par question
+    _timer?.cancel();
     setState(() {
       _selectedOptionIndex = index;
+      _isAnswerValidated = true;
     });
+
+    _evaluateCurrentAnswer();
+
+    // Auto-avance fluide après 1.3s
+    Future.delayed(const Duration(milliseconds: 1300), () {
+      if (mounted) {
+        _onNextPressed();
+      }
+    });
+  }
+
+  bool _isAnswerMatch(String? a, String? b) {
+    if (a == null || b == null) return false;
+    String clean(String s) => s
+        .trim()
+        .toLowerCase()
+        .replaceAll('\u00A0', ' ')
+        .replaceAll('’', '\'')
+        .replaceAll('‘', '\'')
+        .replaceAll('`', '\'')
+        .replaceAll(RegExp(r'\s+'), ' ');
+    return clean(a) == clean(b);
   }
 
   void _evaluateCurrentAnswer() {
@@ -189,7 +225,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     _userAnswers[current.idQuestion] = selectedText;
 
     if (current.correctAnswer != null) {
-      if (selectedText.trim().toLowerCase() == current.correctAnswer!.trim().toLowerCase()) {
+      if (_isAnswerMatch(selectedText, current.correctAnswer)) {
         _correctCount++;
       } else {
         _wrongCount++;
@@ -197,15 +233,6 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     } else {
       _correctCount++;
     }
-  }
-
-  void _onValidatePressed() {
-    if (_selectedOptionIndex == null || _questions.isEmpty) return;
-    _timer?.cancel();
-    _evaluateCurrentAnswer();
-    setState(() {
-      _isAnswerValidated = true;
-    });
   }
 
   Future<void> _onNextPressed() async {
@@ -234,14 +261,27 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     // Calcul du score basé sur les points réels des questions
     int calculatedScore = 0;
     int maxScore = 0;
+    final List<Map<String, dynamic>> localReview = [];
+
     for (final q in _questions) {
       maxScore += q.points;
       final ans = _userAnswers[q.idQuestion];
-      if (ans != null &&
+      final bool isCorrect = ans != null &&
           q.correctAnswer != null &&
-          ans.trim().toLowerCase() == q.correctAnswer!.trim().toLowerCase()) {
+          _isAnswerMatch(ans, q.correctAnswer);
+
+      if (isCorrect) {
         calculatedScore += q.points;
       }
+
+      localReview.add({
+        'idQuestion': q.idQuestion,
+        'nomQuestion': q.question,
+        'reponseSoumise': ans,
+        'bonneReponse': q.correctAnswer ?? '—',
+        'estCorrect': isCorrect,
+        'pointsGagnes': isCorrect ? q.points : 0,
+      });
     }
     if (maxScore == 0) maxScore = _questions.length * 10;
 
@@ -250,107 +290,142 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     int pointsGagnes = calculatedScore + 20 + (perfect ? 20 : 0);
 
     String badgeActuel = 'Kalanden';
-    String prochainBadge = 'Fassoden';
+    String prochainBadge = 'Fasoden';
     double progression = 0.3;
-    String messageProgression = 'Continuez vos quiz pour devenir Fassoden (Citoyen) !';
+    String messageProgression = 'Continuez vos quiz pour devenir Fasoden (Citoyen) !';
     int totalPointsUtilisateur = pointsGagnes;
 
-    if (isAuthenticated) {
-      try {
-        final res = await ref.read(quizServiceProvider).submitQuiz(
-              quizId: quizId,
-              reponses: _userAnswers,
-            );
+    try {
+      final authUser = ref.read(authControllerProvider).user;
+      final int? userId = (authUser?['idUsers'] as num?)?.toInt();
 
-        calculatedScore = (res['scoreTotalObtenu'] as num?)?.toInt() ?? calculatedScore;
-        maxScore = (res['scoreMaxPossible'] as num?)?.toInt() ?? maxScore;
-        pointsGagnes = (res['pointsGagnesActivite'] as num?)?.toInt() ?? pointsGagnes;
-        totalPointsUtilisateur = (res['totalPointsUtilisateur'] as num?)?.toInt() ?? totalPointsUtilisateur;
+      final res = await ref.read(quizServiceProvider).submitQuiz(
+            quizId: quizId,
+            reponses: _userAnswers,
+            userId: userId,
+            sessionId: _sessionId,
+          );
 
-        final rawBadge = res['badgeActuel']?.toString() ?? 'KALANDEN';
-        badgeActuel = _formatBadgeName(rawBadge);
+      calculatedScore = (res['scoreTotalObtenu'] as num?)?.toInt() ?? calculatedScore;
+      maxScore = (res['scoreMaxPossible'] as num?)?.toInt() ?? maxScore;
+      pointsGagnes = (res['pointsGagnesActivite'] as num?)?.toInt() ?? pointsGagnes;
+      totalPointsUtilisateur = (res['totalPointsUtilisateur'] as num?)?.toInt() ?? totalPointsUtilisateur;
 
-        final rawNextBadge = res['prochainBadge']?.toString();
-        prochainBadge = rawNextBadge != null ? _formatBadgeName(rawNextBadge) : 'Niveau maximal';
+      final rawBadge = res['badgeActuel']?.toString() ?? 'KALANDEN';
+      badgeActuel = _formatBadgeName(rawBadge);
 
-        progression = (res['progressionProchainBadge'] as num?)?.toDouble() ??
-            (totalPointsUtilisateur / 100).clamp(0.0, 1.0);
+      final rawNextBadge = res['prochainBadge']?.toString();
+      prochainBadge = rawNextBadge != null ? _formatBadgeName(rawNextBadge) : 'Niveau maximal';
 
-        if (res['messageProgression'] != null) {
-          messageProgression = res['messageProgression'] as String;
-        }
+      progression = (res['progressionProchainBadge'] as num?)?.toDouble() ??
+          (totalPointsUtilisateur / 100).clamp(0.0, 1.0);
 
-        ref.invalidate(quizListProvider);
-      } catch (e) {
-        debugPrint('[QuizPlayScreen] Soumission backend: $e');
+      if (res['messageProgression'] != null) {
+        messageProgression = res['messageProgression'] as String;
       }
-    } else {
-      // Pour les visiteurs : déterminer le badge prévisionnel
-      badgeActuel = totalPointsUtilisateur >= 300
-          ? 'Fassoden Yuman'
-          : totalPointsUtilisateur >= 100
-              ? 'Fassoden'
-              : 'Kalanden';
+
+      // Si le backend renvoie les détails questions
+      if (res['detailsQuestions'] is List) {
+        final List<dynamic> details = res['detailsQuestions'] as List;
+        _questionReviewList = details.map((d) => d as Map<String, dynamic>).toList();
+      } else {
+        _questionReviewList = localReview;
+      }
+
+      // Synchroniser les compteurs avec la validation backend
+      int backendCorrect = 0;
+      int backendWrong = 0;
+      for (final item in _questionReviewList) {
+        if (item['estCorrect'] == true) {
+          backendCorrect++;
+        } else {
+          backendWrong++;
+        }
+      }
+      _correctCount = backendCorrect;
+      _wrongCount = backendWrong;
+
+      // Rafraîchir les données Riverpod si authentifié
+      if (isAuthenticated) {
+        ref.invalidate(quizListProvider);
+        ref.invalidate(userHistoriqueProvider);
+        ref.invalidate(userProgressionProvider);
+      }
+    } catch (e) {
+      debugPrint('[QuizPlayScreen] Soumission backend: $e');
+      _questionReviewList = localReview;
+      if (!isAuthenticated) {
+        badgeActuel = totalPointsUtilisateur >= 300
+            ? 'Fasoden Yuman'
+            : totalPointsUtilisateur >= 100
+                ? 'Fasoden'
+                : 'Kalanden';
+      }
     }
 
     if (mounted) {
-      setState(() => _isSubmitting = false);
-      _showQuizResultDialog(
-        score: calculatedScore,
-        maxScore: maxScore,
-        pointsGagnes: pointsGagnes,
-        totalPoints: totalPointsUtilisateur,
-        badge: badgeActuel,
-        prochainBadge: prochainBadge,
-        progression: progression,
-        message: messageProgression,
-        correctCount: _correctCount,
-        totalCount: _questions.length,
-        isAuthenticated: isAuthenticated,
-      );
+      setState(() {
+        _isSubmitting = false;
+        _showEndReport = true;
+        _endReportData = {
+          'score': calculatedScore,
+          'maxScore': maxScore,
+          'pointsGagnes': pointsGagnes,
+          'totalPoints': totalPointsUtilisateur,
+          'badge': badgeActuel,
+          'prochainBadge': prochainBadge,
+          'progression': progression,
+          'message': messageProgression,
+          'correctCount': _correctCount,
+          'totalCount': _questions.length,
+          'isAuthenticated': isAuthenticated,
+        };
+      });
+
+      _showQuizResultDialog();
     }
   }
 
   String _formatBadgeName(String raw) {
     final clean = raw.toUpperCase().replaceAll('_', ' ');
-    if (clean.contains('YUMAN')) return 'Fassoden Yuman';
-    if (clean.contains('FASODEN') || clean.contains('FASSODEN')) return 'Fassoden';
+    if (clean.contains('YUMAN')) return 'Fasoden Yuman';
+    if (clean.contains('FASODEN') || clean.contains('FASSODEN')) return 'Fasoden';
     return 'Kalanden';
   }
 
   String _getBadgeSubtitle(String badge) {
     if (badge.contains('Yuman')) return 'Bon citoyen';
-    if (badge.contains('Fassoden')) return 'Citoyen';
+    if (badge.contains('Fasoden')) return 'Citoyen';
     return 'Élève';
   }
 
-  void _showQuizResultDialog({
-    required int score,
-    required int maxScore,
-    required int pointsGagnes,
-    required int totalPoints,
-    required String badge,
-    required String prochainBadge,
-    required double progression,
-    required String message,
-    required int correctCount,
-    required int totalCount,
-    required bool isAuthenticated,
-  }) {
+  void _showQuizResultDialog() {
+    if (_endReportData == null) return;
+    final int score = _endReportData!['score'] as int;
+    final int maxScore = _endReportData!['maxScore'] as int;
+    final int pointsGagnes = _endReportData!['pointsGagnes'] as int;
+    final String badge = _endReportData!['badge'] as String;
+    final double progression = _endReportData!['progression'] as double;
+    final String message = _endReportData!['message'] as String;
+    final int correctCount = _endReportData!['correctCount'] as int;
+    final int totalCount = _endReportData!['totalCount'] as int;
+    final bool isAuthenticated = _endReportData!['isAuthenticated'] as bool;
+
     final badgeSubtitle = _getBadgeSubtitle(badge);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
         title: Column(
           children: [
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                color: Color(0xFFFFF9E6),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF332A15) : const Color(0xFFFFF9E6),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -360,12 +435,12 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Quiz Terminé !',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF075E4D),
+                color: isDark ? AppColors.darkTextPrimary : const Color(0xFF075E4D),
               ),
             ),
           ],
@@ -374,31 +449,31 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Score & bonnes réponses
+              // Score & bonnes réponses réelles
               Text(
                 '$score / $maxScore pts',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFF16332D),
+                  color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 '$correctCount bonne${correctCount > 1 ? 's' : ''} réponse${correctCount > 1 ? 's' : ''} • $_wrongCount erreur${_wrongCount > 1 ? 's' : ''} (Total : $totalCount)',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF6C7C77),
+                  color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
                 ),
               ),
               const SizedBox(height: 14),
 
-              // Points d'activité gagnés
+              // Points d'activité réels gagnés
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF075E4D).withValues(alpha: 0.08),
+                  color: isDark ? AppColors.darkSurfaceElevated : const Color(0xFF075E4D).withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -408,10 +483,10 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                     const SizedBox(width: 6),
                     Text(
                       '+$pointsGagnes points calculés !',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF075E4D),
+                        color: isDark ? AppColors.solarYellow : const Color(0xFF075E4D),
                       ),
                     ),
                   ],
@@ -424,9 +499,9 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF7F8F5),
+                  color: isDark ? AppColors.darkSurfaceElevated : const Color(0xFFF7F8F5),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
                   children: [
@@ -437,10 +512,10 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                         const SizedBox(width: 6),
                         Text(
                           'Badge : $badge ($badgeSubtitle)',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF16332D),
+                            color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
                           ),
                         ),
                       ],
@@ -451,7 +526,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                       child: LinearProgressIndicator(
                         value: progression.clamp(0.0, 1.0),
                         minHeight: 6,
-                        backgroundColor: const Color(0xFFE2E8F0),
+                        backgroundColor: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
                         valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0E8F76)),
                       ),
                     ),
@@ -459,9 +534,9 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                     Text(
                       message,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.5,
-                        color: Color(0xFF6C7C77),
+                        color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
                         height: 1.3,
                       ),
                     ),
@@ -474,9 +549,9 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF7ED),
+                    color: isDark ? const Color(0xFF2E2211) : const Color(0xFFFFF7ED),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFFDBA74)),
+                    border: Border.all(color: isDark ? AppColors.sahelGold : const Color(0xFFFDBA74)),
                   ),
                   child: const Text(
                     '« Connectez-vous ou créez un compte pour valider vos points et débloquer votre badge Bambara ! »',
@@ -497,7 +572,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop();
+              Navigator.of(dialogCtx).pop();
               context.pop();
             },
             child: const Text(
@@ -505,23 +580,18 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
               style: TextStyle(color: Color(0xFF6C7C77), fontWeight: FontWeight.w600),
             ),
           ),
-          if (!isAuthenticated)
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF075E4D),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-              onPressed: () {
-                Navigator.of(context).pop();
-                context.push(AppRouter.login);
-              },
-              child: const Text(
-                'Se connecter',
-                style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold),
-              ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF075E4D),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
+            onPressed: () {
+              Navigator.of(dialogCtx).pop();
+              // Reste sur l'écran pour afficher le bilan question par question
+            },
+            child: const Text('Bilan détaillé', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
         ],
       ),
     );
@@ -536,6 +606,10 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
           child: CircularProgressIndicator(color: Colors.white),
         ),
       );
+    }
+
+    if (_showEndReport && _endReportData != null) {
+      return _buildEndReportView();
     }
 
     if (_questions.isEmpty) {
@@ -557,9 +631,10 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     }
 
     final QuestionItem currentQuestion = _questions[_currentQuestionIndex];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF075E4D),
+      backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFF075E4D),
       body: Column(
         children: [
           // En-tête vert avec bouton retour et titre QUIZ
@@ -600,13 +675,13 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
             ),
           ),
 
-          // Fiche blanche contenant la question et les options
+          // Fiche contenant la question et les options
           Expanded(
             child: Container(
               width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Color(0xFFF7F8F5),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkBackground : const Color(0xFFF7F8F5),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
               ),
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
               child: Column(
@@ -627,17 +702,17 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                   // Titre de la question
                   Text(
                     currentQuestion.question,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF16332D),
+                      color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
                       height: 1.4,
                     ),
                   ),
 
                   const SizedBox(height: 20),
 
-                  // Liste des options (A, B, C, D)
+                  // Liste des 4 options (A, B, C, D)
                   Expanded(
                     child: ListView.separated(
                       physics: const BouncingScrollPhysics(),
@@ -656,51 +731,273 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
 
                   const SizedBox(height: 16),
 
-                  // Bouton d'action dynamique (Valider -> Suivant)
+                  // Bouton manuel de passage si l'utilisateur ne souhaite pas attendre l'auto-avance
+                  if (_isAnswerValidated)
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _isSubmitting ? null : _onNextPressed,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF075E4D),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : Text(
+                                _currentQuestionIndex == _questions.length - 1
+                                    ? 'Voir mes résultats'
+                                    : 'Question suivante',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Écran de bilan détaillé question par question
+  Widget _buildEndReportView() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final int score = _endReportData?['score'] as int? ?? 0;
+    final int maxScore = _endReportData?['maxScore'] as int? ?? 40;
+    final int pointsGagnes = _endReportData?['pointsGagnes'] as int? ?? 0;
+    final String badge = _endReportData?['badge'] as String? ?? 'Kalanden';
+
+    return Scaffold(
+      backgroundColor: isDark ? AppColors.darkBackgroundSecondary : const Color(0xFF075E4D),
+      body: Column(
+        children: [
+          SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => context.pop(),
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const Expanded(
+                    child: Center(
+                      child: Text(
+                        'Bilan du Quiz',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 28),
+                ],
+              ),
+            ),
+          ),
+
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkBackground : const Color(0xFFF7F8F5),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: ListView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(18, 20, 18, 30),
+                children: [
+                  // Résumé récapitulatif
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkSurface : Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildSummaryColumn('Score', '$score/$maxScore', isDark),
+                        _buildSummaryColumn('Points', '+$pointsGagnes', isDark, isGold: true),
+                        _buildSummaryColumn('Badge', badge, isDark),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  Text(
+                    'Détail des réponses (${_questionReviewList.length} questions)',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Liste des questions avec retour correct / incorrect
+                  ..._questionReviewList.map((item) => _buildQuestionReviewCard(item, isDark)),
+
+                  const SizedBox(height: 20),
+
+                  // Bouton Terminer
                   SizedBox(
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
-                      onPressed: _isSubmitting
-                          ? null
-                          : _isAnswerValidated
-                              ? _onNextPressed
-                              : _selectedOptionIndex != null
-                                  ? _onValidatePressed
-                                  : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF075E4D),
                         foregroundColor: Colors.white,
-                        disabledBackgroundColor: const Color(0xFFB5C4BE),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
-                      child: _isSubmitting
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2.5,
-                              ),
-                            )
-                          : Text(
-                              _isAnswerValidated
-                                  ? (_currentQuestionIndex == _questions.length - 1
-                                      ? 'Voir mes résultats'
-                                      : 'Question suivante')
-                                  : 'Valider ma réponse',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                      onPressed: () => context.pop(),
+                      child: const Text('Retour aux quiz', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryColumn(String label, String value, bool isDark, {bool isGold = false}) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w900,
+            color: isGold
+                ? const Color(0xFFF2B544)
+                : (isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D)),
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: isDark ? AppColors.darkTextSecondary : const Color(0xFF94A3B8),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuestionReviewCard(Map<String, dynamic> item, bool isDark) {
+    final String question = item['nomQuestion']?.toString() ?? '';
+    final String? submitted = item['reponseSoumise']?.toString();
+    final String bonne = item['bonneReponse']?.toString() ?? '';
+    final bool estCorrect = item['estCorrect'] == true;
+    final int points = (item['pointsGagnes'] as num?)?.toInt() ?? 0;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: estCorrect ? AppColors.success.withValues(alpha: 0.5) : AppColors.error.withValues(alpha: 0.5),
+          width: 1.2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                estCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                color: estCorrect ? AppColors.success : AppColors.error,
+                size: 22,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  question,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: estCorrect
+                      ? (isDark ? const Color(0xFF134E42) : const Color(0xFFE8F5F1))
+                      : (isDark ? const Color(0xFF4C1D24) : const Color(0xFFFEE2E2)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '+$points pts',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: estCorrect ? AppColors.success : AppColors.error,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.only(left: 30),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Votre choix : ${submitted ?? "Aucune réponse"}',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: estCorrect ? AppColors.success : AppColors.error,
+                  ),
+                ),
+                if (!estCorrect) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    'Bonne réponse : $bonne',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? AppColors.darkTextPrimary : const Color(0xFF075E4D),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ],
@@ -787,41 +1084,43 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     required QuestionItem currentQuestion,
   }) {
     final String letter = String.fromCharCode(65 + index); // A, B, C, D
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    Color borderColor = const Color(0xFFE2E8F0);
-    Color bgColor = Colors.white;
-    Color badgeColor = const Color(0xFFF1F5F3);
-    Color letterColor = const Color(0xFF6C7C77);
+    Color borderColor = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
+    Color bgColor = isDark ? AppColors.darkSurface : Colors.white;
+    Color badgeColor = isDark ? AppColors.darkSurfaceElevated : const Color(0xFFF1F5F3);
+    Color letterColor = isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77);
+    Color textColor = isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D);
     Widget? statusIcon;
 
     if (_isAnswerValidated) {
       final bool isCorrectAnswer = currentQuestion.correctAnswer != null &&
-          optionText.trim().toLowerCase() == currentQuestion.correctAnswer!.trim().toLowerCase();
+          _isAnswerMatch(optionText, currentQuestion.correctAnswer);
 
       if (isCorrectAnswer) {
         // Bonne réponse révélée en vert
-        borderColor = const Color(0xFF0E8F76);
-        bgColor = const Color(0xFFE8F5F1);
-        badgeColor = const Color(0xFF0E8F76);
+        borderColor = AppColors.success;
+        bgColor = isDark ? const Color(0xFF134E42) : const Color(0xFFE8F5F1);
+        badgeColor = AppColors.success;
         letterColor = Colors.white;
-        statusIcon = const Icon(Icons.check_circle_rounded, color: Color(0xFF0E8F76), size: 22);
+        statusIcon = const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 22);
       } else if (isSelected) {
         // Mauvaise réponse sélectionnée en rouge
-        borderColor = const Color(0xFFDC2626);
-        bgColor = const Color(0xFFFEE2E2);
-        badgeColor = const Color(0xFFDC2626);
+        borderColor = AppColors.error;
+        bgColor = isDark ? const Color(0xFF4C1D24) : const Color(0xFFFEE2E2);
+        badgeColor = AppColors.error;
         letterColor = Colors.white;
-        statusIcon = const Icon(Icons.cancel_rounded, color: Color(0xFFDC2626), size: 22);
+        statusIcon = const Icon(Icons.cancel_rounded, color: AppColors.error, size: 22);
       }
     } else if (isSelected) {
-      borderColor = const Color(0xFF075E4D);
-      badgeColor = const Color(0xFF075E4D);
+      borderColor = AppColors.primaryInteractive;
+      badgeColor = AppColors.primaryInteractive;
       letterColor = Colors.white;
-      statusIcon = const Icon(Icons.check_circle_rounded, color: Color(0xFF075E4D), size: 20);
+      statusIcon = const Icon(Icons.check_circle_rounded, color: AppColors.primaryInteractive, size: 20);
     }
 
     return InkWell(
-      onTap: () => _onOptionSelected(index),
+      onTap: _isAnswerValidated ? null : () => _onOptionSelected(index),
       borderRadius: BorderRadius.circular(16),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -876,7 +1175,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                 style: TextStyle(
                   fontSize: 13.5,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: const Color(0xFF16332D),
+                  color: textColor,
                   height: 1.3,
                 ),
               ),
@@ -909,3 +1208,38 @@ class QuestionItem {
     this.points = 10,
   });
 }
+
+final List<QuestionItem> _defaultFallbackQuestions = [
+  QuestionItem(
+    idQuestion: 1,
+    question: 'Qui a proclamé l\'indépendance du Mali le 22 septembre 1960 ?',
+    options: ['Modibo Keïta', 'Moussa Traoré', 'Alpha Oumar Konaré', 'Tiéba Traoré'],
+    correctAnswer: 'Modibo Keïta',
+    duree: 30,
+    points: 10,
+  ),
+  QuestionItem(
+    idQuestion: 2,
+    question: 'Quelle bataille historique en 1235 a consacré la victoire de Soundiata Keïta ?',
+    options: ['Bataille de Kirina', 'Bataille de Tondibi', 'Bataille de Kansala', 'Bataille de Sikasso'],
+    correctAnswer: 'Bataille de Kirina',
+    duree: 30,
+    points: 10,
+  ),
+  QuestionItem(
+    idQuestion: 3,
+    question: 'Quel souverain du Mali est réputé pour son célèbre pèlerinage fastueux à La Mecque en 1324 ?',
+    options: ['Kankou Moussa', 'Soundiata Keïta', 'Sony Ali Ber', 'Askia Mohamed'],
+    correctAnswer: 'Kankou Moussa',
+    duree: 30,
+    points: 10,
+  ),
+  QuestionItem(
+    idQuestion: 4,
+    question: 'Quel grand empire ouest-africain a précédé l\'Empire du Mali au XIe siècle ?',
+    options: ['L\'Empire du Ghana (Wagadou)', 'L\'Empire Songhaï', 'L\'Empire Mossi', 'Le Royaume Bambara de Ségou'],
+    correctAnswer: 'L\'Empire du Ghana (Wagadou)',
+    duree: 30,
+    points: 10,
+  ),
+];

@@ -69,22 +69,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   void _showPasswordResetDialog() {
     _resetEmailController.text = _emailController.text.trim();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: Colors.white,
-        title: const Row(
+        backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+        title: Row(
           children: [
-            Icon(Icons.lock_reset_rounded, color: AppColors.primaryForest),
-            SizedBox(width: 10),
+            Icon(
+              Icons.lock_reset_rounded,
+              color: isDark ? const Color(0xFF4DB6AC) : AppColors.primaryForest,
+            ),
+            const SizedBox(width: 10),
             Text(
               'Mot de passe oublié',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.primaryForest,
+                color: isDark ? AppColors.darkTextPrimary : AppColors.primaryForest,
               ),
             ),
           ],
@@ -93,11 +97,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Saisissez votre adresse email pour recevoir un lien sécurisé de réinitialisation :',
               style: TextStyle(
                 fontSize: 13,
-                color: AppColors.textSecondary,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                 height: 1.4,
               ),
             ),
@@ -105,23 +109,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             TextFormField(
               controller: _resetEmailController,
               keyboardType: TextInputType.emailAddress,
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1F2937),
+              ),
               decoration: InputDecoration(
                 hintText: 'exemple@domaine.com',
-                prefixIcon: const Icon(Icons.email_outlined, color: AppColors.primaryForest),
+                hintStyle: TextStyle(
+                  color: isDark ? AppColors.darkTextDisabled : const Color(0xFF9CA3AF),
+                ),
+                prefixIcon: Icon(
+                  Icons.email_outlined,
+                  color: isDark ? const Color(0xFF4DB6AC) : AppColors.primaryForest,
+                ),
                 filled: true,
-                fillColor: AppColors.mistIvory,
+                fillColor: isDark ? AppColors.darkSurfaceElevated : AppColors.mistIvory,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: AppColors.borderLight),
+                  borderSide: BorderSide(
+                    color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+                  ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: AppColors.borderLight),
+                  borderSide: BorderSide(
+                    color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: AppColors.primaryForest, width: 1.5),
+                  borderSide: BorderSide(
+                    color: isDark ? const Color(0xFF4DB6AC) : AppColors.primaryForest,
+                    width: 1.5,
+                  ),
                 ),
               ),
             ),
@@ -130,11 +150,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Annuler', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(
+              'Annuler',
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              ),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryForest,
+              backgroundColor: isDark ? AppColors.primaryInteractive : AppColors.primaryForest,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
@@ -160,7 +185,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Un lien de réinitialisation a été envoyé à $email.'),
-                      backgroundColor: AppColors.primaryForest,
+                      backgroundColor: isDark ? const Color(0xFF4DB6AC) : AppColors.primaryForest,
                     ),
                   );
                 } else {
@@ -183,53 +208,90 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final size = MediaQuery.of(context).size;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8F5),
+      backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFFF7F8F5),
       body: Column(
         children: [
-          // ==================== PARTIE SUPÉRIEURE : HERO BANNER ====================
+          // ==================== PARTIE SUPÉRIEURE : HERO BANNER FIGMA ====================
           SizedBox(
-            height: size.height * 0.40,
+            height: (size.height * 0.38).clamp(240.0, 320.0),
             width: double.infinity,
             child: Stack(
               fit: StackFit.expand,
               children: [
-                // Image de fond Arch / Mali
+                // Image de fond Arch / Mali de haute qualité
                 Image.asset(
-                  'assets/images/auth_hero.png',
+                  'assets/images/auth_hero.jpg',
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF075E4D), Color(0xFF16332D)],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
+                  errorBuilder: (context, error, stackTrace) => Image.asset(
+                    'assets/images/auth_hero.png',
+                    fit: BoxFit.cover,
+                    errorBuilder: (ctx, err, trace) => Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF075E4D), Color(0xFF16332D)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
                       ),
                     ),
                   ),
                 ),
 
-                // Voile léger pour contraste
+                // Dégradé sombre pour sublimer le logo et le texte MaliExplorer
                 Container(
-                  color: Colors.black.withValues(alpha: 0.12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.60),
+                        Colors.black.withValues(alpha: 0.20),
+                        Colors.black.withValues(alpha: 0.45),
+                      ],
+                    ),
+                  ),
                 ),
 
-                // Logo officiel MaliExplorer sans ombre
+                // Logo officiel MaliExplorer & Titre alignés en haut à gauche (Conforme HomeScreen & Figma)
                 SafeArea(
                   child: Align(
-                    alignment: const Alignment(0, -0.65),
-                    child: Image.asset(
-                      'assets/images/MaliExplorer.png',
-                      height: 95,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) => const Text(
-                        'MaliExplorer',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    alignment: Alignment.topLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16.0, 10.0, 16.0, 0),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Image.asset(
+                            'assets/images/MaliExplorer.png',
+                            height: 42,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) => const Icon(
+                              Icons.explore,
+                              color: Colors.white,
+                              size: 36,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'MaliExplorer',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: -0.5,
+                              shadows: [
+                                Shadow(
+                                  offset: Offset(0, 1.5),
+                                  blurRadius: 4.0,
+                                  color: Colors.black54,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -242,9 +304,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           Expanded(
             child: Container(
               width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Color(0xFFF7F8F5),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkBackgroundSecondary : const Color(0xFFF7F8F5),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                border: isDark ? const Border(top: BorderSide(color: AppColors.darkBorder, width: 1)) : null,
               ),
               child: Column(
                 children: [
@@ -257,8 +320,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         crossFadeState: _showEmailForm
                             ? CrossFadeState.showSecond
                             : CrossFadeState.showFirst,
-                        firstChild: _buildFigmaOptionsView(),
-                        secondChild: _buildFigmaEmailFormView(authState),
+                        firstChild: _buildFigmaOptionsView(isDark),
+                        secondChild: _buildFigmaEmailFormView(authState, isDark),
                       ),
                     ),
                   ),
@@ -271,9 +334,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.arrow_back_ios_new_rounded,
-                            color: Color(0xFF16332D),
+                            color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
                             size: 22,
                           ),
                           onPressed: () {
@@ -299,25 +362,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   /// Écran Figma 1 : Interface Connexion (Choix Google vs Email)
-  Widget _buildFigmaOptionsView() {
+  Widget _buildFigmaOptionsView(bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Connexion',
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.w900,
-            color: Color(0xFF064E3B),
+            color: isDark ? AppColors.darkTextPrimary : const Color(0xFF064E3B),
             letterSpacing: -0.5,
           ),
         ),
         const SizedBox(height: 10),
-        const Text(
+        Text(
           'Accédez à votre espace personnel\net continuez votre exploration.',
           style: TextStyle(
             fontSize: 14,
-            color: Color(0xFF6B7280),
+            color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
             height: 1.45,
           ),
         ),
@@ -330,9 +393,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Container(
             height: 52,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? AppColors.darkSurface : Colors.white,
               borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: const Color(0xFFE5E7EB), width: 1.2),
+              border: Border.all(
+                color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB),
+                width: 1.2,
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -341,19 +407,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   'assets/images/google_icon.png',
                   height: 22,
                   width: 22,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
-                    Icons.g_mobiledata_rounded,
-                    color: Colors.redAccent,
-                    size: 26,
-                  ),
+                  fit: BoxFit.contain,
                 ),
                 const SizedBox(width: 12),
-                const Text(
+                Text(
                   'Se connecter avec Google',
                   style: TextStyle(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF374151),
+                    color: isDark ? AppColors.darkTextPrimary : const Color(0xFF374151),
                   ),
                 ),
               ],
@@ -370,24 +432,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Container(
             height: 52,
             decoration: BoxDecoration(
-              color: const Color(0xFF064E3B),
+              color: isDark ? AppColors.primaryInteractive : const Color(0xFF064E3B),
               borderRadius: BorderRadius.circular(30),
             ),
-            child: Row(
+            child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(
-                  'assets/images/gmail_icon.png',
-                  height: 20,
-                  width: 20,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
-                    Icons.mail_outline_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
+                Icon(
+                  Icons.email_outlined,
+                  color: Colors.white,
+                  size: 22,
                 ),
-                const SizedBox(width: 12),
-                const Text(
+                SizedBox(width: 12),
+                Text(
                   'Se connecter avec Email',
                   style: TextStyle(
                     fontSize: 14.5,
@@ -403,33 +460,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         const SizedBox(height: 28),
 
         // Footer Inscription
-        Center(child: _buildFooterRegister()),
+        Center(child: _buildFooterRegister(isDark)),
       ],
     );
   }
 
   /// Écran Figma 2 : Interface connexionEmail (Champs Email & Password)
-  Widget _buildFigmaEmailFormView(AuthState authState) {
+  Widget _buildFigmaEmailFormView(AuthState authState, bool isDark) {
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Connexion',
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w900,
-              color: Color(0xFF064E3B),
+              color: isDark ? AppColors.darkTextPrimary : const Color(0xFF064E3B),
               letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 10),
-          const Text(
+          Text(
             'Donnez votre email & mot de passe',
             style: TextStyle(
               fontSize: 14,
-              color: Color(0xFF6B7280),
+              color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
             ),
           ),
           const SizedBox(height: 28),
@@ -438,24 +495,41 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           TextFormField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
+            style: TextStyle(
+              color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1F2937),
+            ),
             decoration: InputDecoration(
               hintText: 'Adresse email',
-              hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-              prefixIcon: const Icon(Icons.mail_outline_rounded, color: Color(0xFF374151), size: 22),
+              hintStyle: TextStyle(
+                color: isDark ? AppColors.darkTextDisabled : const Color(0xFF9CA3AF),
+                fontSize: 14,
+              ),
+              prefixIcon: Icon(
+                Icons.mail_outline_rounded,
+                color: isDark ? AppColors.darkTextSecondary : const Color(0xFF374151),
+                size: 22,
+              ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: isDark ? AppColors.darkSurface : Colors.white,
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(30),
-                borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                borderSide: BorderSide(
+                  color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB),
+                ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(30),
-                borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                borderSide: BorderSide(
+                  color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB),
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(30),
-                borderSide: const BorderSide(color: Color(0xFF064E3B), width: 1.6),
+                borderSide: BorderSide(
+                  color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF064E3B),
+                  width: 1.6,
+                ),
               ),
             ),
             validator: (v) {
@@ -471,34 +545,51 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           TextFormField(
             controller: _passwordController,
             obscureText: _obscurePassword,
+            style: TextStyle(
+              color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1F2937),
+            ),
             decoration: InputDecoration(
               hintText: 'Mot de passe',
-              hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-              prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF374151), size: 22),
+              hintStyle: TextStyle(
+                color: isDark ? AppColors.darkTextDisabled : const Color(0xFF9CA3AF),
+                fontSize: 14,
+              ),
+              prefixIcon: Icon(
+                Icons.lock_outline_rounded,
+                color: isDark ? AppColors.darkTextSecondary : const Color(0xFF374151),
+                size: 22,
+              ),
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscurePassword
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined,
-                  color: const Color(0xFF6B7280),
+                  color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
                   size: 22,
                 ),
                 onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: isDark ? AppColors.darkSurface : Colors.white,
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(30),
-                borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                borderSide: BorderSide(
+                  color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB),
+                ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(30),
-                borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                borderSide: BorderSide(
+                  color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB),
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(30),
-                borderSide: const BorderSide(color: Color(0xFF064E3B), width: 1.6),
+                borderSide: BorderSide(
+                  color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF064E3B),
+                  width: 1.6,
+                ),
               ),
             ),
             validator: (v) {
@@ -520,10 +611,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: const Text(
+              child: Text(
                 'Mot de passe oublié ?',
                 style: TextStyle(
-                  color: Color(0xFF1F2937),
+                  color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF1F2937),
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
                 ),
@@ -540,7 +631,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: ElevatedButton(
               onPressed: authState.isLoading ? null : _handleEmailLogin,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF064E3B),
+                backgroundColor: isDark ? AppColors.primaryInteractive : const Color(0xFF064E3B),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                 elevation: 0,
@@ -561,29 +652,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           const SizedBox(height: 24),
 
           // Footer Inscription
-          Center(child: _buildFooterRegister()),
+          Center(child: _buildFooterRegister(isDark)),
         ],
       ),
     );
   }
 
-  Widget _buildFooterRegister() {
+  Widget _buildFooterRegister(bool isDark) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
+        Text(
           'Pas encore de compte ? ',
           style: TextStyle(
-            color: Color(0xFF6B7280),
+            color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
             fontSize: 13.5,
           ),
         ),
         GestureDetector(
           onTap: () => context.push(AppRouter.register),
-          child: const Text(
+          child: Text(
             'S\'inscrire',
             style: TextStyle(
-              color: Color(0xFF111827),
+              color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF111827),
               fontSize: 13.5,
               fontWeight: FontWeight.w900,
             ),

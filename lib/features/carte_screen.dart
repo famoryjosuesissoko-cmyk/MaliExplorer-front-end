@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../core/constants/app_colors.dart';
 import '../models/ville_model.dart';
 import '../providers/villes_provider.dart';
 import '../router/app_router.dart';
@@ -77,9 +78,10 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
   Widget build(BuildContext context) {
     final selectedMarker = _markerCities[_selectedCityIndex];
     final villesAsync = ref.watch(villesProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF075E4D),
+      backgroundColor: isDark ? AppColors.darkBackgroundSecondary : const Color(0xFF075E4D),
       body: Column(
         children: [
           // En-tête vert
@@ -137,9 +139,9 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
           Expanded(
             child: Container(
               width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Color(0xFFF7F8F5),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkBackground : const Color(0xFFF7F8F5),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
               ),
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -160,15 +162,17 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
                               label: Text(filtre),
                               selected: isSelected,
                               onSelected: (_) => setState(() => _selectedFilter = filtre),
-                              selectedColor: const Color(0xFF075E4D),
-                              backgroundColor: Colors.white,
+                              selectedColor: isDark ? AppColors.primaryInteractive : const Color(0xFF075E4D),
+                              backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
                               labelStyle: TextStyle(
-                                color: isSelected ? Colors.white : const Color(0xFF6C7C77),
+                                color: isSelected ? Colors.white : (isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77)),
                                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                                 fontSize: 12.5,
                               ),
                               side: BorderSide(
-                                color: isSelected ? const Color(0xFF075E4D) : const Color(0xFFE2E8F0),
+                                color: isSelected
+                                    ? (isDark ? AppColors.primaryInteractive : const Color(0xFF075E4D))
+                                    : (isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0)),
                               ),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                               showCheckmark: false,
@@ -185,12 +189,12 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
                       height: 260,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: isDark ? AppColors.darkSurface : Colors.white,
                         borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        border: Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0)),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
+                            color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.04),
                             blurRadius: 10,
                             offset: const Offset(0, 3),
                           ),
@@ -267,12 +271,12 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
                     // Carte détaillée de la ville sélectionnée
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: isDark ? AppColors.darkSurface : Colors.white,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        border: Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0)),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
+                            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -357,10 +361,10 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
                                     Expanded(
                                       child: Text(
                                         selectedMarker['highlight'] as String,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w600,
-                                          color: Color(0xFF16332D),
+                                          color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
                                         ),
                                       ),
                                     ),
@@ -369,11 +373,11 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
                                 const SizedBox(height: 6),
                                 Row(
                                   children: [
-                                    const Icon(Icons.my_location_rounded, color: Color(0xFF6C7C77), size: 16),
+                                    Icon(Icons.my_location_rounded, color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77), size: 16),
                                     const SizedBox(width: 6),
                                     Text(
                                       selectedMarker['coords'] as String,
-                                      style: const TextStyle(fontSize: 12, color: Color(0xFF6C7C77)),
+                                      style: TextStyle(fontSize: 12, color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77)),
                                     ),
                                   ],
                                 ),
@@ -383,7 +387,7 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
                                   height: 46,
                                   child: ElevatedButton(
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF075E4D),
+                                      backgroundColor: isDark ? AppColors.primaryInteractive : const Color(0xFF075E4D),
                                       foregroundColor: Colors.white,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(16),

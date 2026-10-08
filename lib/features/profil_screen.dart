@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../core/constants/app_colors.dart';
 import '../core/services/api_service.dart';
 import '../core/services/storage_service.dart';
 import '../main.dart';
@@ -167,7 +168,7 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
             : 'Utilisateur MaliExplorer';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8F5),
+      backgroundColor: isDarkMode ? AppColors.darkBackground : const Color(0xFFF7F8F5),
       body: SafeArea(
         child: Column(
           children: [
@@ -184,22 +185,22 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
                         context.go(AppRouter.home);
                       }
                     },
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.arrow_back_ios_new_rounded,
-                      color: Color(0xFF16332D),
+                      color: isDarkMode ? AppColors.darkTextPrimary : const Color(0xFF16332D),
                       size: 20,
                     ),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Center(
                       child: Text(
                         'Mon profil',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF075E4D),
+                          color: isDarkMode ? AppColors.darkTextPrimary : const Color(0xFF075E4D),
                           letterSpacing: 0.2,
                         ),
                       ),
@@ -297,20 +298,20 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
                     // Nom et Email de l'utilisateur
                     Text(
                       displayName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF075E4D),
+                        color: isDarkMode ? AppColors.darkTextPrimary : const Color(0xFF075E4D),
                         letterSpacing: -0.3,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       user?.email ?? 'Visiteur',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w400,
-                        color: Color(0xFF6C7C77),
+                        color: isDarkMode ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
                       ),
                     ),
 
@@ -320,56 +321,64 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
                     _buildMenuItem(
                       icon: Icons.person_rounded,
                       title: 'Informations personnelles',
+                      isDark: isDarkMode,
                       onTap: () => context.push(AppRouter.personalInfo),
                     ),
                     _buildMenuItem(
                       icon: Icons.favorite_border_rounded,
                       title: 'Favoris',
+                      isDark: isDarkMode,
                       onTap: () => context.push(AppRouter.favoris),
                     ),
                     _buildSwitchMenuItem(
                       icon: isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
                       title: isDarkMode ? 'Mode Nuit (Sombre)' : 'Mode Jour (Clair)',
                       value: isDarkMode,
+                      isDark: isDarkMode,
                       onChanged: (val) {
                         ref.read(themeModeProvider.notifier).state =
                             val ? ThemeMode.dark : ThemeMode.light;
                       },
                     ),
-                    // Redirige vers Mon Parcours (Quiz & Résultats)
+                    // Redirige vers Mon Parcours (Quiz, Résultats & Badges Bambara)
                     _buildMenuItem(
                       icon: Icons.emoji_events_outlined,
                       title: 'Mes quiz et resultats',
+                      isDark: isDarkMode,
                       onTap: () => context.push(AppRouter.monParcours),
                     ),
-                    // Redirige vers Mon Parcours (Badges)
+                    // Redirige vers Historique (Journal chronologique des points et activités)
                     _buildMenuItem(
-                      icon: Icons.verified_outlined,
-                      title: 'Mes badges',
-                      onTap: () => context.push(AppRouter.monParcours),
+                      icon: Icons.history_rounded,
+                      title: 'Historique',
+                      isDark: isDarkMode,
+                      onTap: () => context.push(AppRouter.historique),
                     ),
                     _buildMenuItem(
                       icon: Icons.settings_outlined,
                       title: 'Paramètres',
+                      isDark: isDarkMode,
                       onTap: () => context.push(AppRouter.settings),
                     ),
                     _buildMenuItem(
                       icon: Icons.help_outline_rounded,
                       title: 'Aide & support',
+                      isDark: isDarkMode,
                       onTap: () => context.push(AppRouter.helpSupport),
                     ),
                     _buildMenuItem(
                       icon: Icons.logout_rounded,
                       title: 'Deconnexion',
                       isDestructive: true,
+                      isDark: isDarkMode,
                       onTap: () async {
                         await FirebaseAuth.instance.signOut();
                         ref.read(apiServiceProvider).setAuthToken(null);
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Déconnexion réussie'),
-                              backgroundColor: Color(0xFF075E4D),
+                            SnackBar(
+                              content: const Text('Déconnexion réussie'),
+                              backgroundColor: isDarkMode ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
                             ),
                           );
                           context.go(AppRouter.login);
@@ -393,19 +402,20 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
     required String title,
     required VoidCallback onTap,
     bool isDestructive = false,
+    bool isDark = false,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 9),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.black.withValues(alpha: 0.05),
+          color: isDark ? AppColors.darkBorder : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.015),
+            color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.015),
             blurRadius: 4,
             offset: const Offset(0, 1),
           ),
@@ -425,7 +435,7 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
                   size: 23,
                   color: isDestructive
                       ? const Color(0xFFDC2626)
-                      : const Color(0xFF075E4D),
+                      : (isDark ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D)),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -436,14 +446,14 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
                       fontWeight: FontWeight.w600,
                       color: isDestructive
                           ? const Color(0xFFDC2626)
-                          : const Color(0xFF075E4D),
+                          : (isDark ? AppColors.darkTextPrimary : const Color(0xFF075E4D)),
                     ),
                   ),
                 ),
                 if (!isDestructive)
-                  const Icon(
+                  Icon(
                     Icons.chevron_right_rounded,
-                    color: Color(0xFF16332D),
+                    color: isDark ? AppColors.darkTextSecondary : const Color(0xFF16332D),
                     size: 22,
                   ),
               ],
@@ -459,20 +469,21 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
     required String title,
     required bool value,
     required ValueChanged<bool> onChanged,
+    bool isDark = false,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 9),
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.black.withValues(alpha: 0.05),
+          color: isDark ? AppColors.darkBorder : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.015),
+            color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.015),
             blurRadius: 4,
             offset: const Offset(0, 1),
           ),
@@ -483,16 +494,16 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
           Icon(
             icon,
             size: 23,
-            color: const Color(0xFF075E4D),
+            color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13.5,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF075E4D),
+                color: isDark ? AppColors.darkTextPrimary : const Color(0xFF075E4D),
               ),
             ),
           ),
@@ -501,8 +512,8 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
             child: Switch(
               value: value,
               onChanged: onChanged,
-              activeThumbColor: const Color(0xFF075E4D),
-              activeTrackColor: const Color(0xFF075E4D).withValues(alpha: 0.3),
+              activeThumbColor: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
+              activeTrackColor: (isDark ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D)).withValues(alpha: 0.3),
             ),
           ),
         ],

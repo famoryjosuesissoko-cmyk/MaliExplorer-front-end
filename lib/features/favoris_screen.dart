@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../core/constants/app_colors.dart';
 import '../router/app_router.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,11 +18,10 @@ class _FavorisScreenState extends ConsumerState<FavorisScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Size screenSize = MediaQuery.of(context).size;
-    final double screenWidth = screenSize.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF075E4D),
+      backgroundColor: isDark ? AppColors.darkBackgroundSecondary : const Color(0xFF075E4D),
       body: Stack(
         children: [
           Column(
@@ -72,14 +72,14 @@ class _FavorisScreenState extends ConsumerState<FavorisScreen> {
               Expanded(
                 child: Container(
                   width: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF7F8F5),
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkBackground : const Color(0xFFF7F8F5),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
                   ),
                   child: ref.watch(favorisProvider).when(
-                        loading: () => const Center(
+                        loading: () => Center(
                           child: CircularProgressIndicator(
-                            color: Color(0xFF075E4D),
+                            color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
                           ),
                         ),
                         error: (error, _) => Center(
@@ -117,10 +117,10 @@ class _FavorisScreenState extends ConsumerState<FavorisScreen> {
                         ),
                         data: (favorites) {
                           if (favorites.isEmpty) {
-                            return _buildEmptyState();
+                            return _buildEmptyState(isDark);
                           }
                           return RefreshIndicator(
-                            color: const Color(0xFF075E4D),
+                            color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
                             onRefresh: () async => ref.read(favorisNotifierProvider.notifier).loadFavoris(),
                             child: ListView.separated(
                               physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
@@ -130,7 +130,7 @@ class _FavorisScreenState extends ConsumerState<FavorisScreen> {
                                   const SizedBox(height: 12),
                               itemBuilder: (context, index) {
                                 final item = favorites[index];
-                                return _buildFavoriteCard(item, index);
+                                return _buildFavoriteCard(item, index, isDark);
                               },
                             ),
                           );
@@ -145,31 +145,31 @@ class _FavorisScreenState extends ConsumerState<FavorisScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(bool isDark) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
+        children: [
           Icon(
             Icons.favorite_border_rounded,
             size: 64,
-            color: Color(0xFF94A3B8),
+            color: isDark ? AppColors.darkTextDisabled : const Color(0xFF94A3B8),
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Text(
             'Aucun favori pour le moment',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF16332D),
+              color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
             ),
           ),
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
           Text(
             'Explorez et ajoutez vos lieux et plats préférés !',
             style: TextStyle(
               fontSize: 12,
-              color: Color(0xFF6C7C77),
+              color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
             ),
           ),
         ],
@@ -177,7 +177,7 @@ class _FavorisScreenState extends ConsumerState<FavorisScreen> {
     );
   }
 
-  Widget _buildFavoriteCard(FavoriModel item, int index) {
+  Widget _buildFavoriteCard(FavoriModel item, int index, bool isDark) {
     return Dismissible(
       key: Key('${item.titre}_${item.id}_$index'),
       direction: DismissDirection.endToStart,
@@ -188,7 +188,7 @@ class _FavorisScreenState extends ConsumerState<FavorisScreen> {
             SnackBar(
               content: Text('${item.titre} retiré des favoris'),
               duration: const Duration(seconds: 2),
-              backgroundColor: const Color(0xFF075E4D),
+              backgroundColor: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
             ),
           );
         }
@@ -212,17 +212,17 @@ class _FavorisScreenState extends ConsumerState<FavorisScreen> {
         child: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDark ? AppColors.darkSurface : Colors.white,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
+                color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.04),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
             ],
             border: Border.all(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: isDark ? AppColors.darkBorder : Colors.black.withValues(alpha: 0.04),
               width: 1,
             ),
           ),
@@ -239,10 +239,10 @@ class _FavorisScreenState extends ConsumerState<FavorisScreen> {
                   errorBuilder: (context, error, stackTrace) => Container(
                     width: 58,
                     height: 58,
-                    color: const Color(0xFFF1F5F3),
-                    child: const Icon(
+                    color: isDark ? AppColors.darkSurfaceElevated : const Color(0xFFF1F5F3),
+                    child: Icon(
                       Icons.image_outlined,
-                      color: Color(0xFF94A3B8),
+                      color: isDark ? AppColors.darkTextSecondary : const Color(0xFF94A3B8),
                     ),
                   ),
                 ),
@@ -256,19 +256,19 @@ class _FavorisScreenState extends ConsumerState<FavorisScreen> {
                   children: [
                     Text(
                       item.titre,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF16332D),
+                        color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       item.categorie,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
-                        color: Color(0xFF6C7C77),
+                        color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
                       ),
                     ),
                   ],

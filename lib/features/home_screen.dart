@@ -54,13 +54,14 @@ class _HomeScreenState extends State<HomeScreen> {
     final Size screenSize = MediaQuery.of(context).size;
     final double screenWidth = screenSize.width;
     final double screenHeight = screenSize.height;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Hauteur responsive du Hero (adaptée selon la hauteur de l'écran)
     final double heroHeight = (screenHeight * 0.36).clamp(240.0, 320.0);
     const double searchBarHeight = 52.0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8F5),
+      backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFFF7F8F5),
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
@@ -82,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       bottom: -(searchBarHeight / 2),
                       left: math.max(16.0, screenWidth * 0.05),
                       right: math.max(16.0, screenWidth * 0.05),
-                      child: _buildSearchBar(searchBarHeight),
+                      child: _buildSearchBar(searchBarHeight, isDark),
                     ),
                   ],
                 ),
@@ -94,13 +95,20 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
 
               // 2. Grille responsive des 4 catégories
-              SliverToBoxAdapter(child: _buildCategoriesSection(screenWidth)),
+              SliverToBoxAdapter(child: _buildCategoriesSection(screenWidth, isDark)),
 
               const SliverToBoxAdapter(child: SizedBox(height: 22)),
 
               // 3. Carte de mise en avant (Tombouctou)
               SliverToBoxAdapter(
                 child: _buildFeaturedCard(screenWidth, screenHeight),
+              ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 14)),
+
+              // 4. Bannière interactive du Quiz Culturel
+              SliverToBoxAdapter(
+                child: _buildQuizBanner(screenWidth, isDark),
               ),
 
               // Espace inférieur pour ne pas être caché par la barre de navigation
@@ -323,16 +331,20 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// 2. Barre de recherche flottante
-  Widget _buildSearchBar(double height) {
+  Widget _buildSearchBar(double height, bool isDark) {
     return Container(
       height: height,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.transparent,
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.12),
             blurRadius: 14,
             offset: const Offset(0, 5),
           ),
@@ -343,16 +355,20 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: TextField(
               controller: _searchController,
-              decoration: const InputDecoration(
-                hintText: 'Rechercher un lieu, une recette, une region',
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
+                fontSize: 14,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Rechercher un lieu, une recette, une région...',
                 hintStyle: TextStyle(
-                  color: Color(0xFF8B9B95),
+                  color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8B9B95),
                   fontSize: 13.5,
                   fontWeight: FontWeight.w400,
                 ),
                 border: InputBorder.none,
                 isDense: true,
-                contentPadding: EdgeInsets.symmetric(vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
               ),
             ),
           ),
@@ -375,7 +391,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// 3. Ligne responsive des 4 catégories
-  Widget _buildCategoriesSection(double screenWidth) {
+  Widget _buildCategoriesSection(double screenWidth, bool isDark) {
     final double horizontalPadding = math.max(12.0, screenWidth * 0.035);
 
     return Padding(
@@ -407,17 +423,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   horizontal: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? AppColors.darkSurface : Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
                   ],
                   border: Border.all(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: isDark ? AppColors.darkBorder : Colors.black.withValues(alpha: 0.05),
                     width: 1,
                   ),
                 ),
@@ -429,7 +445,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: cat.bgColor,
+                        color: isDark ? AppColors.darkSurfaceElevated : cat.bgColor,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(cat.icon, color: cat.iconColor, size: 25),
@@ -444,10 +460,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           textAlign: TextAlign.center,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10.5,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF2C3E38),
+                            color: isDark ? AppColors.darkTextPrimary : const Color(0xFF2C3E38),
                             height: 1.15,
                           ),
                         ),
@@ -459,6 +475,87 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+
+  /// 4. Bannière interactive du Quiz Culturel
+  Widget _buildQuizBanner(double screenWidth, bool isDark) {
+    final double horizontalPadding = math.max(12.0, screenWidth * 0.035);
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF332A15) : const Color(0xFFFEF3C7),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(
+                Icons.emoji_events_rounded,
+                color: AppColors.solarYellow,
+                size: 30,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Quiz & Culture Malienne',
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Testez vos connaissances et gagnez des badges Bambara !',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton(
+              onPressed: () => context.go(AppRouter.quizList),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryForest,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                elevation: 0,
+              ),
+              child: const Text('Jouer', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+            ),
+          ],
+        ),
       ),
     );
   }

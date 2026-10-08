@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../core/constants/app_colors.dart';
 import '../main.dart';
 import '../router/app_router.dart';
 
@@ -21,12 +22,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final isDarkMode = ref.watch(themeModeProvider) == ThemeMode.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8F5),
+      backgroundColor: isDarkMode ? AppColors.darkBackground : const Color(0xFFF7F8F5),
       body: Column(
         children: [
           // Header
           Container(
-            color: const Color(0xFF075E4D),
+            color: isDarkMode ? AppColors.darkBackgroundSecondary : const Color(0xFF075E4D),
             child: SafeArea(
               bottom: false,
               child: Padding(
@@ -75,146 +76,228 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
               children: [
-                _buildSectionHeader('Préférences d\'affichage & Thème'),
+                _buildSectionHeader('Préférences d\'affichage & Thème', isDarkMode),
                 _buildCard([
                   SwitchListTile.adaptive(
                     value: isDarkMode,
-                    activeThumbColor: const Color(0xFF075E4D),
+                    activeThumbColor: isDarkMode ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
                     secondary: Icon(
                       isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-                      color: const Color(0xFF075E4D),
+                      color: isDarkMode ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
                       size: 24,
                     ),
-                    title: const Text(
+                    title: Text(
                       'Mode Nuit / Jour',
-                      style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? AppColors.darkTextPrimary : null,
+                      ),
                     ),
                     subtitle: Text(
                       isDarkMode ? 'Thème sombre actif' : 'Thème clair actif',
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF6C7C77)),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDarkMode ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                      ),
                     ),
                     onChanged: (val) {
                       ref.read(themeModeProvider.notifier).state =
                           val ? ThemeMode.dark : ThemeMode.light;
                     },
                   ),
-                ]),
+                ], isDarkMode),
 
                 const SizedBox(height: 20),
 
-                _buildSectionHeader('Notifications & Alertes'),
+                _buildSectionHeader('Notifications & Alertes', isDarkMode),
                 _buildCard([
                   SwitchListTile.adaptive(
                     value: _notificationsEnabled,
-                    activeThumbColor: const Color(0xFF075E4D),
-                    secondary: const Icon(
+                    activeThumbColor: isDarkMode ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
+                    secondary: Icon(
                       Icons.notifications_active_outlined,
-                      color: Color(0xFF075E4D),
+                      color: isDarkMode ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
                       size: 24,
                     ),
-                    title: const Text(
+                    title: Text(
                       'Notifications Push',
-                      style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? AppColors.darkTextPrimary : null,
+                      ),
                     ),
-                    subtitle: const Text(
+                    subtitle: Text(
                       'Quiz, nouveaux monuments et actualités',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF6C7C77)),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDarkMode ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                      ),
                     ),
                     onChanged: (val) => setState(() => _notificationsEnabled = val),
                   ),
-                  const Divider(height: 1, indent: 56),
+                  Divider(
+                    height: 1,
+                    indent: 56,
+                    color: isDarkMode ? AppColors.darkBorder : null,
+                  ),
                   SwitchListTile.adaptive(
                     value: _soundEnabled,
-                    activeThumbColor: const Color(0xFF075E4D),
-                    secondary: const Icon(
+                    activeThumbColor: isDarkMode ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
+                    secondary: Icon(
                       Icons.volume_up_outlined,
-                      color: Color(0xFF075E4D),
+                      color: isDarkMode ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
                       size: 24,
                     ),
-                    title: const Text(
+                    title: Text(
                       'Effets sonores des Quiz',
-                      style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? AppColors.darkTextPrimary : null,
+                      ),
                     ),
-                    subtitle: const Text(
+                    subtitle: Text(
                       'Sons de validation et félicitations',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF6C7C77)),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDarkMode ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                      ),
                     ),
                     onChanged: (val) => setState(() => _soundEnabled = val),
                   ),
-                ]),
+                ], isDarkMode),
 
                 const SizedBox(height: 20),
 
-                _buildSectionHeader('Langue & Région'),
+                _buildSectionHeader('Langue & Région', isDarkMode),
                 _buildCard([
                   ListTile(
-                    leading: const Icon(Icons.language_rounded, color: Color(0xFF075E4D), size: 24),
-                    title: const Text(
+                    leading: Icon(
+                      Icons.language_rounded,
+                      color: isDarkMode ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
+                      size: 24,
+                    ),
+                    title: Text(
                       'Langue',
-                      style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? AppColors.darkTextPrimary : null,
+                      ),
                     ),
                     subtitle: Text(
                       _selectedLanguage,
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF6C7C77)),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDarkMode ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                      ),
                     ),
-                    trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF6C7C77)),
+                    trailing: Icon(
+                      Icons.chevron_right_rounded,
+                      color: isDarkMode ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                    ),
                     onTap: () {
                       _showLanguageDialog();
                     },
                   ),
-                ]),
+                ], isDarkMode),
 
                 const SizedBox(height: 20),
 
-                _buildSectionHeader('Stockage & Cache'),
+                _buildSectionHeader('Stockage & Cache', isDarkMode),
                 _buildCard([
                   ListTile(
-                    leading: const Icon(Icons.cleaning_services_outlined, color: Color(0xFF075E4D), size: 24),
-                    title: const Text(
+                    leading: Icon(
+                      Icons.cleaning_services_outlined,
+                      color: isDarkMode ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
+                      size: 24,
+                    ),
+                    title: Text(
                       'Vider le cache d\'images',
-                      style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? AppColors.darkTextPrimary : null,
+                      ),
                     ),
-                    subtitle: const Text(
+                    subtitle: Text(
                       'Libère de l\'espace de stockage local',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF6C7C77)),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDarkMode ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                      ),
                     ),
-                    trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF6C7C77)),
+                    trailing: Icon(
+                      Icons.chevron_right_rounded,
+                      color: isDarkMode ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                    ),
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Cache local vidé avec succès.'),
-                          backgroundColor: Color(0xFF075E4D),
+                        SnackBar(
+                          content: const Text('Cache local vidé avec succès.'),
+                          backgroundColor: isDarkMode ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
                         ),
                       );
                     },
                   ),
-                ]),
+                ], isDarkMode),
 
                 const SizedBox(height: 20),
 
-                _buildSectionHeader('Légal & Informations'),
+                _buildSectionHeader('Légal & Informations', isDarkMode),
                 _buildCard([
                   ListTile(
-                    leading: const Icon(Icons.description_outlined, color: Color(0xFF075E4D), size: 24),
-                    title: const Text(
-                      'Conditions d\'utilisation',
-                      style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600),
+                    leading: Icon(
+                      Icons.description_outlined,
+                      color: isDarkMode ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
+                      size: 24,
                     ),
-                    trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF6C7C77)),
+                    title: Text(
+                      'Conditions d\'utilisation',
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? AppColors.darkTextPrimary : null,
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.chevron_right_rounded,
+                      color: isDarkMode ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                    ),
                     onTap: () => context.push(AppRouter.terms),
                   ),
-                  const Divider(height: 1, indent: 56),
+                  Divider(
+                    height: 1,
+                    indent: 56,
+                    color: isDarkMode ? AppColors.darkBorder : null,
+                  ),
                   ListTile(
-                    leading: const Icon(Icons.info_outline_rounded, color: Color(0xFF075E4D), size: 24),
-                    title: const Text(
+                    leading: Icon(
+                      Icons.info_outline_rounded,
+                      color: isDarkMode ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
+                      size: 24,
+                    ),
+                    title: Text(
                       'À propos de MaliExplorer',
-                      style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? AppColors.darkTextPrimary : null,
+                      ),
                     ),
-                    subtitle: const Text(
+                    subtitle: Text(
                       'Version 1.0.0 • ODC Mali',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF6C7C77)),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDarkMode ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                      ),
                     ),
-                    trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF6C7C77)),
+                    trailing: Icon(
+                      Icons.chevron_right_rounded,
+                      color: isDarkMode ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                    ),
                     onTap: () {
                       showAboutDialog(
                         context: context,
@@ -235,7 +318,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       );
                     },
                   ),
-                ]),
+                ], isDarkMode),
               ],
             ),
           ),
@@ -245,20 +328,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _showLanguageDialog() {
+    final isDarkMode = ref.read(themeModeProvider) == ThemeMode.dark;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: isDarkMode ? AppColors.darkSurface : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Sélectionner la langue', style: TextStyle(color: Color(0xFF075E4D), fontSize: 18)),
+        title: Text(
+          'Sélectionner la langue',
+          style: TextStyle(
+            color: isDarkMode ? AppColors.darkTextPrimary : const Color(0xFF075E4D),
+            fontSize: 18,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
               leading: Icon(
                 _selectedLanguage == 'Français' ? Icons.radio_button_checked : Icons.radio_button_off,
-                color: const Color(0xFF075E4D),
+                color: isDarkMode ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
               ),
-              title: const Text('Français'),
+              title: Text(
+                'Français',
+                style: TextStyle(color: isDarkMode ? AppColors.darkTextPrimary : null),
+              ),
               onTap: () {
                 setState(() => _selectedLanguage = 'Français');
                 Navigator.pop(ctx);
@@ -267,9 +362,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ListTile(
               leading: Icon(
                 _selectedLanguage == 'Bambara (Bamanankan)' ? Icons.radio_button_checked : Icons.radio_button_off,
-                color: const Color(0xFF075E4D),
+                color: isDarkMode ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
               ),
-              title: const Text('Bambara (Bamanankan)'),
+              title: Text(
+                'Bambara (Bamanankan)',
+                style: TextStyle(color: isDarkMode ? AppColors.darkTextPrimary : null),
+              ),
               onTap: () {
                 setState(() => _selectedLanguage = 'Bambara (Bamanankan)');
                 Navigator.pop(ctx);
@@ -281,29 +379,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, [bool isDark = false]) {
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Text(
         title.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11.5,
           fontWeight: FontWeight.w700,
-          color: Color(0xFF6C7C77),
+          color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
           letterSpacing: 0.8,
         ),
       ),
     );
   }
 
-  Widget _buildCard(List<Widget> children) {
+  Widget _buildCard(List<Widget> children, [bool isDark = false]) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: isDark ? Border.all(color: AppColors.darkBorder) : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
+            color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.02),
             blurRadius: 6,
             offset: const Offset(0, 1),
           ),

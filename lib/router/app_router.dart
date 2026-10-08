@@ -26,6 +26,7 @@ import '../features/terms_conditions_screen.dart';
 import '../features/personal_info_screen.dart';
 import '../features/settings_screen.dart';
 import '../features/help_support_screen.dart';
+import '../features/historique_screen.dart';
 import '../models/plat_model.dart';
 import '../models/ethnie_model.dart';
 import '../models/ville_model.dart';
@@ -73,6 +74,7 @@ class AppRouter {
   static const String profil = '/profil';
   static const String monParcours = '/mon-parcours';
   static const String favoris = '/favoris';
+  static const String historique = '/historique';
   static const String artisanDashboard = '/artisan-dashboard';
   static const String artisanAddProduct = '/artisan-add-product';
   static const String terms = '/terms';
@@ -259,6 +261,13 @@ class AppRouter {
         path: favoris,
         builder: (BuildContext context, GoRouterState state) {
           return const FavorisScreen();
+        },
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: historique,
+        builder: (BuildContext context, GoRouterState state) {
+          return const HistoriqueScreen();
         },
       ),
       GoRoute(
