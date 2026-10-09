@@ -27,10 +27,13 @@ import '../features/personal_info_screen.dart';
 import '../features/settings_screen.dart';
 import '../features/help_support_screen.dart';
 import '../features/historique_screen.dart';
+import '../features/promoteur_dashboard_screen.dart';
 import '../models/plat_model.dart';
 import '../models/ethnie_model.dart';
 import '../models/ville_model.dart';
 import '../models/quiz_model.dart';
+import '../models/president_model.dart';
+import '../features/president_detail_screen.dart';
 import '../widgets/main_shell.dart';
 
 /// Configuration du routeur GoRouter pour MaliExplorer avec ShellRoute persistent
@@ -60,11 +63,13 @@ class AppRouter {
   static const String dishDetail = '/dish-detail';
   static const String ethnicityDetail = '/ethnicity-detail';
   static const String cityDetail = '/city-detail';
+  static const String presidentDetail = '/president-detail';
 
   // Alias francophones conformes à la nomenclature
   static const String platDetail = dishDetail;
   static const String ethnieDetail = ethnicityDetail;
   static const String villeDetail = cityDetail;
+  static const String chefEtatDetail = presidentDetail;
 
   // Routes des Quiz
   static const String quizList = '/quiz';
@@ -77,6 +82,7 @@ class AppRouter {
   static const String historique = '/historique';
   static const String artisanDashboard = '/artisan-dashboard';
   static const String artisanAddProduct = '/artisan-add-product';
+  static const String promoteurDashboard = '/promoteur-dashboard';
   static const String terms = '/terms';
   static const String personalInfo = '/personal-info';
   static const String settings = '/settings';
@@ -235,6 +241,16 @@ class AppRouter {
           return CityDetailScreen(ville: ville);
         },
       ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: presidentDetail,
+        builder: (BuildContext context, GoRouterState state) {
+          final president = state.extra is PresidentModel
+              ? state.extra as PresidentModel
+              : null;
+          return PresidentDetailScreen(president: president);
+        },
+      ),
 
       // 6. Quiz Play (Partie interactive en cours, plein écran)
       GoRoute(
@@ -282,6 +298,13 @@ class AppRouter {
         path: artisanAddProduct,
         builder: (BuildContext context, GoRouterState state) {
           return const ArtisanAddProductScreen();
+        },
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: promoteurDashboard,
+        builder: (BuildContext context, GoRouterState state) {
+          return const PromoteurDashboardScreen();
         },
       ),
       GoRoute(

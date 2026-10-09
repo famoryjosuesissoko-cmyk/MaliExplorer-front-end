@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../router/app_router.dart';
@@ -25,9 +24,6 @@ class _EthniesListScreenState extends ConsumerState<EthniesListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Size screenSize = MediaQuery.of(context).size;
-    final double screenWidth = screenSize.width;
-
     return Scaffold(
       backgroundColor: const Color(0xFF075E4D),
       body: Stack(
@@ -92,7 +88,9 @@ class _EthniesListScreenState extends ConsumerState<EthniesListScreen> {
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     color: Color(0xFFF7F8F5),
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(28),
+                    ),
                   ),
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
@@ -105,7 +103,9 @@ class _EthniesListScreenState extends ConsumerState<EthniesListScreen> {
                         const SizedBox(height: 18),
 
                         // Grandes cartes d'ethnies connectées à Riverpod
-                        ref.watch(filteredEthniesProvider).when(
+                        ref
+                            .watch(filteredEthniesProvider)
+                            .when(
                               data: (ethnies) {
                                 if (ethnies.isEmpty) {
                                   return const Padding(
@@ -113,9 +113,11 @@ class _EthniesListScreenState extends ConsumerState<EthniesListScreen> {
                                     child: Center(
                                       child: Column(
                                         children: [
-                                          Icon(Icons.theater_comedy_rounded,
-                                              size: 48,
-                                              color: Color(0xFF8B9B95)),
+                                          Icon(
+                                            Icons.theater_comedy_rounded,
+                                            size: 48,
+                                            color: Color(0xFF8B9B95),
+                                          ),
                                           SizedBox(height: 12),
                                           Text(
                                             'Aucune ethnie trouvée.',
@@ -145,35 +147,44 @@ class _EthniesListScreenState extends ConsumerState<EthniesListScreen> {
                                 ),
                               ),
                               error: (error, stack) => Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 30),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 30,
+                                ),
                                 child: Center(
                                   child: Column(
                                     children: [
-                                      const Icon(Icons.error_outline_rounded,
-                                          size: 44, color: Colors.redAccent),
+                                      const Icon(
+                                        Icons.error_outline_rounded,
+                                        size: 44,
+                                        color: Colors.redAccent,
+                                      ),
                                       const SizedBox(height: 8),
                                       Text(
                                         'Erreur de chargement des ethnies',
                                         style: TextStyle(
-                                            color: Colors.red[700],
-                                            fontWeight: FontWeight.w600),
+                                          color: Colors.red[700],
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                       const SizedBox(height: 8),
                                       ElevatedButton.icon(
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor:
-                                              const Color(0xFF075E4D),
+                                          backgroundColor: const Color(
+                                            0xFF075E4D,
+                                          ),
                                           foregroundColor: Colors.white,
                                           shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(20),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
                                           ),
                                         ),
                                         onPressed: () =>
                                             ref.refresh(ethniesProvider),
-                                        icon: const Icon(Icons.refresh_rounded,
-                                            size: 18),
+                                        icon: const Icon(
+                                          Icons.refresh_rounded,
+                                          size: 18,
+                                        ),
                                         label: const Text('Réessayer'),
                                       ),
                                     ],
@@ -230,6 +241,8 @@ class _EthniesListScreenState extends ConsumerState<EthniesListScreen> {
   }
 
   Widget _buildEthnicityCard(EthnieModel eth) {
+    final photo = eth.displayPhoto;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
       decoration: BoxDecoration(
@@ -246,9 +259,9 @@ class _EthniesListScreenState extends ConsumerState<EthniesListScreen> {
       ),
       child: Material(
         color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
         child: InkWell(
           onTap: () {
-            // Navigation vers la page détail d'ethnie avec données réelles
             context.push(AppRouter.ethnicityDetail, extra: eth);
           },
           borderRadius: BorderRadius.circular(18),
@@ -257,22 +270,24 @@ class _EthniesListScreenState extends ConsumerState<EthniesListScreen> {
             children: [
               // Image panoramique supérieure
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(17)),
-                child: Image.network(
-                  eth.imageUrl,
-                  height: 145,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    height: 145,
-                    color: const Color(0xFF0E8F76).withValues(alpha: 0.2),
-                    child: const Icon(
-                      Icons.theater_comedy_rounded,
-                      color: Color(0xFF075E4D),
-                      size: 36,
-                    ),
-                  ),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(17),
                 ),
+                child: photo.startsWith('assets/')
+                    ? Image.asset(
+                        photo,
+                        height: 155,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => _buildEthniePlaceholder(),
+                      )
+                    : Image.network(
+                        photo,
+                        height: 155,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => _buildEthniePlaceholder(),
+                      ),
               ),
 
               // Contenu textuel en bas
@@ -281,29 +296,88 @@ class _EthniesListScreenState extends ConsumerState<EthniesListScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      eth.nom,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF075E4D),
-                        letterSpacing: -0.3,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Peuple ${eth.nom}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF075E4D),
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD6A23A).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            eth.population,
+                            style: const TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF8B4513),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 5),
                     Text(
                       eth.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 12.5,
                         color: Color(0xFF6C7C77),
                         height: 1.4,
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.people_alt_rounded,
+                            size: 14, color: Color(0xFF075E4D)),
+                        const SizedBox(width: 4),
+                        const Text(
+                          'Photos Homme & Femme disponibles',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF075E4D),
+                          ),
+                        ),
+                        const Spacer(),
+                        const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 13,
+                          color: Color(0xFF075E4D),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEthniePlaceholder() {
+    return Container(
+      height: 155,
+      color: const Color(0xFF0E8F76).withValues(alpha: 0.2),
+      child: const Center(
+        child: Icon(
+          Icons.theater_comedy_rounded,
+          color: Color(0xFF075E4D),
+          size: 36,
         ),
       ),
     );

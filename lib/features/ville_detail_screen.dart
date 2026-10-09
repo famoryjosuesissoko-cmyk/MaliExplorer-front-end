@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/constants/app_colors.dart';
 import '../models/ville_model.dart';
 import '../providers/favoris_provider.dart';
+import '../router/app_router.dart';
 
 /// Page Détail d'une Ville / Lieu historique
 class CityDetailScreen extends ConsumerStatefulWidget {
@@ -17,17 +18,47 @@ class CityDetailScreen extends ConsumerStatefulWidget {
 
 class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
 
-  List<String> get _galleryPhotos => [
-    if (widget.ville?.imageUrl != null && widget.ville!.imageUrl.isNotEmpty)
-      widget.ville!.imageUrl,
-    'https://images.unsplash.com/photo-1578922746465-3a80a228f223?q=80&w=1000&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?q=80&w=1000&auto=format&fit=crop',
-  ];
+  List<String> get _galleryPhotos {
+    final list = <String>[];
+    final nom = (widget.ville?.nom ?? 'tombouctou').toLowerCase();
+
+    if (nom.contains('bamako')) {
+      list.add('assets/images/bamako_gallery_1.jpeg');
+      list.add('assets/images/bamako_gallery_2.jpeg');
+      list.add('assets/images/bamako_cover.jpeg');
+    } else if (nom.contains('djenne') || nom.contains('djenné')) {
+      list.add('assets/images/djenne_gallery_1.jpeg');
+      list.add('assets/images/djenne_gallery_2.jpeg');
+      list.add('assets/images/djenne_cover.jpeg');
+    } else if (nom.contains('mopti')) {
+      list.add('assets/images/mopti_gallery_1.jpg');
+      list.add('assets/images/mopti_gallery_2.jpeg');
+      list.add('assets/images/mopti_gallery_3.webp');
+    } else if (nom.contains('segou') || nom.contains('ségou')) {
+      list.add('assets/images/segou_gallery_1.jpg');
+      list.add('assets/images/segou_gallery_2.jpeg');
+      list.add('assets/images/segou_gallery_3.jpeg');
+    } else if (nom.contains('sikasso')) {
+      list.add('assets/images/sikasso_gallery_1.jpg');
+      list.add('assets/images/sikasso_gallery_2.jpg');
+      list.add('assets/images/sikasso_gallery_3.jpeg');
+    } else {
+      list.add('assets/images/tombouctou_gallery_1.jpeg');
+      list.add('assets/images/tombouctou_gallery_2.jpeg');
+      list.add('assets/images/tombouctou_hero.jpeg');
+    }
+
+    if (widget.ville?.imageUrl != null &&
+        widget.ville!.imageUrl.isNotEmpty &&
+        !list.contains(widget.ville!.imageUrl)) {
+      list.insert(0, widget.ville!.imageUrl);
+    }
+    return list;
+  }
 
   @override
   Widget build(BuildContext context) {
     final Size screenSize = MediaQuery.of(context).size;
-    final double screenWidth = screenSize.width;
     final double screenHeight = screenSize.height;
     final double heroHeight = (screenHeight * 0.38).clamp(260.0, 340.0);
 
@@ -42,10 +73,30 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
     final String population =
         widget.ville?.nbreHbt != null && widget.ville!.nbreHbt!.isNotEmpty
         ? '${widget.ville!.nbreHbt} hab.'
-        : '85 000';
-    final String langue = widget.ville?.region.isNotEmpty == true
-        ? 'Bambara, langues locales'
-        : 'songhaï, tamasheq, bambara';
+        : (nomVille.toLowerCase().contains('bamako')
+            ? '3 000 000 hab.'
+            : (nomVille.toLowerCase().contains('djenne') || nomVille.toLowerCase().contains('djenné')
+                ? '32 000 hab.'
+                : (nomVille.toLowerCase().contains('mopti')
+                    ? '115 000 hab.'
+                    : (nomVille.toLowerCase().contains('segou') || nomVille.toLowerCase().contains('ségou')
+                        ? '135 000 hab.'
+                        : (nomVille.toLowerCase().contains('sikasso')
+                            ? '225 000 hab.'
+                            : '85 000 hab.')))));
+    final String langue = nomVille.toLowerCase().contains('bamako')
+        ? 'Bambara, Français'
+        : (nomVille.toLowerCase().contains('djenne') || nomVille.toLowerCase().contains('djenné')
+            ? 'Bozo, Peul, Songhaï'
+            : (nomVille.toLowerCase().contains('mopti')
+                ? 'Bozo, Peul, Bambara'
+                : (nomVille.toLowerCase().contains('segou') || nomVille.toLowerCase().contains('ségou')
+                    ? 'Bambara, Bozo, Somono'
+                    : (nomVille.toLowerCase().contains('sikasso')
+                        ? 'Sénoufo, Bambara, Samogo'
+                        : (widget.ville?.region.isNotEmpty == true
+                            ? 'Bambara, langues locales'
+                            : 'Songhaï, Tamasheq, Bambara')))));
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8F5),
@@ -159,27 +210,46 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
 
                         // Galerie photos de la ville (grandes cartes empilées)
                         ..._galleryPhotos.map((photoUrl) {
+                          final isAsset = photoUrl.startsWith('assets/');
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 12.0),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(16),
-                              child: Image.network(
-                                photoUrl,
-                                height: 165,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    Container(
+                              child: isAsset
+                                  ? Image.asset(
+                                      photoUrl,
                                       height: 165,
-                                      color: const Color(
-                                        0xFFD6A23A,
-                                      ).withValues(alpha: 0.2),
-                                      child: const Icon(
-                                        Icons.image,
-                                        color: AppColors.textPrimary,
-                                      ),
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) =>
+                                          Container(
+                                            height: 165,
+                                            color: const Color(
+                                              0xFFD6A23A,
+                                            ).withValues(alpha: 0.2),
+                                            child: const Icon(
+                                              Icons.image,
+                                              color: AppColors.textPrimary,
+                                            ),
+                                          ),
+                                    )
+                                  : Image.network(
+                                      photoUrl,
+                                      height: 165,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) =>
+                                          Container(
+                                            height: 165,
+                                            color: const Color(
+                                              0xFFD6A23A,
+                                            ).withValues(alpha: 0.2),
+                                            child: const Icon(
+                                              Icons.image,
+                                              color: AppColors.textPrimary,
+                                            ),
+                                          ),
                                     ),
-                              ),
                             ),
                           );
                         }),
@@ -243,6 +313,33 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
     );
   }
 
+  ImageProvider _getHeroImageProvider(String? imageUrl) {
+    if (imageUrl != null && imageUrl.startsWith('http')) {
+      return NetworkImage(imageUrl);
+    }
+    final nom = (widget.ville?.nom ?? '').toLowerCase();
+    if (nom.contains('bamako')) {
+      return const AssetImage('assets/images/bamako_hero.jpeg');
+    } else if (nom.contains('djenne') || nom.contains('djenné')) {
+      return const AssetImage('assets/images/djenne_hero.jpeg');
+    } else if (nom.contains('mopti')) {
+      return const AssetImage('assets/images/mopti_cover.jpg');
+    } else if (nom.contains('segou') || nom.contains('ségou')) {
+      return const AssetImage('assets/images/segou_cover.jpg');
+    } else if (nom.contains('sikasso')) {
+      return const AssetImage('assets/images/sikasso_cover.jpeg');
+    } else if (nom.contains('tombouctou')) {
+      return const AssetImage('assets/images/tombouctou_hero.jpeg');
+    }
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      if (imageUrl.startsWith('assets/')) {
+        return AssetImage(imageUrl);
+      }
+      return NetworkImage(imageUrl);
+    }
+    return const AssetImage('assets/images/tombouctou_hero.jpeg');
+  }
+
   Widget _buildHeroImage(BuildContext context, double height) {
     return Stack(
       children: [
@@ -253,12 +350,7 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
           decoration: BoxDecoration(
             color: AppColors.textPrimary,
             image: DecorationImage(
-              image: NetworkImage(
-                widget.ville?.imageUrl != null &&
-                        widget.ville!.imageUrl.isNotEmpty
-                    ? widget.ville!.imageUrl
-                    : 'https://images.unsplash.com/photo-1578922746465-3a80a228f223?q=80&w=1000&auto=format&fit=crop',
-              ),
+              image: _getHeroImageProvider(widget.ville?.imageUrl),
               fit: BoxFit.cover,
             ),
           ),
@@ -305,14 +397,15 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
                     final nomVille = widget.ville?.nom ?? 'Djenné';
                     final isFav = ref.read(favorisNotifierProvider.notifier).isFavorite(nomVille);
 
+                    final photo = widget.ville?.displayPhoto ?? VilleModel.getLocalPhoto(nomVille);
+
                     return InkWell(
                       onTap: () async {
                         await ref.read(favorisNotifierProvider.notifier).toggleFavori(
                           titre: nomVille,
                           categorie: widget.ville?.region != null ? 'Région : ${widget.ville!.region}' : 'Lieu historique',
-                          imageUrl: widget.ville?.imageUrl ??
-                              'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?q=80&w=1000&auto=format&fit=crop',
-                          route: '/cityDetail',
+                          imageUrl: photo,
+                          route: AppRouter.cityDetail,
                           referenceId: widget.ville?.id,
                           isLieu: true,
                         );

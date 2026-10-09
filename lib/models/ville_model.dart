@@ -46,21 +46,30 @@ class VilleModel {
     };
   }
 
+  static String getLocalPhoto(String cityName) {
+    return _getImageForCity(cityName);
+  }
+
+  String get displayPhoto =>
+      imageUrl.isNotEmpty && !imageUrl.startsWith('http')
+          ? imageUrl
+          : getLocalPhoto(nom);
+
   static String _getImageForCity(String cityName) {
     final lower = cityName.toLowerCase();
     if (lower.contains('tombouctou')) {
-      return 'https://images.unsplash.com/photo-1578922746465-3a80a228f223?q=80&w=600&auto=format&fit=crop';
+      return 'assets/images/tombouctou_hero.jpeg';
     } else if (lower.contains('djenné') || lower.contains('djenne')) {
-      return 'https://images.unsplash.com/photo-1516426122078-c23e76319801?q=80&w=600&auto=format&fit=crop';
+      return 'assets/images/djenne_cover.jpeg';
     } else if (lower.contains('bamako')) {
-      return 'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?q=80&w=600&auto=format&fit=crop';
+      return 'assets/images/bamako_cover.jpeg';
     } else if (lower.contains('mopti')) {
-      return 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=600&auto=format&fit=crop';
+      return 'assets/images/mopti_cover.jpg';
     } else if (lower.contains('ségou') || lower.contains('segou')) {
-      return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600&auto=format&fit=crop';
+      return 'assets/images/segou_cover.jpg';
     } else if (lower.contains('sikasso')) {
-      return 'https://images.unsplash.com/photo-1512058564366-18510be2db19?q=80&w=600&auto=format&fit=crop';
+      return 'assets/images/sikasso_cover.jpeg';
     }
-    return 'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?q=80&w=600&auto=format&fit=crop';
+    return 'assets/images/bamako_cover.jpeg';
   }
 }

@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -60,9 +59,6 @@ class _GastronomieListScreenState extends ConsumerState<GastronomieListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Size screenSize = MediaQuery.of(context).size;
-    final double screenWidth = screenSize.width;
-
     return Scaffold(
       backgroundColor: const Color(0xFF075E4D),
       body: Stack(
@@ -142,18 +138,22 @@ class _GastronomieListScreenState extends ConsumerState<GastronomieListScreen> {
                         const SizedBox(height: 18),
 
                         // Liste des plats connectée à Riverpod
-                        ref.watch(filteredPlatsProvider).when(
+                        ref
+                            .watch(filteredPlatsProvider)
+                            .when(
                               data: (plats) {
                                 final displayPlats = plats.isNotEmpty
                                     ? plats
                                     : _dishes
-                                        .map((d) => PlatModel(
+                                          .map(
+                                            (d) => PlatModel(
                                               id: 0,
                                               nom: d.title,
                                               description: d.description,
                                               imageUrl: d.imageUrl,
-                                            ))
-                                        .toList();
+                                            ),
+                                          )
+                                          .toList();
                                 return Column(
                                   children: displayPlats
                                       .map((p) => _buildDishCardFromModel(p))
@@ -223,6 +223,8 @@ class _GastronomieListScreenState extends ConsumerState<GastronomieListScreen> {
   }
 
   Widget _buildDishCardFromModel(PlatModel plat) {
+    final photo = plat.displayPhoto;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
@@ -239,6 +241,7 @@ class _GastronomieListScreenState extends ConsumerState<GastronomieListScreen> {
       ),
       child: Material(
         color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
         child: InkWell(
           onTap: () {
             context.push(AppRouter.dishDetail, extra: plat);
@@ -250,35 +253,61 @@ class _GastronomieListScreenState extends ConsumerState<GastronomieListScreen> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    plat.imageUrl,
-                    width: 76,
-                    height: 76,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      width: 76,
-                      height: 76,
-                      color: const Color(0xFFD6A23A).withValues(alpha: 0.2),
-                      child: const Icon(
-                        Icons.restaurant_menu_rounded,
-                        color: Color(0xFF075E4D),
-                        size: 32,
-                      ),
-                    ),
-                  ),
+                  child: photo.startsWith('assets/')
+                      ? Image.asset(
+                          photo,
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                          errorBuilder: (c, e, s) => _buildDishPlaceholder(),
+                        )
+                      : Image.network(
+                          photo,
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                          errorBuilder: (c, e, s) => _buildDishPlaceholder(),
+                        ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        plat.nom,
-                        style: const TextStyle(
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF075E4D),
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              plat.nom,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 15.5,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF075E4D),
+                              ),
+                            ),
+                          ),
+                          if (plat.tempsCuisson != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF075E4D)
+                                    .withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                plat.tempsCuisson!,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF075E4D),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -291,6 +320,17 @@ class _GastronomieListScreenState extends ConsumerState<GastronomieListScreen> {
                           height: 1.3,
                         ),
                       ),
+                      if (plat.ingredients.isNotEmpty) ...[
+                        const SizedBox(height: 5),
+                        Text(
+                          '${plat.ingredients.length} ingrédients • ${plat.nbrePersonnes ?? 5} personnes',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFFD6A23A),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -304,6 +344,19 @@ class _GastronomieListScreenState extends ConsumerState<GastronomieListScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDishPlaceholder() {
+    return Container(
+      width: 80,
+      height: 80,
+      color: const Color(0xFFD6A23A).withValues(alpha: 0.2),
+      child: const Icon(
+        Icons.restaurant_menu_rounded,
+        color: Color(0xFF075E4D),
+        size: 32,
       ),
     );
   }
@@ -409,7 +462,6 @@ class _GastronomieListScreenState extends ConsumerState<GastronomieListScreen> {
       ),
     );
   }
-
 }
 
 class DishListItem {

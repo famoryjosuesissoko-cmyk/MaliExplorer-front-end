@@ -14,22 +14,35 @@ class PlatService {
   PlatService(this._apiService);
 
   Future<List<PlatModel>> getPlats() async {
-    final response = await _apiService.get(ApiConstants.plats);
-    if (response.statusCode == 200) {
-      final List<dynamic> jsonList = jsonDecode(utf8.decode(response.bodyBytes));
-      return jsonList.map((j) => PlatModel.fromJson(j as Map<String, dynamic>)).toList();
-    } else {
-      throw Exception('Erreur ${response.statusCode}: Impossible de récupérer les plats.');
+    try {
+      final response = await _apiService.get(ApiConstants.plats);
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = jsonDecode(utf8.decode(response.bodyBytes));
+        if (jsonList.isNotEmpty) {
+          return jsonList
+              .map((j) => PlatModel.fromJson(j as Map<String, dynamic>))
+              .toList();
+        }
+      }
+    } catch (_) {
+      // Fallback automatique offline
     }
+    return PlatModel.defaultPlats;
   }
 
   Future<PlatModel> getPlatById(int id) async {
-    final response = await _apiService.get('${ApiConstants.plats}/$id');
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
-      return PlatModel.fromJson(data);
-    } else {
-      throw Exception('Erreur ${response.statusCode}: Impossible de récupérer le plat #$id.');
+    try {
+      final response = await _apiService.get('${ApiConstants.plats}/$id');
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
+        return PlatModel.fromJson(data);
+      }
+    } catch (_) {
+      // Fallback automatique offline
     }
+    return PlatModel.defaultPlats.firstWhere(
+      (p) => p.id == id,
+      orElse: () => PlatModel.defaultPlats.first,
+    );
   }
 }

@@ -14,22 +14,35 @@ class EthnieService {
   EthnieService(this._apiService);
 
   Future<List<EthnieModel>> getEthnies() async {
-    final response = await _apiService.get(ApiConstants.ethnies);
-    if (response.statusCode == 200) {
-      final List<dynamic> jsonList = jsonDecode(utf8.decode(response.bodyBytes));
-      return jsonList.map((j) => EthnieModel.fromJson(j as Map<String, dynamic>)).toList();
-    } else {
-      throw Exception('Erreur ${response.statusCode}: Impossible de récupérer les ethnies.');
+    try {
+      final response = await _apiService.get(ApiConstants.ethnies);
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = jsonDecode(utf8.decode(response.bodyBytes));
+        if (jsonList.isNotEmpty) {
+          return jsonList
+              .map((j) => EthnieModel.fromJson(j as Map<String, dynamic>))
+              .toList();
+        }
+      }
+    } catch (_) {
+      // Fallback automatique offline
     }
+    return EthnieModel.defaultEthnies;
   }
 
   Future<EthnieModel> getEthnieById(int id) async {
-    final response = await _apiService.get('${ApiConstants.ethnies}/$id');
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
-      return EthnieModel.fromJson(data);
-    } else {
-      throw Exception('Erreur ${response.statusCode}: Impossible de récupérer l\'ethnie #$id.');
+    try {
+      final response = await _apiService.get('${ApiConstants.ethnies}/$id');
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
+        return EthnieModel.fromJson(data);
+      }
+    } catch (_) {
+      // Fallback automatique offline
     }
+    return EthnieModel.defaultEthnies.firstWhere(
+      (e) => e.id == id,
+      orElse: () => EthnieModel.defaultEthnies.first,
+    );
   }
 }

@@ -128,9 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: const BoxDecoration(
         color: Color(0xFFB5703C),
         image: DecorationImage(
-          image: NetworkImage(
-            'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?q=80&w=1000&auto=format&fit=crop',
-          ),
+          image: AssetImage('assets/images/home_hero.jpeg'),
           fit: BoxFit.cover,
         ),
       ),
@@ -583,9 +581,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
             image: const DecorationImage(
-              image: NetworkImage(
-                'https://images.unsplash.com/photo-1578922746465-3a80a228f223?q=80&w=1000&auto=format&fit=crop',
-              ),
+              image: AssetImage('assets/images/home_tombouctou.jpeg'),
               fit: BoxFit.cover,
             ),
           ),

@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -21,43 +20,37 @@ class _VillesListScreenState extends ConsumerState<VillesListScreen> {
       name: 'Bamako',
       region: 'District de Bamako',
       description: 'Capitale dynamique, carrefour de culture au bord du Niger.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?q=80&w=600&auto=format&fit=crop',
+      imageUrl: 'assets/images/bamako_cover.jpeg',
     ),
     CityListItem(
       name: 'Tombouctou',
       region: 'Région de Tombouctou',
       description: 'La cité mystérieuse des 333 saints et joyau du commerce caravanier.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1578922746465-3a80a228f223?q=80&w=600&auto=format&fit=crop',
+      imageUrl: 'assets/images/tombouctou_hero.jpeg',
     ),
     CityListItem(
       name: 'Djenné',
       region: 'Région de Mopti',
       description: 'Cité millénaire, célèbre pour sa grande architecture en terre crue.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1516426122078-c23e76319801?q=80&w=600&auto=format&fit=crop',
+      imageUrl: 'assets/images/djenne_cover.jpeg',
     ),
     CityListItem(
       name: 'Mopti',
       region: 'Région de Mopti',
       description: 'La "Venise du Mali", grand port fluvial et carrefour des fleuves.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=600&auto=format&fit=crop',
+      imageUrl: 'assets/images/mopti_cover.jpg',
     ),
     CityListItem(
       name: 'Ségou',
       region: 'Région de Ségou',
       description: 'Cité des balanzans, capitale historique du fier royaume Bambara.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600&auto=format&fit=crop',
+      imageUrl: 'assets/images/segou_cover.jpg',
     ),
     CityListItem(
       name: 'Sikasso',
       region: 'Région de Sikasso',
       description: 'Capitale du Kénédougou, grenier verdoyant et verger du Mali.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1512058564366-18510be2db19?q=80&w=600&auto=format&fit=crop',
+      imageUrl: 'assets/images/sikasso_cover.jpeg',
     ),
   ];
 
@@ -69,9 +62,6 @@ class _VillesListScreenState extends ConsumerState<VillesListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Size screenSize = MediaQuery.of(context).size;
-    final double screenWidth = screenSize.width;
-
     return Scaffold(
       backgroundColor: const Color(0xFF075E4D),
       body: Stack(
@@ -273,8 +263,17 @@ class _VillesListScreenState extends ConsumerState<VillesListScreen> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            // Navigation vers la page détail de la ville (Tombouctou)
-            context.push(AppRouter.cityDetail);
+            // Navigation vers la page détail de la ville sélectionnée
+            context.push(
+              AppRouter.cityDetail,
+              extra: VilleModel(
+                id: 0,
+                nom: city.name,
+                region: city.region,
+                description: city.description,
+                imageUrl: city.imageUrl,
+              ),
+            );
           },
           borderRadius: BorderRadius.circular(16),
           child: Column(
@@ -283,21 +282,37 @@ class _VillesListScreenState extends ConsumerState<VillesListScreen> {
               // Image supérieure de la ville
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                child: Image.network(
-                  city.imageUrl,
-                  height: 98,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    height: 98,
-                    color: const Color(0xFFD6A23A).withValues(alpha: 0.2),
-                    child: const Icon(
-                      Icons.location_city_rounded,
-                      color: Color(0xFF075E4D),
-                      size: 32,
-                    ),
-                  ),
-                ),
+                child: city.imageUrl.startsWith('assets/')
+                    ? Image.asset(
+                        city.imageUrl,
+                        height: 98,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 98,
+                          color: const Color(0xFFD6A23A).withValues(alpha: 0.2),
+                          child: const Icon(
+                            Icons.location_city_rounded,
+                            color: Color(0xFF075E4D),
+                            size: 32,
+                          ),
+                        ),
+                      )
+                    : Image.network(
+                        city.imageUrl,
+                        height: 98,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 98,
+                          color: const Color(0xFFD6A23A).withValues(alpha: 0.2),
+                          child: const Icon(
+                            Icons.location_city_rounded,
+                            color: Color(0xFF075E4D),
+                            size: 32,
+                          ),
+                        ),
+                      ),
               ),
 
               // Informations
@@ -372,21 +387,37 @@ class _VillesListScreenState extends ConsumerState<VillesListScreen> {
             children: [
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                child: Image.network(
-                  ville.imageUrl,
-                  height: 98,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    height: 98,
-                    color: const Color(0xFFD6A23A).withValues(alpha: 0.2),
-                    child: const Icon(
-                      Icons.location_city_rounded,
-                      color: Color(0xFF075E4D),
-                      size: 32,
-                    ),
-                  ),
-                ),
+                child: ville.imageUrl.startsWith('assets/')
+                    ? Image.asset(
+                        ville.imageUrl,
+                        height: 98,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 98,
+                          color: const Color(0xFFD6A23A).withValues(alpha: 0.2),
+                          child: const Icon(
+                            Icons.location_city_rounded,
+                            color: Color(0xFF075E4D),
+                            size: 32,
+                          ),
+                        ),
+                      )
+                    : Image.network(
+                        ville.imageUrl,
+                        height: 98,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 98,
+                          color: const Color(0xFFD6A23A).withValues(alpha: 0.2),
+                          child: const Icon(
+                            Icons.location_city_rounded,
+                            color: Color(0xFF075E4D),
+                            size: 32,
+                          ),
+                        ),
+                      ),
               ),
               Padding(
                 padding: const EdgeInsets.all(8.0),
