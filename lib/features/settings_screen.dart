@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../core/constants/app_colors.dart';
 import '../main.dart';
 import '../router/app_router.dart';
+import 'auth/auth_controller.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -104,6 +105,73 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     onChanged: (val) {
                       ref.read(themeModeProvider.notifier).state =
                           val ? ThemeMode.dark : ThemeMode.light;
+                    },
+                  ),
+                ], isDarkMode),
+
+                const SizedBox(height: 20),
+
+                _buildSectionHeader('Rôle Utilisateur & Espaces (Permissions)', isDarkMode),
+                _buildCard([
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final auth = ref.watch(authControllerProvider);
+                      final rawRole = (auth.user?['role'] ?? auth.user?['roleName'] ?? 'touriste').toString().toLowerCase();
+                      final currentRole = rawRole.contains('artisan')
+                          ? 'artisan'
+                          : rawRole.contains('promoteur')
+                              ? 'promoteur'
+                              : rawRole.contains('admin')
+                                  ? 'admin'
+                                  : 'touriste';
+
+                      void selectRole(String val) {
+                        ref.read(authControllerProvider.notifier).updateUserData({'role': val});
+                      }
+
+                      return Column(
+                        children: [
+                          _buildRoleTile(
+                            value: 'touriste',
+                            currentRole: currentRole,
+                            title: 'Touriste (Public uniquement)',
+                            subtitle: 'Accès complet à la découverte, masquage des espaces de gestion',
+                            color: const Color(0xFF075E4D),
+                            isDark: isDarkMode,
+                            onTap: () => selectRole('touriste'),
+                          ),
+                          const Divider(height: 1),
+                          _buildRoleTile(
+                            value: 'artisan',
+                            currentRole: currentRole,
+                            title: 'Artisan (Public + Espace Artisan)',
+                            subtitle: 'Gestion atelier, créations d\'art et statistiques de vente',
+                            color: const Color(0xFFD97706),
+                            isDark: isDarkMode,
+                            onTap: () => selectRole('artisan'),
+                          ),
+                          const Divider(height: 1),
+                          _buildRoleTile(
+                            value: 'promoteur',
+                            currentRole: currentRole,
+                            title: 'Promoteur (Public + Espace Promoteur)',
+                            subtitle: 'Organisation de festivals, partenariats B2B et statistiques',
+                            color: const Color(0xFF2563EB),
+                            isDark: isDarkMode,
+                            onTap: () => selectRole('promoteur'),
+                          ),
+                          const Divider(height: 1),
+                          _buildRoleTile(
+                            value: 'admin',
+                            currentRole: currentRole,
+                            title: 'Administrateur (Gestion complète)',
+                            subtitle: 'Modération et validation des publications & accès complet',
+                            color: const Color(0xFF7C3AED),
+                            isDark: isDarkMode,
+                            onTap: () => selectRole('admin'),
+                          ),
+                        ],
+                      );
                     },
                   ),
                 ], isDarkMode),
@@ -372,6 +440,76 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 setState(() => _selectedLanguage = 'Bambara (Bamanankan)');
                 Navigator.pop(ctx);
               },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRoleTile({
+    required String value,
+    required String currentRole,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    final isSelected = currentRole == value;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? color : (isDark ? AppColors.darkBorder : Colors.grey.shade400),
+                  width: 2,
+                ),
+              ),
+              child: isSelected
+                  ? Center(
+                      child: Container(
+                        width: 11,
+                        height: 11,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: color,
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

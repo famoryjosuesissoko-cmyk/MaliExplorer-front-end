@@ -1,7 +1,5 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../router/app_router.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/artisan_model.dart';
@@ -25,9 +23,6 @@ class _ArtisansScreenState extends ConsumerState<ArtisansScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Size screenSize = MediaQuery.of(context).size;
-    final double screenWidth = screenSize.width;
-
     return Scaffold(
       backgroundColor: const Color(0xFF075E4D),
       body: Stack(
@@ -107,7 +102,9 @@ class _ArtisansScreenState extends ConsumerState<ArtisansScreen> {
                         const SizedBox(height: 18),
 
                         // Liste des cartes d'artisans connectée à Riverpod
-                        ref.watch(filteredArtisansProvider).when(
+                        ref
+                            .watch(filteredArtisansProvider)
+                            .when(
                               data: (artisans) {
                                 if (artisans.isEmpty) {
                                   return const Padding(
@@ -115,9 +112,11 @@ class _ArtisansScreenState extends ConsumerState<ArtisansScreen> {
                                     child: Center(
                                       child: Column(
                                         children: [
-                                          Icon(Icons.handyman_outlined,
-                                              size: 48,
-                                              color: Color(0xFF8B9B95)),
+                                          Icon(
+                                            Icons.handyman_outlined,
+                                            size: 48,
+                                            color: Color(0xFF8B9B95),
+                                          ),
                                           SizedBox(height: 12),
                                           Text(
                                             'Aucun artisan trouvé.',
@@ -147,35 +146,44 @@ class _ArtisansScreenState extends ConsumerState<ArtisansScreen> {
                                 ),
                               ),
                               error: (error, stack) => Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 30),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 30,
+                                ),
                                 child: Center(
                                   child: Column(
                                     children: [
-                                      const Icon(Icons.error_outline_rounded,
-                                          size: 44, color: Colors.redAccent),
+                                      const Icon(
+                                        Icons.error_outline_rounded,
+                                        size: 44,
+                                        color: Colors.redAccent,
+                                      ),
                                       const SizedBox(height: 8),
                                       Text(
                                         'Erreur de chargement des artisans',
                                         style: TextStyle(
-                                            color: Colors.red[700],
-                                            fontWeight: FontWeight.w600),
+                                          color: Colors.red[700],
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                       const SizedBox(height: 8),
                                       ElevatedButton.icon(
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor:
-                                              const Color(0xFF075E4D),
+                                          backgroundColor: const Color(
+                                            0xFF075E4D,
+                                          ),
                                           foregroundColor: Colors.white,
                                           shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(20),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
                                           ),
                                         ),
                                         onPressed: () =>
                                             ref.refresh(artisansProvider),
-                                        icon: const Icon(Icons.refresh_rounded,
-                                            size: 18),
+                                        icon: const Icon(
+                                          Icons.refresh_rounded,
+                                          size: 18,
+                                        ),
                                         label: const Text('Réessayer'),
                                       ),
                                     ],

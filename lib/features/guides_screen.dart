@@ -1,10 +1,8 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../models/guide_model.dart';
 import '../providers/guides_provider.dart';
-import '../router/app_router.dart';
 
 class GuidesScreen extends ConsumerStatefulWidget {
   const GuidesScreen({super.key});
@@ -62,9 +60,6 @@ class _GuidesScreenState extends ConsumerState<GuidesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Size screenSize = MediaQuery.of(context).size;
-    final double screenWidth = screenSize.width;
-
     return Scaffold(
       backgroundColor: const Color(0xFF075E4D),
       body: Stack(
@@ -129,7 +124,9 @@ class _GuidesScreenState extends ConsumerState<GuidesScreen> {
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     color: Color(0xFFF7F8F5),
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(28),
+                    ),
                   ),
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
@@ -142,16 +139,22 @@ class _GuidesScreenState extends ConsumerState<GuidesScreen> {
                         const SizedBox(height: 18),
 
                         // Liste des cartes de guides connectée à Riverpod
-                        ref.watch(filteredGuidesProvider).when(
+                        ref
+                            .watch(filteredGuidesProvider)
+                            .when(
                               data: (guides) {
                                 final displayGuides = guides.isNotEmpty
                                     ? guides
                                     : _guides
-                                        .map((g) => GuideModel(
+                                          .map(
+                                            (g) => GuideModel(
                                               idUsers: 0,
                                               prenom: g.name.split(' ').first,
                                               nom: g.name.split(' ').length > 1
-                                                  ? g.name.split(' ').sublist(1).join(' ')
+                                                  ? g.name
+                                                        .split(' ')
+                                                        .sublist(1)
+                                                        .join(' ')
                                                   : '',
                                               email: '',
                                               adresse: '',
@@ -161,11 +164,15 @@ class _GuidesScreenState extends ConsumerState<GuidesScreen> {
                                               description: g.role,
                                               langue: 'Français, Bambara',
                                               recherchePartenariat: false,
-                                            ))
-                                        .toList();
+                                            ),
+                                          )
+                                          .toList();
                                 return Column(
                                   children: displayGuides
-                                      .map((guide) => _buildGuideCardFromModel(guide))
+                                      .map(
+                                        (guide) =>
+                                            _buildGuideCardFromModel(guide),
+                                      )
                                       .toList(),
                                 );
                               },
@@ -262,7 +269,11 @@ class _GuidesScreenState extends ConsumerState<GuidesScreen> {
                 width: 76,
                 height: 76,
                 color: const Color(0xFF075E4D).withValues(alpha: 0.15),
-                child: const Icon(Icons.person, color: Color(0xFF075E4D), size: 32),
+                child: const Icon(
+                  Icons.person,
+                  color: Color(0xFF075E4D),
+                  size: 32,
+                ),
               ),
             ),
           ),
@@ -293,7 +304,11 @@ class _GuidesScreenState extends ConsumerState<GuidesScreen> {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    const Icon(Icons.phone_rounded, color: Color(0xFF0E8F76), size: 14),
+                    const Icon(
+                      Icons.phone_rounded,
+                      color: Color(0xFF0E8F76),
+                      size: 14,
+                    ),
                     const SizedBox(width: 5),
                     Text(
                       guide.phone,
@@ -347,7 +362,11 @@ class _GuidesScreenState extends ConsumerState<GuidesScreen> {
                 width: 76,
                 height: 76,
                 color: const Color(0xFF075E4D).withValues(alpha: 0.15),
-                child: const Icon(Icons.person, color: Color(0xFF075E4D), size: 32),
+                child: const Icon(
+                  Icons.person,
+                  color: Color(0xFF075E4D),
+                  size: 32,
+                ),
               ),
             ),
           ),
@@ -380,11 +399,17 @@ class _GuidesScreenState extends ConsumerState<GuidesScreen> {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    const Icon(Icons.language_rounded, color: Color(0xFF0E8F76), size: 14),
+                    const Icon(
+                      Icons.language_rounded,
+                      color: Color(0xFF0E8F76),
+                      size: 14,
+                    ),
                     const SizedBox(width: 5),
                     Expanded(
                       child: Text(
-                        guide.langue.isNotEmpty ? guide.langue : 'Bambara, Français',
+                        guide.langue.isNotEmpty
+                            ? guide.langue
+                            : 'Bambara, Français',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(

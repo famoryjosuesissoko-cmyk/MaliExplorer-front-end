@@ -160,6 +160,10 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
     final userMap = authState.user;
     final photoUrl = user?.photoURL ?? userMap?['photoUrl'];
     final isDarkMode = ref.watch(themeModeProvider) == ThemeMode.dark;
+    final String rawRole = (userMap?['role'] ?? userMap?['roleName'] ?? 'touriste').toString().toLowerCase();
+    final bool isArtisan = rawRole.contains('artisan');
+    final bool isPromoteur = rawRole.contains('promoteur');
+    final bool isAdmin = rawRole.contains('admin');
 
     final String displayName = (user?.displayName != null && user!.displayName!.trim().isNotEmpty)
         ? user.displayName!
@@ -314,6 +318,42 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
                         color: isDarkMode ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
                       ),
                     ),
+                    const SizedBox(height: 6),
+                    // Badge du Rôle utilisateur
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: (isArtisan
+                                ? const Color(0xFFD97706)
+                                : isPromoteur
+                                    ? const Color(0xFF2563EB)
+                                    : isAdmin
+                                        ? const Color(0xFF7C3AED)
+                                        : const Color(0xFF075E4D))
+                            .withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        isArtisan
+                            ? 'Artisan'
+                            : isPromoteur
+                                ? 'Promoteur Culturel'
+                                : isAdmin
+                                    ? 'Administrateur'
+                                    : 'Touriste',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: isArtisan
+                              ? const Color(0xFFD97706)
+                              : isPromoteur
+                                  ? const Color(0xFF2563EB)
+                                  : isAdmin
+                                      ? const Color(0xFF7C3AED)
+                                      : const Color(0xFF075E4D),
+                        ),
+                      ),
+                    ),
 
                     const SizedBox(height: 22),
 
@@ -354,6 +394,23 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
                       isDark: isDarkMode,
                       onTap: () => context.push(AppRouter.historique),
                     ),
+                    // Espaces Professionnels & Partenariats B2B (Strictement isolés par rôle)
+                    if (isArtisan || isAdmin)
+                      _buildMenuItem(
+                        icon: Icons.storefront_rounded,
+                        title: 'Espace Artisan',
+                        subtitle: 'Atelier, catalogue de vente & outillage',
+                        isDark: isDarkMode,
+                        onTap: () => context.push(AppRouter.artisanDashboard),
+                      ),
+                    if (isPromoteur || isAdmin)
+                      _buildMenuItem(
+                        icon: Icons.campaign_rounded,
+                        title: 'Espace Promoteur',
+                        subtitle: 'Festivals, projets culturels & sponsors B2B',
+                        isDark: isDarkMode,
+                        onTap: () => context.push(AppRouter.promoteurDashboard),
+                      ),
                     _buildMenuItem(
                       icon: Icons.settings_outlined,
                       title: 'Paramètres',
@@ -400,6 +457,7 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
   Widget _buildMenuItem({
     required IconData icon,
     required String title,
+    String? subtitle,
     required VoidCallback onTap,
     bool isDestructive = false,
     bool isDark = false,
@@ -439,15 +497,31 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
                 ),
                 const SizedBox(width: 14),
                 Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                      color: isDestructive
-                          ? const Color(0xFFDC2626)
-                          : (isDark ? AppColors.darkTextPrimary : const Color(0xFF075E4D)),
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                          color: isDestructive
+                              ? const Color(0xFFDC2626)
+                              : (isDark ? AppColors.darkTextPrimary : const Color(0xFF075E4D)),
+                        ),
+                      ),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 if (!isDestructive)

@@ -3,8 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/plat_model.dart';
 import '../providers/favoris_provider.dart';
+import '../router/app_router.dart';
 
-/// Page Détail du Plat
+/// Page Détail du Plat avec ingrédients complets et photos locales
 class DishDetailScreen extends ConsumerStatefulWidget {
   final PlatModel? plat;
 
@@ -15,45 +16,30 @@ class DishDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _DishDetailScreenState extends ConsumerState<DishDetailScreen> {
-
-  final List<IngredientItem> _ingredients = const [
-    IngredientItem(title: 'Feuilles\nde manioc', icon: Icons.eco_rounded),
-    IngredientItem(title: 'Poisson\nfumé', icon: Icons.set_meal_rounded),
-    IngredientItem(title: 'Pâte\nd\'arachide', icon: Icons.grain_rounded),
-    IngredientItem(title: 'Huile\nde palme', icon: Icons.water_drop_rounded),
-  ];
-
-  final List<SimilarDishItem> _similarDishes = const [
-    SimilarDishItem(
-      title: 'Tigadegué',
-      imageUrl:
-          'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600&auto=format&fit=crop',
-    ),
-    SimilarDishItem(
-      title: 'Atieke',
-      imageUrl:
-          'https://images.unsplash.com/photo-1512058564366-18510be2db19?q=80&w=600&auto=format&fit=crop',
-    ),
-    SimilarDishItem(
-      title: 'Fakoye',
-      imageUrl:
-          'https://images.unsplash.com/photo-1547592180-85f173990554?q=80&w=600&auto=format&fit=crop',
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final Size screenSize = MediaQuery.of(context).size;
-    final double screenWidth = screenSize.width;
     final double screenHeight = screenSize.height;
     final double heroHeight = (screenHeight * 0.38).clamp(260.0, 340.0);
 
-    final String nomPlat = widget.plat?.nom ?? 'Sakasaka';
-    final String categoriePlat = widget.plat?.regions.isNotEmpty == true
-        ? 'Origine / Région : ${widget.plat!.regions.join(", ")}'
-        : 'Plat traditionnel';
-    final String description = widget.plat?.description ??
-        'Le Sakasaka (également appelé Saka-Saka ou Saga Saga) est un plat traditionnel extrêmement populaire au Mali, ainsi que dans plusieurs pays d\'Afrique centrale et de l\'Ouest. C\'est une sauce riche, onctueuse et très savoureuse préparée à base de feuilles de manioc pilées.';
+    // Résolution du plat courant ou premier plat par défaut
+    final currentPlat = widget.plat ?? PlatModel.defaultPlats.first;
+    final String photoPath = currentPlat.displayPhoto;
+
+    final String nomPlat = currentPlat.nom;
+    final String categoriePlat = currentPlat.regions.isNotEmpty
+        ? 'Régions : ${currentPlat.regions.join(", ")}'
+        : 'Plat traditionnel malien';
+    final String ethniesText = currentPlat.ethnies.isNotEmpty
+        ? 'Tradition : ${currentPlat.ethnies.join(", ")}'
+        : '';
+    final String description = currentPlat.description;
+
+    // Autres plats suggérés
+    final otherDishes = PlatModel.defaultPlats
+        .where((p) => p.nom.toLowerCase() != currentPlat.nom.toLowerCase())
+        .take(3)
+        .toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8F5),
@@ -67,7 +53,7 @@ class _DishDetailScreenState extends ConsumerState<DishDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 1. Image Hero du plat avec boutons Retour & Favoris
-                _buildHeroImage(context, heroHeight),
+                _buildHeroImage(context, currentPlat, photoPath, heroHeight),
 
                 // 2. Fiche descriptive blanche
                 Transform.translate(
@@ -94,7 +80,7 @@ class _DishDetailScreenState extends ConsumerState<DishDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Titre & badge
+                        // Titre & badges
                         Text(
                           nomPlat,
                           style: const TextStyle(
@@ -105,22 +91,67 @@ class _DishDetailScreenState extends ConsumerState<DishDetailScreen> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          categoriePlat,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF0E8F76),
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              categoriePlat,
+                              style: const TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF0E8F76),
+                              ),
+                            ),
+                            if (ethniesText.isNotEmpty) ...[
+                              const Text(' • ',
+                                  style: TextStyle(color: Color(0xFF8B9B95))),
+                              Expanded(
+                                child: Text(
+                                  ethniesText,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFFD6A23A),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
 
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 16),
+
+                        // Badges indicateurs (Cuisson, Portions, Niveau)
+                        Row(
+                          children: [
+                            _buildFeatureBadge(
+                              icon: Icons.timer_outlined,
+                              label: currentPlat.tempsCuisson ?? '1h 15 min',
+                              color: const Color(0xFF075E4D),
+                            ),
+                            const SizedBox(width: 8),
+                            _buildFeatureBadge(
+                              icon: Icons.people_outline_rounded,
+                              label: '${currentPlat.nbrePersonnes ?? 5} pers.',
+                              color: const Color(0xFFD6A23A),
+                            ),
+                            const SizedBox(width: 8),
+                            _buildFeatureBadge(
+                              icon: Icons.restaurant_rounded,
+                              label: currentPlat.difficulte ?? 'Tradition',
+                              color: const Color(0xFFC62828),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 22),
 
                         // Section Description
                         const Text(
-                          'Description',
+                          'Histoire & Description',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 17,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF075E4D),
                           ),
@@ -136,167 +167,244 @@ class _DishDetailScreenState extends ConsumerState<DishDetailScreen> {
                           ),
                         ),
 
-                        const SizedBox(height: 22),
+                        const SizedBox(height: 24),
 
-                        // Section Ingrédients principaux
-                        const Text(
-                          'Ingrédients principaux',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF075E4D),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Cartes des ingrédients
+                        // Section Ingrédients détaillés
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            ..._ingredients.map((ing) {
-                              return Expanded(
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(
-                                    horizontal: 3.5,
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 10,
-                                    horizontal: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFDF9EE),
-                                    borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(
-                                      color: const Color(0xFFF2E6C6),
-                                      width: 1,
+                            const Text(
+                              'Ingrédients nécessaires',
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF075E4D),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFDF9EE),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                    color: const Color(0xFFD6A23A)
+                                        .withValues(alpha: 0.4)),
+                              ),
+                              child: Text(
+                                '${currentPlat.ingredients.length} ingrédients',
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF8B4513),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Liste / Grille des Ingrédients Détaillés
+                        Column(
+                          children: currentPlat.ingredients.map((ing) {
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF9FAF8),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                    color: Colors.black.withValues(alpha: 0.05)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 38,
+                                    height: 38,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFDF9EE),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                          color: const Color(0xFFD6A23A)
+                                              .withValues(alpha: 0.3)),
+                                    ),
+                                    child: Text(
+                                      ing.icone ?? '🍲',
+                                      style: const TextStyle(fontSize: 18),
                                     ),
                                   ),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        ing.icon,
-                                        color: const Color(0xFFD6A23A),
-                                        size: 24,
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      ing.nom,
+                                      style: const TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF16332D),
                                       ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        ing.title,
-                                        textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                  if (ing.quantite != null)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF075E4D)
+                                            .withValues(alpha: 0.08),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        ing.quantite!,
                                         style: const TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF6B7280),
-                                          height: 1.2,
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF075E4D),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+
+                        // Secret de préparation / Astuce traditionnelle
+                        if (currentPlat.secretPreparation != null &&
+                            currentPlat.secretPreparation!.isNotEmpty) ...[
+                          const SizedBox(height: 22),
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFDF9EE),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: const Color(0xFFD6A23A).withValues(alpha: 0.4),
+                              ),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('✨', style: TextStyle(fontSize: 22)),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Secret de cuisson traditionnel',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w800,
+                                          color: Color(0xFF8B4513),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        currentPlat.secretPreparation!,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF5D4037),
+                                          height: 1.4,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
-                              );
-                            }),
-                            const SizedBox(width: 4),
-                            // Petit bouton cœur secondaire
-                            Container(
-                              width: 38,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: const Color(0xFFE2E8F0),
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.favorite_border_rounded,
-                                color: Color(0xFF0E8F76),
-                                size: 20,
-                              ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
 
-                        const SizedBox(height: 26),
+                        const SizedBox(height: 28),
 
-                        // Section Autres plats similaires
+                        // Section Autres délices maliens
                         const Text(
-                          'Autres plats similaire',
+                          'Autres spécialités à découvrir',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 17,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF075E4D),
                           ),
                         ),
                         const SizedBox(height: 14),
 
-                        // Ligne des 3 plats similaires
+                        // Ligne des plats similaires cliquables
                         Row(
-                          children: _similarDishes.map((dish) {
+                          children: otherDishes.map((other) {
                             return Expanded(
                               child: Container(
-                                margin: const EdgeInsets.symmetric(
-                                  horizontal: 4.5,
-                                ),
+                                margin: const EdgeInsets.symmetric(horizontal: 4),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(14),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.06,
-                                      ),
+                                      color: Colors.black.withValues(alpha: 0.05),
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
                                     ),
                                   ],
                                   border: Border.all(
-                                    color: const Color(0xFFE2E8F0),
-                                    width: 1,
+                                    color: Colors.black.withValues(alpha: 0.06),
                                   ),
                                 ),
-                                child: Column(
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: const BorderRadius.vertical(
-                                        top: Radius.circular(13),
-                                      ),
-                                      child: Image.network(
-                                        dish.imageUrl,
-                                        height: 72,
-                                        width: double.infinity,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) =>
-                                                Container(
-                                                  height: 72,
-                                                  color: const Color(
-                                                    0xFFD6A23A,
-                                                  ).withValues(alpha: 0.3),
-                                                  child: const Icon(
-                                                    Icons.fastfood_rounded,
-                                                    color: Color(0xFFD6A23A),
-                                                  ),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(14),
+                                    onTap: () {
+                                      context.pushReplacement(
+                                        AppRouter.dishDetail,
+                                        extra: other,
+                                      );
+                                    },
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius:
+                                              const BorderRadius.vertical(
+                                            top: Radius.circular(13),
+                                          ),
+                                          child: other.displayPhoto
+                                                  .startsWith('assets/')
+                                              ? Image.asset(
+                                                  other.displayPhoto,
+                                                  height: 75,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (c, e, s) =>
+                                                      _dishPlaceholder(),
+                                                )
+                                              : Image.network(
+                                                  other.displayPhoto,
+                                                  height: 75,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (c, e, s) =>
+                                                      _dishPlaceholder(),
                                                 ),
-                                      ),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 8.0,
-                                        horizontal: 2,
-                                      ),
-                                      child: Text(
-                                        dish.title,
-                                        textAlign: TextAlign.center,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF075E4D),
                                         ),
-                                      ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 8, horizontal: 4),
+                                          child: Text(
+                                            other.nom,
+                                            textAlign: TextAlign.center,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF075E4D),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ),
                             );
@@ -314,22 +422,94 @@ class _DishDetailScreenState extends ConsumerState<DishDetailScreen> {
     );
   }
 
-  Widget _buildHeroImage(BuildContext context, double height) {
+  Widget _dishPlaceholder() {
+    return Container(
+      height: 75,
+      color: const Color(0xFFD6A23A).withValues(alpha: 0.25),
+      child: const Icon(Icons.restaurant_menu_rounded,
+          color: Color(0xFF075E4D), size: 28),
+    );
+  }
+
+  Widget _buildFeatureBadge({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroImage(
+    BuildContext context,
+    PlatModel plat,
+    String photoPath,
+    double height,
+  ) {
     return Stack(
       children: [
-        // Image du plat
-        Container(
+        // Image du plat plein écran hero
+        SizedBox(
           height: height,
           width: double.infinity,
+          child: photoPath.startsWith('assets/')
+              ? Image.asset(
+                  photoPath,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: const Color(0xFF2C3E38),
+                    child: const Center(
+                      child: Icon(Icons.restaurant,
+                          color: Colors.white54, size: 48),
+                    ),
+                  ),
+                )
+              : Image.network(
+                  photoPath,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: const Color(0xFF2C3E38),
+                    child: const Center(
+                      child: Icon(Icons.restaurant,
+                          color: Colors.white54, size: 48),
+                    ),
+                  ),
+                ),
+        ),
+
+        // Gradient d'assombrissement pour lisibilité
+        Container(
+          height: height,
           decoration: BoxDecoration(
-            color: const Color(0xFF2C3E38),
-            image: DecorationImage(
-              image: NetworkImage(
-                widget.plat?.imageUrl != null && widget.plat!.imageUrl.isNotEmpty
-                    ? widget.plat!.imageUrl
-                    : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1000&auto=format&fit=crop',
-              ),
-              fit: BoxFit.cover,
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: 0.5),
+                Colors.transparent,
+                Colors.black.withValues(alpha: 0.3),
+              ],
             ),
           ),
         ),
@@ -337,10 +517,7 @@ class _DishDetailScreenState extends ConsumerState<DishDetailScreen> {
         // Bouton Retour & Favoris en haut
         SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 8.0,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -374,22 +551,25 @@ class _DishDetailScreenState extends ConsumerState<DishDetailScreen> {
                 Builder(
                   builder: (context) {
                     ref.watch(favorisNotifierProvider);
-                    final String nomPlat = widget.plat?.nom ?? 'Sakasaka';
-                    final String categoriePlat = widget.plat?.regions.isNotEmpty == true
-                        ? 'Origine : ${widget.plat!.regions.join(", ")}'
+                    final String nomPlat = plat.nom;
+                    final String categoriePlat = plat.regions.isNotEmpty
+                        ? 'Origine : ${plat.regions.join(", ")}'
                         : 'Plat traditionnel';
-                    final isFav = ref.read(favorisNotifierProvider.notifier).isFavorite(nomPlat);
+                    final isFav = ref
+                        .read(favorisNotifierProvider.notifier)
+                        .isFavorite(nomPlat);
 
                     return InkWell(
                       onTap: () async {
-                        await ref.read(favorisNotifierProvider.notifier).toggleFavori(
-                          titre: nomPlat,
-                          categorie: categoriePlat,
-                          imageUrl: widget.plat?.imageUrl ??
-                              'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600&auto=format&fit=crop',
-                          route: '/dishDetail',
-                          referenceId: widget.plat?.id,
-                        );
+                        await ref
+                            .read(favorisNotifierProvider.notifier)
+                            .toggleFavori(
+                              titre: nomPlat,
+                              categorie: categoriePlat,
+                              imageUrl: plat.displayPhoto,
+                              route: AppRouter.dishDetail,
+                              referenceId: plat.id,
+                            );
                       },
                       borderRadius: BorderRadius.circular(30),
                       child: Container(
@@ -426,18 +606,4 @@ class _DishDetailScreenState extends ConsumerState<DishDetailScreen> {
       ],
     );
   }
-}
-
-class IngredientItem {
-  final String title;
-  final IconData icon;
-
-  const IngredientItem({required this.title, required this.icon});
-}
-
-class SimilarDishItem {
-  final String title;
-  final String imageUrl;
-
-  const SimilarDishItem({required this.title, required this.imageUrl});
 }

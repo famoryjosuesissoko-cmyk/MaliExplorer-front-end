@@ -1,11 +1,10 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../router/app_router.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/president_model.dart';
 import '../providers/presidents_provider.dart';
+import '../router/app_router.dart';
 
 class ChefsEtatScreen extends ConsumerStatefulWidget {
   const ChefsEtatScreen({super.key});
@@ -25,9 +24,6 @@ class _ChefsEtatScreenState extends ConsumerState<ChefsEtatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Size screenSize = MediaQuery.of(context).size;
-    final double screenWidth = screenSize.width;
-
     return Scaffold(
       backgroundColor: const Color(0xFF075E4D),
       body: Stack(
@@ -92,7 +88,9 @@ class _ChefsEtatScreenState extends ConsumerState<ChefsEtatScreen> {
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     color: Color(0xFFF7F8F5),
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(28),
+                    ),
                   ),
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
@@ -105,7 +103,9 @@ class _ChefsEtatScreenState extends ConsumerState<ChefsEtatScreen> {
                         const SizedBox(height: 18),
 
                         // Liste des cartes de présidents connectée à Riverpod
-                        ref.watch(filteredPresidentsProvider).when(
+                        ref
+                            .watch(filteredPresidentsProvider)
+                            .when(
                               data: (presidents) {
                                 if (presidents.isEmpty) {
                                   return const Padding(
@@ -113,9 +113,11 @@ class _ChefsEtatScreenState extends ConsumerState<ChefsEtatScreen> {
                                     child: Center(
                                       child: Column(
                                         children: [
-                                          Icon(Icons.person_off_rounded,
-                                              size: 48,
-                                              color: Color(0xFF8B9B95)),
+                                          Icon(
+                                            Icons.person_off_rounded,
+                                            size: 48,
+                                            color: Color(0xFF8B9B95),
+                                          ),
                                           SizedBox(height: 12),
                                           Text(
                                             'Aucun chef d\'état trouvé.',
@@ -145,35 +147,44 @@ class _ChefsEtatScreenState extends ConsumerState<ChefsEtatScreen> {
                                 ),
                               ),
                               error: (error, stack) => Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 30),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 30,
+                                ),
                                 child: Center(
                                   child: Column(
                                     children: [
-                                      const Icon(Icons.error_outline_rounded,
-                                          size: 44, color: Colors.redAccent),
+                                      const Icon(
+                                        Icons.error_outline_rounded,
+                                        size: 44,
+                                        color: Colors.redAccent,
+                                      ),
                                       const SizedBox(height: 8),
                                       Text(
                                         'Erreur de chargement des présidents',
                                         style: TextStyle(
-                                            color: Colors.red[700],
-                                            fontWeight: FontWeight.w600),
+                                          color: Colors.red[700],
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                       const SizedBox(height: 8),
                                       ElevatedButton.icon(
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor:
-                                              const Color(0xFF075E4D),
+                                          backgroundColor: const Color(
+                                            0xFF075E4D,
+                                          ),
                                           foregroundColor: Colors.white,
                                           shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(20),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
                                           ),
                                         ),
                                         onPressed: () =>
                                             ref.refresh(presidentsProvider),
-                                        icon: const Icon(Icons.refresh_rounded,
-                                            size: 18),
+                                        icon: const Icon(
+                                          Icons.refresh_rounded,
+                                          size: 18,
+                                        ),
                                         label: const Text('Réessayer'),
                                       ),
                                     ],
@@ -232,7 +243,6 @@ class _ChefsEtatScreenState extends ConsumerState<ChefsEtatScreen> {
   Widget _buildPresidentCard(PresidentModel president) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -245,81 +255,123 @@ class _ChefsEtatScreenState extends ConsumerState<ChefsEtatScreen> {
         ],
         border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Photo de profil circulaire
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                  color: const Color(0xFF075E4D).withValues(alpha: 0.2),
-                  width: 2),
-            ),
-            child: ClipOval(
-              child: Image.network(
-                president.photoUrl,
-                width: 60,
-                height: 60,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: const Color(0xFF075E4D).withValues(alpha: 0.15),
-                  child: const Icon(Icons.person,
-                      color: Color(0xFF075E4D), size: 30),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-
-          // Informations textuelles
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () =>
+              context.push(AppRouter.presidentDetail, extra: president),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Nom & Années de mandat
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        president.fullName,
+                // Photo de profil circulaire
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFF075E4D).withValues(alpha: 0.2),
+                      width: 2,
+                    ),
+                  ),
+                  child: ClipOval(
+                    child: _buildPresidentImage(president.displayPhoto),
+                  ),
+                ),
+                const SizedBox(width: 14),
+
+                // Informations textuelles
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Nom & Années de mandat
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              president.fullName,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF075E4D),
+                              ),
+                            ),
+                          ),
+                          Text(
+                            president.periodeMandat,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFFC62828), // Rouge bordeaux
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+
+                      // Description biographique
+                      Text(
+                        president.biographie,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF075E4D),
+                          fontSize: 11.5,
+                          color: Color(0xFF6C7C77),
+                          height: 1.35,
                         ),
                       ),
-                    ),
-                    Text(
-                      president.periodeMandat,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFFC62828), // Rouge bordeaux
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-
-                // Description biographique
-                Text(
-                  president.biographie,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    color: Color(0xFF6C7C77),
-                    height: 1.35,
+                    ],
                   ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: Color(0xFF8B9B95),
                 ),
               ],
             ),
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPresidentImage(String pathOrUrl) {
+    if (pathOrUrl.isEmpty) {
+      return _buildImageFallback();
+    }
+    if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
+      return Image.network(
+        pathOrUrl,
+        width: 60,
+        height: 60,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildImageFallback(),
+      );
+    }
+    return Image.asset(
+      pathOrUrl,
+      width: 60,
+      height: 60,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => _buildImageFallback(),
+    );
+  }
+
+  Widget _buildImageFallback() {
+    return Container(
+      color: const Color(0xFF075E4D).withValues(alpha: 0.15),
+      child: const Icon(
+        Icons.person,
+        color: Color(0xFF075E4D),
+        size: 30,
       ),
     );
   }

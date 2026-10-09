@@ -5,6 +5,10 @@ import '../router/app_router.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/favori_model.dart';
+import '../models/president_model.dart';
+import '../models/plat_model.dart';
+import '../models/ethnie_model.dart';
+import '../models/ville_model.dart';
 import '../providers/favoris_provider.dart';
 
 class FavorisScreen extends ConsumerStatefulWidget {
@@ -204,8 +208,45 @@ class _FavorisScreenState extends ConsumerState<FavorisScreen> {
       ),
       child: InkWell(
         onTap: () {
-          if (item.route.isNotEmpty) {
-            context.push(item.route);
+          final route = item.route;
+          final titre = item.titre.toLowerCase();
+          if (route == AppRouter.presidentDetail || route.contains('president')) {
+            final match = PresidentModel.chronologicalPresidents.firstWhere(
+              (p) =>
+                  p.nom.toLowerCase().contains(titre) ||
+                  titre.contains(p.nom.toLowerCase()) ||
+                  p.fullName.toLowerCase().contains(titre) ||
+                  titre.contains(p.prenom.toLowerCase()),
+              orElse: () => PresidentModel.chronologicalPresidents.first,
+            );
+            context.push(AppRouter.presidentDetail, extra: match);
+          } else if (route == AppRouter.dishDetail || route.contains('dish')) {
+            final match = PlatModel.defaultPlats.firstWhere(
+              (p) =>
+                  p.nom.toLowerCase().contains(titre) ||
+                  titre.contains(p.nom.toLowerCase()),
+              orElse: () => PlatModel.defaultPlats.first,
+            );
+            context.push(AppRouter.dishDetail, extra: match);
+          } else if (route == AppRouter.ethnicityDetail || route.contains('ethnic')) {
+            final match = EthnieModel.defaultEthnies.firstWhere(
+              (e) =>
+                  e.nom.toLowerCase().contains(titre) ||
+                  titre.contains(e.nom.toLowerCase()),
+              orElse: () => EthnieModel.defaultEthnies.first,
+            );
+            context.push(AppRouter.ethnicityDetail, extra: match);
+          } else if (route == AppRouter.cityDetail || route.contains('city')) {
+            final ville = VilleModel(
+              id: item.referenceId ?? 0,
+              nom: item.titre,
+              region: item.categorie.replaceAll('Région : ', ''),
+              description: '',
+              imageUrl: item.displayPhoto,
+            );
+            context.push(AppRouter.cityDetail, extra: ville);
+          } else if (route.isNotEmpty) {
+            context.push(route);
           }
         },
         borderRadius: BorderRadius.circular(16),
@@ -228,24 +269,24 @@ class _FavorisScreenState extends ConsumerState<FavorisScreen> {
           ),
           child: Row(
             children: [
-              // Image miniature
+              // Image miniature avec support automatique des assets locaux
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  item.imageUrl,
-                  width: 58,
-                  height: 58,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    width: 58,
-                    height: 58,
-                    color: isDark ? AppColors.darkSurfaceElevated : const Color(0xFFF1F5F3),
-                    child: Icon(
-                      Icons.image_outlined,
-                      color: isDark ? AppColors.darkTextSecondary : const Color(0xFF94A3B8),
-                    ),
-                  ),
-                ),
+                child: item.displayPhoto.startsWith('assets/')
+                    ? Image.asset(
+                        item.displayPhoto,
+                        width: 58,
+                        height: 58,
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => _buildPlaceholder(isDark),
+                      )
+                    : Image.network(
+                        item.displayPhoto,
+                        width: 58,
+                        height: 58,
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => _buildPlaceholder(isDark),
+                      ),
               ),
               const SizedBox(width: 14),
 
@@ -288,6 +329,18 @@ class _FavorisScreenState extends ConsumerState<FavorisScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder(bool isDark) {
+    return Container(
+      width: 58,
+      height: 58,
+      color: isDark ? AppColors.darkSurfaceElevated : const Color(0xFFF1F5F3),
+      child: Icon(
+        Icons.image_outlined,
+        color: isDark ? AppColors.darkTextSecondary : const Color(0xFF94A3B8),
       ),
     );
   }

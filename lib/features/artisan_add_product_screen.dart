@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -10,7 +9,8 @@ class ArtisanAddProductScreen extends StatefulWidget {
   const ArtisanAddProductScreen({super.key});
 
   @override
-  State<ArtisanAddProductScreen> createState() => _ArtisanAddProductScreenState();
+  State<ArtisanAddProductScreen> createState() =>
+      _ArtisanAddProductScreenState();
 }
 
 class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
@@ -42,7 +42,9 @@ class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
     }
 
     try {
-      final List<XFile> pickedList = await _imagePicker.pickMultiImage(imageQuality: 85);
+      final List<XFile> pickedList = await _imagePicker.pickMultiImage(
+        imageQuality: 85,
+      );
       if (pickedList.isNotEmpty) {
         for (final img in pickedList) {
           if (_selectedImages.length >= 4) break;
@@ -53,7 +55,9 @@ class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('L\'image ${img.name} dépasse 10 Mo et a été ignorée.'),
+                  content: Text(
+                    'L\'image ${img.name} dépasse 10 Mo et a été ignorée.',
+                  ),
                   backgroundColor: const Color(0xFFE65151),
                 ),
               );
@@ -68,7 +72,8 @@ class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
   }
 
   Future<void> _onPublish() async {
-    if (_nameController.text.trim().isEmpty || _priceController.text.trim().isEmpty) {
+    if (_nameController.text.trim().isEmpty ||
+        _priceController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Veuillez remplir les champs obligatoires (*)'),
@@ -111,7 +116,11 @@ class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
         backgroundColor: Colors.white,
         title: Column(
           children: const [
-            Icon(Icons.check_circle_rounded, color: Color(0xFF075E4D), size: 52),
+            Icon(
+              Icons.check_circle_rounded,
+              color: Color(0xFF075E4D),
+              size: 52,
+            ),
             SizedBox(height: 10),
             Text(
               'Création publiée !',
@@ -143,7 +152,10 @@ class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
               Navigator.of(ctx).pop();
               context.pop();
             },
-            child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'OK',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -152,9 +164,6 @@ class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Size screenSize = MediaQuery.of(context).size;
-    final double screenWidth = screenSize.width;
-
     return Scaffold(
       backgroundColor: const Color(0xFF075E4D),
       body: Stack(
@@ -222,7 +231,9 @@ class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     color: Color(0xFFF7F8F5),
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(28),
+                    ),
                   ),
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
@@ -288,7 +299,9 @@ class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
                                     foregroundColor: const Color(0xFF16332D),
                                     backgroundColor: Colors.white,
                                     side: BorderSide(
-                                      color: Colors.black.withValues(alpha: 0.15),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.15,
+                                      ),
                                     ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(16),
@@ -414,7 +427,8 @@ class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
           height: 90,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            itemCount: _selectedImages.length + (_selectedImages.length < 4 ? 1 : 0),
+            itemCount:
+                _selectedImages.length + (_selectedImages.length < 4 ? 1 : 0),
             separatorBuilder: (context, index) => const SizedBox(width: 10),
             itemBuilder: (ctx, idx) {
               if (idx < _selectedImages.length) {
@@ -426,7 +440,10 @@ class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
                       height: 90,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFF0E8F76), width: 1.5),
+                        border: Border.all(
+                          color: const Color(0xFF0E8F76),
+                          width: 1.5,
+                        ),
                         image: DecorationImage(
                           image: MemoryImage(img.bytes),
                           fit: BoxFit.cover,
@@ -448,7 +465,11 @@ class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
                             color: Colors.redAccent,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close, color: Colors.white, size: 14),
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 14,
+                          ),
                         ),
                       ),
                     ),
@@ -475,7 +496,11 @@ class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
                         Icon(Icons.add, color: Color(0xFF0E8F76), size: 28),
                         Text(
                           'Ajouter',
-                          style: TextStyle(fontSize: 11, color: Color(0xFF0E8F76), fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF0E8F76),
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
@@ -488,7 +513,11 @@ class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
         const SizedBox(height: 6),
         Text(
           '${_selectedImages.length}/4 photo(s) sélectionnée(s)',
-          style: const TextStyle(fontSize: 11.5, color: Color(0xFF0E8F76), fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            fontSize: 11.5,
+            color: Color(0xFF0E8F76),
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     );

@@ -47,3 +47,6 @@ flutter:
   # Déclaration des dossiers d'images
   assets:
     - assets/images/
+    - assets/images/presidents/
+    - assets/images/plats/
+    - assets/images/ethnies/
