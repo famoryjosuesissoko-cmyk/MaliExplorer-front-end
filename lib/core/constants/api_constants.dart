@@ -7,14 +7,10 @@ class ApiConstants {
   static const Duration timeout = Duration(seconds: 15);
   static const Duration quickTimeout = Duration(seconds: 4);
 
-  /// IP actuelle de la machine hôte sur le réseau Wi-Fi local
-  static const String currentHostIp = '10.86.182.142';
-  static const String fallbackLanUrl = 'http://10.86.182.142:8080/api';
-
   static List<String> get candidateUrls => [
         'http://127.0.0.1:8080/api',
-        'http://10.86.182.142:8080/api',
         'http://10.0.2.2:8080/api',
+        'http://localhost:8080/api',
       ];
 
   static String get baseUrl {
@@ -23,7 +19,6 @@ class ApiConstants {
     if (kIsWeb) {
       return 'http://localhost:8080/api';
     } else if (defaultTargetPlatform == TargetPlatform.android) {
-      // 127.0.0.1 fonctionne via adb reverse, sinon basculement automatique sur l'IP LAN
       return 'http://127.0.0.1:8080/api';
     } else {
       return 'http://localhost:8080/api';
@@ -54,4 +49,8 @@ class ApiConstants {
   static const String favoris = '/favoris';
   static const String carte = '/carte';
   static const String carteMarqueurs = '/carte/marqueurs';
+  static const String homeSlides = '/home-slides';
+  static const String homeVilles = '/villes/home';
+  static const String religions = '/religions';
+  static const String recherche = '/recherche';
 }

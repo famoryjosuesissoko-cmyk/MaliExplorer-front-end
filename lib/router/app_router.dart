@@ -34,6 +34,15 @@ import '../models/ville_model.dart';
 import '../models/quiz_model.dart';
 import '../models/president_model.dart';
 import '../features/president_detail_screen.dart';
+import '../features/langues_nationales_screen.dart';
+import '../features/infos_pratiques_screen.dart';
+import '../features/region_detail_screen.dart';
+import '../features/visite_virtuelle_360_screen.dart';
+import '../features/religions_list_screen.dart';
+import '../features/religion_detail_screen.dart';
+import '../models/region_model.dart';
+import '../models/religion_model.dart';
+import '../models/search_result_item.dart';
 import '../widgets/main_shell.dart';
 
 /// Configuration du routeur GoRouter pour MaliExplorer avec ShellRoute persistent
@@ -58,12 +67,18 @@ class AppRouter {
   static const String chefsEtat = '/chefs-etat';
   static const String artisans = '/artisans';
   static const String guides = '/guides';
+  static const String languesNationales = '/langues-nationales';
+  static const String infosPratiques = '/infos-pratiques';
+  static const String religionsList = '/religions-list';
 
   // Routes des détails
   static const String dishDetail = '/dish-detail';
   static const String ethnicityDetail = '/ethnicity-detail';
   static const String cityDetail = '/city-detail';
   static const String presidentDetail = '/president-detail';
+  static const String regionDetail = '/region-detail';
+  static const String religionDetail = '/religion-detail';
+  static const String visiteVirtuelle360 = '/visite-virtuelle-360';
 
   // Alias francophones conformes à la nomenclature
   static const String platDetail = dishDetail;
@@ -209,15 +224,70 @@ class AppRouter {
           return const GuidesScreen();
         },
       ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: languesNationales,
+        builder: (BuildContext context, GoRouterState state) {
+          return const LanguesNationalesScreen();
+        },
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: infosPratiques,
+        builder: (BuildContext context, GoRouterState state) {
+          return const InfosPratiquesScreen();
+        },
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: religionsList,
+        builder: (BuildContext context, GoRouterState state) {
+          return const ReligionsListScreen();
+        },
+      ),
 
       // 5. Pages de détail (Poussent au-dessus du MainShell avec rootNavigatorKey)
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
         path: dishDetail,
         builder: (BuildContext context, GoRouterState state) {
-          final plat = state.extra is PlatModel
-              ? state.extra as PlatModel
-              : null;
+          PlatModel? plat;
+          final extra = state.extra;
+          if (extra is PlatModel) {
+            plat = extra;
+          } else if (extra is SearchResultItem) {
+            if (extra.payload is PlatModel) {
+              plat = extra.payload as PlatModel;
+            } else {
+              final q = extra.titre.toLowerCase();
+              plat = PlatModel.defaultPlats.firstWhere(
+                (p) => p.nom.toLowerCase().contains(q) || q.contains(p.nom.toLowerCase()) ||
+                    ((q.contains('saka') || q.contains('saga')) && (p.nom.toLowerCase().contains('saka') || p.nom.toLowerCase().contains('saga'))),
+                orElse: () => PlatModel(
+                  id: int.tryParse(extra.id.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
+                  nom: extra.titre,
+                  description: extra.description ?? '',
+                  imageUrl: extra.imageUrl ?? PlatModel.getLocalPhoto(extra.titre),
+                ),
+              );
+            }
+          } else if (extra is int) {
+            plat = PlatModel.defaultPlats.firstWhere(
+              (p) => p.id == extra,
+              orElse: () => PlatModel.defaultPlats.first,
+            );
+          } else if (extra is String) {
+            final q = extra.toLowerCase();
+            plat = PlatModel.defaultPlats.firstWhere(
+              (p) => p.nom.toLowerCase().contains(q) || q.contains(p.nom.toLowerCase()) ||
+                  ((q.contains('saka') || q.contains('saga')) && (p.nom.toLowerCase().contains('saka') || p.nom.toLowerCase().contains('saga'))),
+              orElse: () => PlatModel.defaultPlats.first,
+            );
+          } else if (extra is Map<String, dynamic>) {
+            try {
+              plat = PlatModel.fromJson(extra);
+            } catch (_) {}
+          }
           return DishDetailScreen(plat: plat);
         },
       ),
@@ -225,9 +295,32 @@ class AppRouter {
         parentNavigatorKey: rootNavigatorKey,
         path: ethnicityDetail,
         builder: (BuildContext context, GoRouterState state) {
-          final ethnie = state.extra is EthnieModel
-              ? state.extra as EthnieModel
-              : null;
+          EthnieModel? ethnie;
+          final extra = state.extra;
+          if (extra is EthnieModel) {
+            ethnie = extra;
+          } else if (extra is SearchResultItem) {
+            if (extra.payload is EthnieModel) {
+              ethnie = extra.payload as EthnieModel;
+            } else {
+              final q = extra.titre.toLowerCase();
+              ethnie = EthnieModel.defaultEthnies.firstWhere(
+                (e) => e.nom.toLowerCase().contains(q) || q.contains(e.nom.toLowerCase()),
+                orElse: () => EthnieModel.defaultEthnies.first,
+              );
+            }
+          } else if (extra is int) {
+            ethnie = EthnieModel.defaultEthnies.firstWhere(
+              (e) => e.id == extra,
+              orElse: () => EthnieModel.defaultEthnies.first,
+            );
+          } else if (extra is String) {
+            final q = extra.toLowerCase();
+            ethnie = EthnieModel.defaultEthnies.firstWhere(
+              (e) => e.nom.toLowerCase().contains(q) || q.contains(e.nom.toLowerCase()),
+              orElse: () => EthnieModel.defaultEthnies.first,
+            );
+          }
           return EthnicityDetailScreen(ethnie: ethnie);
         },
       ),
@@ -235,9 +328,27 @@ class AppRouter {
         parentNavigatorKey: rootNavigatorKey,
         path: cityDetail,
         builder: (BuildContext context, GoRouterState state) {
-          final ville = state.extra is VilleModel
-              ? state.extra as VilleModel
-              : null;
+          VilleModel? ville;
+          final extra = state.extra;
+          if (extra is VilleModel) {
+            ville = extra;
+          } else if (extra is SearchResultItem) {
+            if (extra.payload is VilleModel) {
+              ville = extra.payload as VilleModel;
+            } else {
+              ville = VilleModel(
+                id: int.tryParse(extra.id.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
+                nom: extra.titre,
+                region: extra.sousTitre ?? '',
+                description: extra.description ?? '',
+                imageUrl: extra.imageUrl ?? VilleModel.getLocalPhoto(extra.titre),
+              );
+            }
+          } else if (extra is Map<String, dynamic>) {
+            try {
+              ville = VilleModel.fromJson(extra);
+            } catch (_) {}
+          }
           return CityDetailScreen(ville: ville);
         },
       ),
@@ -245,10 +356,90 @@ class AppRouter {
         parentNavigatorKey: rootNavigatorKey,
         path: presidentDetail,
         builder: (BuildContext context, GoRouterState state) {
-          final president = state.extra is PresidentModel
-              ? state.extra as PresidentModel
-              : null;
+          PresidentModel? president;
+          final extra = state.extra;
+          if (extra is PresidentModel) {
+            president = extra;
+          } else if (extra is SearchResultItem) {
+            if (extra.payload is PresidentModel) {
+              president = extra.payload as PresidentModel;
+            }
+          }
           return PresidentDetailScreen(president: president);
+        },
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: regionDetail,
+        builder: (BuildContext context, GoRouterState state) {
+          RegionModel? region;
+          final extra = state.extra;
+          if (extra is RegionModel) {
+            region = extra;
+          } else if (extra is SearchResultItem) {
+            if (extra.payload is RegionModel) {
+              region = extra.payload as RegionModel;
+            } else {
+              final q = extra.titre.toLowerCase();
+              region = RegionData.regions.firstWhere(
+                (r) => r.nom.toLowerCase().contains(q) || q.contains(r.nom.toLowerCase()) || r.chefLieu.toLowerCase().contains(q),
+                orElse: () => RegionData.regions.first,
+              );
+            }
+          } else if (extra is String) {
+            final q = extra.toLowerCase();
+            region = RegionData.regions.firstWhere(
+              (r) => r.id.toLowerCase() == q || r.nom.toLowerCase().contains(q) || r.chefLieu.toLowerCase().contains(q),
+              orElse: () => RegionData.regions.first,
+            );
+          }
+          return RegionDetailScreen(region: region);
+        },
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: religionDetail,
+        builder: (BuildContext context, GoRouterState state) {
+          ReligionModel? religion;
+          final extra = state.extra;
+          if (extra is ReligionModel) {
+            religion = extra;
+          } else if (extra is SearchResultItem) {
+            if (extra.payload is ReligionModel) {
+              religion = extra.payload as ReligionModel;
+            } else {
+              final q = extra.titre.toLowerCase();
+              religion = ReligionModel.defaultReligions.firstWhere(
+                (r) => r.nom.toLowerCase().contains(q) || q.contains(r.nom.toLowerCase()),
+                orElse: () => ReligionModel.defaultReligions.first,
+              );
+            }
+          } else if (extra is int) {
+            religion = ReligionModel.defaultReligions.firstWhere(
+              (r) => r.id == extra,
+              orElse: () => ReligionModel.defaultReligions.first,
+            );
+          } else if (extra is String) {
+            final q = extra.toLowerCase();
+            religion = ReligionModel.defaultReligions.firstWhere(
+              (r) => r.nom.toLowerCase().contains(q) || q.contains(r.nom.toLowerCase()),
+              orElse: () => ReligionModel.defaultReligions.first,
+            );
+          }
+          return ReligionDetailScreen(religion: religion);
+        },
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: visiteVirtuelle360,
+        builder: (BuildContext context, GoRouterState state) {
+          final extraMap = state.extra is Map<String, dynamic>
+              ? state.extra as Map<String, dynamic>
+              : null;
+          return VisiteVirtuelle360Screen(
+            title: extraMap?['title'] as String?,
+            panoramaPath: extraMap?['panorama'] as String?,
+          );
         },
       ),
 

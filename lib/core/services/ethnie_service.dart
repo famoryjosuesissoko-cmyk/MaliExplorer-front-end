@@ -19,9 +19,10 @@ class EthnieService {
       if (response.statusCode == 200) {
         final List<dynamic> jsonList = jsonDecode(utf8.decode(response.bodyBytes));
         if (jsonList.isNotEmpty) {
-          return jsonList
+          final apiEthnies = jsonList
               .map((j) => EthnieModel.fromJson(j as Map<String, dynamic>))
               .toList();
+          return apiEthnies;
         }
       }
     } catch (_) {

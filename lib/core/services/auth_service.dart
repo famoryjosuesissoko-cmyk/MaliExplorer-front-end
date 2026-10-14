@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'api_service.dart';
 import 'firebase_service.dart';
@@ -142,17 +143,32 @@ class AuthService {
         };
   }
 
-  /// Synchronise manuellement le profil avec Spring Boot après reconnexion
+  /// Synchronise manuellement le profil avec Spring Boot après reconnexion ou mise à jour
   Future<Map<String, dynamic>?> syncProfileWithBackend() async {
     final token = await getIdToken();
-    if (token == null) return null;
+    if (token != null) {
+      _apiService.setAuthToken(token);
+    }
     try {
-      final response = await _apiService.post(
-        '/auth/login',
-        body: {'idToken': token},
-      );
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body) as Map<String, dynamic>;
+      // 1. Lecture directe depuis MySQL via l'endpoint profil connecté
+      final meResponse = await _apiService.get('/utilisateurs/me');
+      if (meResponse.statusCode == 200) {
+        return jsonDecode(utf8.decode(meResponse.bodyBytes)) as Map<String, dynamic>;
+      }
+    } catch (e) {
+      debugPrint('[AuthService] Info sync direct /me: $e');
+    }
+
+    // 2. Fallback via /auth/login avec idToken Firebase
+    try {
+      if (token != null) {
+        final response = await _apiService.post(
+          '/auth/login',
+          body: {'idToken': token},
+        );
+        if (response.statusCode == 200) {
+          return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        }
       }
     } catch (_) {}
     return null;

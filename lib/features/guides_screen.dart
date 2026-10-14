@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../models/guide_model.dart';
 import '../providers/guides_provider.dart';
+import '../router/app_router.dart';
 
 class GuidesScreen extends ConsumerStatefulWidget {
   const GuidesScreen({super.key});
@@ -78,7 +79,13 @@ class _GuidesScreenState extends ConsumerState<GuidesScreen> {
                       Row(
                         children: [
                           IconButton(
-                            onPressed: () => context.pop(),
+                            onPressed: () {
+                              if (context.canPop()) {
+                                context.pop();
+                              } else {
+                                context.go(AppRouter.explorer);
+                              }
+                            },
                             icon: const Icon(
                               Icons.arrow_back_ios_new_rounded,
                               color: Colors.white,
@@ -286,6 +293,8 @@ class _GuidesScreenState extends ConsumerState<GuidesScreen> {
               children: [
                 Text(
                   guide.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 15.5,
                     fontWeight: FontWeight.w800,
@@ -377,6 +386,8 @@ class _GuidesScreenState extends ConsumerState<GuidesScreen> {
               children: [
                 Text(
                   guide.fullName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 15.5,
                     fontWeight: FontWeight.w800,

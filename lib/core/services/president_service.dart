@@ -22,10 +22,7 @@ class PresidentService {
           final apiPresidents = jsonList
               .map((j) => PresidentModel.fromJson(j as Map<String, dynamic>))
               .toList();
-          // Si l'API a les 9 présidents complets, on la retourne
-          if (apiPresidents.length >= PresidentModel.chronologicalPresidents.length) {
-            return apiPresidents;
-          }
+          return apiPresidents;
         }
       }
     } catch (_) {

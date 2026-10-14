@@ -63,17 +63,22 @@ class EthnieModel {
       orElse: () => defaultEthnies.first,
     );
 
+    final rawImg = json['imageUrl'] ?? json['photoUrl'];
+    final resolvedImg = (rawImg != null && rawImg.toString().trim().isNotEmpty)
+        ? rawImg.toString().trim()
+        : getLocalPhotoHomme(nomEthnie);
+
     return EthnieModel(
       id: json['id'] ?? json['idEthnie'] ?? defaultMatch.id,
       nom: nomEthnie.isNotEmpty ? nomEthnie : defaultMatch.nom,
       region: json['region'] ?? defaultMatch.region,
       population: json['population'] ?? defaultMatch.population,
       description: json['description'] ?? defaultMatch.description,
-      imageUrl: getLocalPhotoHomme(nomEthnie),
+      imageUrl: resolvedImg,
       photoHomme: (json['photoHomme'] != null &&
               json['photoHomme'].toString().trim().isNotEmpty)
           ? json['photoHomme'].toString()
-          : getLocalPhotoHomme(nomEthnie),
+          : resolvedImg,
       photoFemme: (json['photoFemme'] != null &&
               json['photoFemme'].toString().trim().isNotEmpty)
           ? json['photoFemme'].toString()

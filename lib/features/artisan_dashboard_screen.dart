@@ -242,7 +242,7 @@ class _ArtisanDashboardScreenState extends State<ArtisanDashboardScreen>
                           if (context.canPop()) {
                             context.pop();
                           } else {
-                            context.go(AppRouter.home);
+                            context.go(AppRouter.profil);
                           }
                         },
                         icon: const Icon(

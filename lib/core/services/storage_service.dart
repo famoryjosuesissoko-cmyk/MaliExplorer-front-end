@@ -42,7 +42,34 @@ class StorageService {
     final cleanFileName = fileName.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
     final uniquePath = '$folder/${DateTime.now().millisecondsSinceEpoch}_$cleanFileName';
 
-    // 2. Tentative d'upload direct vers Supabase Storage
+    // 1. Priorité Architecture MaliExplorer : Upload sécurisé via l'API REST Spring Boot
+    if (apiService != null) {
+      try {
+        final endpoint = folder == 'avatars' ? '/storage/upload/avatars' : '/storage/upload';
+        final response = await apiService.uploadMultipart(
+          endpoint,
+          fileFieldName: 'file',
+          fileBytes: bytes,
+          filename: cleanFileName,
+          fields: {'folder': folder},
+        );
+
+        if (response.statusCode == 201 || response.statusCode == 200) {
+          final data = jsonDecode(response.body) as Map<String, dynamic>;
+          final url = data['fileUrl'] as String? ?? data['url'] as String?;
+          if (url != null && url.isNotEmpty) {
+            debugPrint('[StorageService] Fichier uploadé avec succès via Spring Boot: $url');
+            return url;
+          }
+        } else {
+          debugPrint('[StorageService] Erreur API Spring Boot (${response.statusCode}): ${response.body}');
+        }
+      } catch (backendError) {
+        debugPrint('[StorageService] Erreur connexion backend Spring Boot: $backendError');
+      }
+    }
+
+    // 2. Secours : Tentative directe vers Supabase Storage
     try {
       await client.storage.from(bucket).uploadBinary(
             uniquePath,
@@ -53,39 +80,12 @@ class StorageService {
             ),
           );
       final publicUrl = client.storage.from(bucket).getPublicUrl(uniquePath);
-      debugPrint('[StorageService] Fichier uploadé avec succès sur Supabase: $publicUrl');
+      debugPrint('[StorageService] Fichier uploadé avec succès direct Supabase: $publicUrl');
       return publicUrl;
     } catch (e) {
-      debugPrint('[StorageService] Échec upload direct Supabase ($e), tentative via API Backend...');
-
-      // 3. Fallback : upload via le endpoint multipart du backend Spring Boot
-      if (apiService != null) {
-        try {
-          final response = await apiService.uploadMultipart(
-            '/storage/upload',
-            fileFieldName: 'file',
-            fileBytes: bytes,
-            filename: cleanFileName,
-            fields: {'folder': folder},
-          );
-
-          if (response.statusCode == 201 || response.statusCode == 200) {
-            final data = jsonDecode(response.body) as Map<String, dynamic>;
-            final url = data['fileUrl'] as String? ?? data['url'] as String?;
-            if (url != null && url.isNotEmpty) {
-              return url;
-            }
-          } else {
-            debugPrint('[StorageService] Fallback backend status: ${response.statusCode} - ${response.body}');
-          }
-        } catch (backendError) {
-          debugPrint('[StorageService] Erreur fallback backend: $backendError');
-        }
-      }
-
-      // Si Supabase et le backend ont tous deux échoué, propager l'erreur
+      debugPrint('[StorageService] Échec upload Supabase direct: $e');
       throw Exception(
-        'Impossible de téléverser l\'image sur Supabase Storage : RLS policy non configurée sur le bucket "$bucket" ou bucket manquant ($e).',
+        'Connexion backend requise. Assurez-vous que Spring Boot est actif et lancez dans un terminal : adb reverse tcp:8080 tcp:8080 ($e)',
       );
     }
   }

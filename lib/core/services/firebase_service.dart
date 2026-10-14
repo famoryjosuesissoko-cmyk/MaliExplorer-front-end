@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -7,7 +8,20 @@ class FirebaseService {
 
   static Future<void> init() async {
     try {
-      await Firebase.initializeApp();
+      if (kIsWeb) {
+        await Firebase.initializeApp(
+          options: const FirebaseOptions(
+            apiKey: "AIzaSyAz3UR_7kxYthRN8M3_uEGbx_k72lhAfpQ",
+            appId: "1:258002604598:web:d2a07fc12825e824d23e97",
+            messagingSenderId: "258002604598",
+            projectId: "maliexplorer",
+            authDomain: "maliexplorer.firebaseapp.com",
+            storageBucket: "maliexplorer.firebasestorage.app",
+          ),
+        );
+      } else {
+        await Firebase.initializeApp();
+      }
     } catch (_) {}
   }
 

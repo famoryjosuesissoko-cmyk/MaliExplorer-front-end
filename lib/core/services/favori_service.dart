@@ -68,4 +68,19 @@ class FavoriService {
     } catch (_) {}
     return false;
   }
+
+  Future<List<FavoriModel>> getRecommandations() async {
+    try {
+      if (_apiService.authToken == null || _apiService.authToken!.isEmpty) {
+        return [];
+      }
+      final response = await _apiService.get('${ApiConstants.favoris}/recommandations');
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = jsonDecode(utf8.decode(response.bodyBytes));
+        return jsonList.map((j) => FavoriModel.fromJson(j as Map<String, dynamic>)).toList();
+      }
+    } catch (_) {}
+    return [];
+  }
 }
+
