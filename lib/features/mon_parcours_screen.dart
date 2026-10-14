@@ -50,7 +50,7 @@ class _MonParcoursScreenState extends ConsumerState<MonParcoursScreen> {
                           if (context.canPop()) {
                             context.pop();
                           } else {
-                            context.go(AppRouter.home);
+                            context.go(AppRouter.profil);
                           }
                         },
                         icon: const Icon(

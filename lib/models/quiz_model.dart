@@ -53,6 +53,7 @@ class QuizModel {
   final int point;
   final String categorie;
   final String difficulte;
+  final DateTime? dateCreation;
   final List<QuestionModel> questions;
 
   const QuizModel({
@@ -63,6 +64,7 @@ class QuizModel {
     required this.point,
     required this.categorie,
     required this.difficulte,
+    this.dateCreation,
     this.questions = const [],
   });
 
@@ -74,6 +76,13 @@ class QuizModel {
           .toList();
     }
 
+    DateTime? parsedDate;
+    if (json['dateCreation'] != null) {
+      try {
+        parsedDate = DateTime.parse(json['dateCreation'].toString());
+      } catch (_) {}
+    }
+
     return QuizModel(
       idQuiz: json['idQuiz'] ?? 0,
       nomQuiz: json['nomQuiz'] ?? '',
@@ -83,6 +92,7 @@ class QuizModel {
       point: json['point'] ?? 30,
       categorie: json['categorie'] ?? 'Culture',
       difficulte: json['difficulte']?.toString() ?? 'MOYEN',
+      dateCreation: parsedDate,
       questions: questList,
     );
   }
@@ -96,6 +106,7 @@ class QuizModel {
       'point': point,
       'categorie': categorie,
       'difficulte': difficulte,
+      'dateCreation': dateCreation?.toIso8601String(),
       'questions': questions.map((q) => q.toJson()).toList(),
     };
   }

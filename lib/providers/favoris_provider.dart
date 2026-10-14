@@ -16,6 +16,47 @@ final favorisProvider = Provider<AsyncValue<List<FavoriModel>>>((ref) {
   return ref.watch(favorisNotifierProvider);
 });
 
+/// Recommandations personnalisées F23 basées sur les favoris réels de l'utilisateur
+final recommandationsProvider = FutureProvider<List<FavoriModel>>((ref) async {
+  final service = ref.watch(favoriServiceProvider);
+  final apiRecs = await service.getRecommandations();
+  if (apiRecs.isNotEmpty) {
+    return apiRecs;
+  }
+  // Repli pertinent basé sur le patrimoine incontournable si aucun favori ou hors-ligne
+  return [
+    const FavoriModel(
+      id: 101,
+      titre: 'Grande Mosquée de Djenné',
+      categorie: 'Lieu Historique',
+      imageUrl: 'https://images.unsplash.com/photo-1516426122078-c23e76319801?q=80&w=600&auto=format&fit=crop',
+      route: '/city-detail',
+    ),
+    const FavoriModel(
+      id: 102,
+      titre: 'Tigadèguèna (Sauce Arachide)',
+      categorie: 'Gastronomie',
+      imageUrl: 'assets/images/plats/tiguadegue_na.jpeg',
+      route: '/dish-detail',
+    ),
+    const FavoriModel(
+      id: 103,
+      titre: 'Culture & Peuple Bambara',
+      categorie: 'Ethnie & Tradition',
+      imageUrl: 'assets/images/ethnies/bambara_homme.jpeg',
+      route: '/ethnicity-detail',
+    ),
+    const FavoriModel(
+      id: 104,
+      titre: 'Tombeau des Askia',
+      categorie: 'Lieu Historique',
+      imageUrl: 'https://images.unsplash.com/photo-1578922746465-3a80a228f223?q=80&w=600&auto=format&fit=crop',
+      route: '/city-detail',
+    ),
+  ];
+});
+
+
 class FavorisNotifier extends StateNotifier<AsyncValue<List<FavoriModel>>> {
   final FavoriService _service;
 
@@ -167,4 +208,16 @@ class FavorisNotifier extends StateNotifier<AsyncValue<List<FavoriModel>>> {
       debugPrint('[FavorisNotifier] Erreur suppression backend: $e');
     }
   }
+
+  Future<void> addFavori(FavoriModel item) async {
+    if (isFavorite(item.titre)) return;
+    await toggleFavori(
+      titre: item.titre,
+      categorie: item.categorie,
+      imageUrl: item.imageUrl,
+      route: item.route,
+      referenceId: item.referenceId,
+    );
+  }
 }
+

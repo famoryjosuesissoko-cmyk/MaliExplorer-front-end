@@ -27,6 +27,11 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
       list.add('assets/images/bamako_gallery_2.jpeg');
       list.add('assets/images/bamako_cover.jpeg');
     } else if (nom.contains('djenne') || nom.contains('djenné')) {
+      list.add('assets/pannellum/djenne_vue_aerienne_360.jpg');
+      list.add('assets/pannellum/djenne_nef_hypostyle_360.jpg');
+      list.add('assets/pannellum/djenne_cour_centrale_360.jpg');
+      list.add('assets/pannellum/djenne_minarets_zoom_360.jpg');
+      list.add('assets/pannellum/djenne_ruelle_contreforts_360.jpg');
       list.add('assets/images/djenne_gallery_1.jpeg');
       list.add('assets/images/djenne_gallery_2.jpeg');
       list.add('assets/images/djenne_cover.jpeg');
@@ -206,6 +211,121 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
                           ],
                         ),
 
+                        // Section Spéciale : Grande Mosquée de Djenné & Visite Virtuelle 360°
+                        if (nomVille.toLowerCase().contains('djenne') ||
+                            nomVille.toLowerCase().contains('djenné')) ...[
+                          const SizedBox(height: 22),
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF075E4D), Color(0xFF0E8F76)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF075E4D)
+                                      .withValues(alpha: 0.3),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFD6A23A),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Icon(
+                                        Icons.threesixty,
+                                        color: Colors.white,
+                                        size: 22,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    const Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'EXPÉRIENCE IMMERSIVE',
+                                            style: TextStyle(
+                                              color: Color(0xFFD6A23A),
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 0.8,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Grande Mosquée de Djenné',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                const Text(
+                                  'Explorez le plus grand chef-d\'œuvre en terre crue au monde en visite panoramique 360°. Visualisez les minarets, les torons de palmier rônier et la cour intérieure.',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 13,
+                                    height: 1.45,
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      context.push(
+                                        AppRouter.visiteVirtuelle360,
+                                        extra: {
+                                          'title': 'Grande Mosquée de Djenné',
+                                          'panorama':
+                                              'assets/pannellum/djenne_360_panorama.jpg',
+                                        },
+                                      );
+                                    },
+                                    icon: const Icon(Icons.threesixty, size: 20),
+                                    label: const Text(
+                                      'Visiter en 360°',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFD6A23A),
+                                      foregroundColor: const Color(0xFF16332D),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+
                         const SizedBox(height: 22),
 
                         // Galerie photos de la ville (grandes cartes empilées)
@@ -367,7 +487,13 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 InkWell(
-                  onTap: () => context.pop(),
+                  onTap: () {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go(AppRouter.villesList);
+                    }
+                  },
                   borderRadius: BorderRadius.circular(30),
                   child: Container(
                     width: 38,

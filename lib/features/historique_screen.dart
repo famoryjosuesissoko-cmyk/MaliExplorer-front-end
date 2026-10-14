@@ -58,7 +58,15 @@ class HistoriqueScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 28),
+                  IconButton(
+                    tooltip: 'Vider l\'historique',
+                    onPressed: () => _confirmerViderHistorique(context, ref, isDark),
+                    icon: const Icon(
+                      Icons.delete_sweep_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -78,7 +86,7 @@ class HistoriqueScreen extends ConsumerWidget {
                         loading: () => const Center(
                           child: CircularProgressIndicator(color: Color(0xFF075E4D)),
                         ),
-                        error: (err, stack) => _buildErrorView(ref, isDark),
+                        error: (err, stack) => _buildErrorView(ref, isDark, err),
                         data: (items) {
                           if (items.isEmpty) {
                             return _buildEmptyView(isDark);
@@ -96,7 +104,7 @@ class HistoriqueScreen extends ConsumerWidget {
                               itemCount: items.length,
                               separatorBuilder: (context, index) => const SizedBox(height: 12),
                               itemBuilder: (context, index) {
-                                return _buildHistoriqueItem(items[index], isDark);
+                                return _buildHistoriqueItem(context, ref, items[index], isDark);
                               },
                             ),
                           );
@@ -109,7 +117,7 @@ class HistoriqueScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHistoriqueItem(HistoriquePointModel item, bool isDark) {
+  Widget _buildHistoriqueItem(BuildContext context, WidgetRef ref, HistoriquePointModel item, bool isDark) {
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
     final String formattedDate = item.dateGain != null
         ? dateFormat.format(item.dateGain!)
@@ -118,93 +126,239 @@ class HistoriqueScreen extends ConsumerWidget {
     final isQuiz = item.action.toUpperCase().contains('QUIZ');
     final IconData iconData = isQuiz ? Icons.military_tech_rounded : Icons.stars_rounded;
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
-          width: 1,
+    return Dismissible(
+      key: ValueKey(item.idHistorique),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: const Color(0xFFDC2626),
+          borderRadius: BorderRadius.circular(16),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        child: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 28),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF332A15) : const Color(0xFFFFF9E6),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              iconData,
-              color: const Color(0xFFF2B544),
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.description ?? (isQuiz ? 'Quiz complété' : 'Activité culturelle'),
-                  style: TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
-                  ),
+      confirmDismiss: (direction) async {
+        return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Text('Supprimer cette entrée ?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            content: Text('Voulez-vous supprimer « ${item.description ?? item.action} » de votre historique ?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Annuler', style: TextStyle(color: Color(0xFF6C7C77))),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFDC2626),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.schedule_rounded,
-                      size: 13,
-                      color: isDark ? AppColors.darkTextSecondary : const Color(0xFF94A3B8),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      formattedDate,
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: isDark ? AppColors.darkTextSecondary : const Color(0xFF94A3B8),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Supprimer'),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF134E42) : const Color(0xFFE8F5F1),
-              borderRadius: BorderRadius.circular(12),
+        );
+      },
+      onDismissed: (direction) async {
+        final success = await ref.read(historiqueServiceProvider).supprimerItem(item.idHistorique);
+        ref.invalidate(userHistoriqueProvider);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(success ? 'Entrée supprimée' : 'Erreur lors de la suppression'),
+              backgroundColor: success ? const Color(0xFF075E4D) : const Color(0xFFDC2626),
+              duration: const Duration(seconds: 2),
             ),
-            child: Text(
-              '+${item.pointsGagnes} pts',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
+          );
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF332A15) : const Color(0xFFFFF9E6),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                iconData,
+                color: const Color(0xFFF2B544),
+                size: 24,
               ),
             ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.description ?? (isQuiz ? 'Quiz complété' : 'Activité culturelle'),
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.schedule_rounded,
+                        size: 13,
+                        color: isDark ? AppColors.darkTextSecondary : const Color(0xFF94A3B8),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        formattedDate,
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: isDark ? AppColors.darkTextSecondary : const Color(0xFF94A3B8),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF134E42) : const Color(0xFFE8F5F1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '+${item.pointsGagnes} pts',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline_rounded, size: 20, color: Color(0xFF94A3B8)),
+              onPressed: () => _confirmerSupprimerItem(context, ref, item),
+              padding: const EdgeInsets.only(left: 4),
+              constraints: const BoxConstraints(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmerSupprimerItem(BuildContext context, WidgetRef ref, HistoriquePointModel item) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Supprimer cette entrée ?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        content: Text('Voulez-vous supprimer « ${item.description ?? item.action} » de votre historique ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Annuler', style: TextStyle(color: Color(0xFF6C7C77))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Supprimer'),
           ),
         ],
       ),
     );
+
+    if (confirm == true) {
+      final success = await ref.read(historiqueServiceProvider).supprimerItem(item.idHistorique);
+      ref.invalidate(userHistoriqueProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success ? 'Entrée supprimée avec succès' : 'Échec de la suppression'),
+            backgroundColor: success ? const Color(0xFF075E4D) : const Color(0xFFDC2626),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  void _confirmerViderHistorique(BuildContext context, WidgetRef ref, bool isDark) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 26),
+            SizedBox(width: 8),
+            Text('Vider l\'historique ?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: const Text(
+          'Êtes-vous sûr de vouloir effacer l\'intégralité de votre historique d\'activités ? Cette action est irréversible.',
+          style: TextStyle(fontSize: 14, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Annuler', style: TextStyle(color: Color(0xFF6C7C77))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Tout effacer'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final success = await ref.read(historiqueServiceProvider).viderToutHistorique();
+      ref.invalidate(userHistoriqueProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success ? 'Historique vidé avec succès' : 'Échec lors de la réinitialisation de l\'historique'),
+            backgroundColor: success ? const Color(0xFF075E4D) : const Color(0xFFDC2626),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildEmptyView(bool isDark) {
@@ -251,32 +405,60 @@ class HistoriqueScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildErrorView(WidgetRef ref, bool isDark) {
+  Widget _buildErrorView(WidgetRef ref, bool isDark, [Object? error]) {
+    final String errorText = error != null ? error.toString() : '';
+    final bool isNetworkOrConnection = errorText.contains('Connection') ||
+        errorText.contains('SocketException') ||
+        errorText.contains('TimeoutException') ||
+        errorText.contains('ClientException');
+    final bool isUnauthorized = errorText.contains('401') || errorText.contains('403');
+    final String explanation = isUnauthorized
+        ? 'Session expirée ou non reconnue par Spring Boot. Déconnectez-vous puis reconnectez-vous depuis votre profil.'
+        : isNetworkOrConnection
+            ? 'Impossible de joindre Spring Boot (127.0.0.1:8080). Assurez-vous d\'exécuter dans votre terminal : adb reverse tcp:8080 tcp:8080'
+            : 'Erreur lors de la récupération de vos points : ${errorText.replaceAll('Exception:', '').trim()}';
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
-            const SizedBox(height: 12),
+            Icon(
+              isUnauthorized ? Icons.lock_clock_rounded : Icons.cloud_off_rounded,
+              size: 52,
+              color: AppColors.error,
+            ),
+            const SizedBox(height: 14),
             Text(
               'Impossible de charger l\'historique',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 17,
                 fontWeight: FontWeight.w700,
                 color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
               ),
             ),
-            const SizedBox(height: 12),
-            ElevatedButton(
+            const SizedBox(height: 8),
+            Text(
+              explanation,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 18),
+            ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF075E4D),
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: () => ref.invalidate(userHistoriqueProvider),
-              child: const Text('Réessayer'),
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Réessayer'),
             ),
           ],
         ),

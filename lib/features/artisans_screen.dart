@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/artisan_model.dart';
 import '../providers/artisans_provider.dart';
+import '../router/app_router.dart';
 
 class ArtisansScreen extends ConsumerStatefulWidget {
   const ArtisansScreen({super.key});
@@ -41,7 +42,13 @@ class _ArtisansScreenState extends ConsumerState<ArtisansScreen> {
                       Row(
                         children: [
                           IconButton(
-                            onPressed: () => context.pop(),
+                            onPressed: () {
+                              if (context.canPop()) {
+                                context.pop();
+                              } else {
+                                context.go(AppRouter.explorer);
+                              }
+                            },
                             icon: const Icon(
                               Icons.arrow_back_ios_new_rounded,
                               color: Colors.white,
@@ -287,6 +294,8 @@ class _ArtisansScreenState extends ConsumerState<ArtisansScreen> {
               children: [
                 Text(
                   artisan.fullName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 15.5,
                     fontWeight: FontWeight.w800,
@@ -296,6 +305,8 @@ class _ArtisansScreenState extends ConsumerState<ArtisansScreen> {
                 const SizedBox(height: 3),
                 Text(
                   artisan.typeArtisanat,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w500,

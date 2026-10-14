@@ -23,18 +23,22 @@ class ExplorerPublicationsNotifier
 
   Future<void> chargerPublications() async {
     try {
-      final List<ExplorerPublicationModel> publications =
-          List.from(ExplorerPublicationModel.initialPublications);
+      final List<ExplorerPublicationModel> publications = [];
 
       // 1. Tenter de charger les événements validés depuis l'API backend
       try {
         final res = await _apiService.get('/evenements');
         if (res.statusCode == 200) {
-          final List<dynamic> data = jsonDecode(res.body);
+          final List<dynamic> data = jsonDecode(utf8.decode(res.bodyBytes));
           for (final item in data) {
-            final pub = ExplorerPublicationModel.fromJson(item);
-            if (pub.isValide && !publications.any((p) => p.id == pub.id)) {
-              publications.add(pub);
+            if (item is Map<String, dynamic>) {
+              if (item['type'] == null) {
+                item['type'] = 'festivalEvenement';
+              }
+              final pub = ExplorerPublicationModel.fromJson(item);
+              if (pub.isValide && !publications.any((p) => p.id == pub.id)) {
+                publications.add(pub);
+              }
             }
           }
         }
@@ -46,16 +50,28 @@ class ExplorerPublicationsNotifier
       try {
         final res = await _apiService.get('/opportunites?type=ARTISAN');
         if (res.statusCode == 200) {
-          final List<dynamic> data = jsonDecode(res.body);
+          final List<dynamic> data = jsonDecode(utf8.decode(res.bodyBytes));
           for (final item in data) {
-            final pub = ExplorerPublicationModel.fromJson(item);
-            if (pub.isValide && !publications.any((p) => p.id == pub.id)) {
-              publications.add(pub);
+            if (item is Map<String, dynamic>) {
+              if (item['type'] == null) {
+                item['type'] = 'produitArtisan';
+              }
+              final pub = ExplorerPublicationModel.fromJson(item);
+              if (pub.isValide && !publications.any((p) => p.id == pub.id)) {
+                publications.add(pub);
+              }
             }
           }
         }
       } catch (e) {
         debugPrint('[ExplorerProvider] Fallback local opportunités: $e');
+      }
+
+      // 3. Compléter avec les publications initiales pour assurer la continuité
+      for (final initial in ExplorerPublicationModel.initialPublications) {
+        if (!publications.any((p) => p.id == initial.id)) {
+          publications.add(initial);
+        }
       }
 
       // Règle absolue du cahier des charges : seuls les contenus VALIDÉS apparaissent

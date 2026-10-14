@@ -23,6 +23,26 @@ class VilleService {
     }
   }
 
+  Future<List<VilleModel>> getHomeVilles() async {
+    try {
+      final response = await _apiService.get(ApiConstants.homeVilles);
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = jsonDecode(utf8.decode(response.bodyBytes));
+        if (jsonList.isNotEmpty) {
+          return jsonList.map((j) => VilleModel.fromJson(j as Map<String, dynamic>)).toList();
+        }
+      }
+    } catch (_) {
+      // Fallback
+    }
+    // Fallback sur getVilles ou villes statiques
+    try {
+      return await getVilles();
+    } catch (_) {
+      return [];
+    }
+  }
+
   Future<VilleModel> getVilleById(int id) async {
     final response = await _apiService.get('${ApiConstants.villes}/$id');
     if (response.statusCode == 200) {

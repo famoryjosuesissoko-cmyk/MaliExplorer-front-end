@@ -59,7 +59,9 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
 
   void _startTimer() {
     _timer?.cancel();
-    if (_questions.isEmpty || _currentQuestionIndex >= _questions.length) return;
+    if (_questions.isEmpty || _currentQuestionIndex >= _questions.length) {
+      return;
+    }
 
     final duration = _questions[_currentQuestionIndex].duree;
     _remainingSeconds = duration > 0 ? duration : 30;
@@ -149,21 +151,12 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
       } catch (_) {}
     }
 
-    // 4. Fallback final sur le Quiz 1 Histoire si aucune source n'a répondu
+    // 4. Fallback final immédiat sur _defaultFallbackQuestions si _questions est encore vide
     if (mounted) {
-      setState(() => _isLoading = false);
-      try {
-        final quizzes = await ref.read(quizServiceProvider).getQuizzes();
-        if (quizzes.isNotEmpty && quizzes.first.questions.isNotEmpty) {
-          _initFromQuizModel(quizzes.first);
-        } else {
-          _questions.clear();
-          _questions.addAll(_defaultFallbackQuestions);
-        }
-      } catch (_) {
-        _questions.clear();
+      if (_questions.isEmpty) {
         _questions.addAll(_defaultFallbackQuestions);
       }
+      setState(() => _isLoading = false);
       _startTimer();
     }
   }
@@ -171,16 +164,18 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
   void _initFromQuizModel(QuizModel qm) {
     _questions.clear();
     for (final q in qm.questions) {
-      _questions.add(QuestionItem(
-        idQuestion: q.idQuestion,
-        question: q.nomQuestion,
-        options: q.propositions.isNotEmpty
-            ? q.propositions
-            : ['Option A', 'Option B', 'Option C', 'Option D'],
-        correctAnswer: q.reponse,
-        duree: q.duree > 0 ? q.duree : 30,
-        points: q.points ?? 10,
-      ));
+      _questions.add(
+        QuestionItem(
+          idQuestion: q.idQuestion,
+          question: q.nomQuestion,
+          options: q.propositions.isNotEmpty
+              ? q.propositions
+              : ['Option A', 'Option B', 'Option C', 'Option D'],
+          correctAnswer: q.reponse,
+          duree: q.duree > 0 ? q.duree : 30,
+          points: q.points ?? 10,
+        ),
+      );
     }
     if (_questions.isEmpty) {
       _questions.addAll(_defaultFallbackQuestions);
@@ -188,7 +183,9 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
   }
 
   void _onOptionSelected(int index) {
-    if (_isAnswerValidated || _isSubmitting) return; // Choix unique par question
+    if (_isAnswerValidated || _isSubmitting) {
+      return; // Choix unique par question
+    }
     _timer?.cancel();
     setState(() {
       _selectedOptionIndex = index;
@@ -249,11 +246,82 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     }
   }
 
+  Future<void> _onBackPressed() async {
+    _timer?.cancel();
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(
+              Icons.warning_amber_rounded,
+              color: Color(0xFFE65100),
+              size: 26,
+            ),
+            SizedBox(width: 10),
+            Text(
+              'Quitter le quiz ?',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Si vous quittez maintenant, votre tentative sera enregistrée comme abandonnée dans votre historique culturel.',
+          style: TextStyle(fontSize: 14, color: Color(0xFF4A5568)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(
+              'Reprendre le quiz',
+              style: TextStyle(
+                color: Color(0xFF075E4D),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Abandonner',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      _timer?.cancel();
+      final quizId = widget.quiz?.idQuiz ?? 1;
+      if (mounted) {
+        context.pop();
+      }
+      // Enregistrement de l'abandon en tâche de fond (ne bloque pas la sortie immédiate)
+      ref
+          .read(quizServiceProvider)
+          .abandonQuiz(quizId: quizId, sessionId: _sessionId)
+          .then((_) => ref.invalidate(userHistoriqueProvider))
+          .catchError((_) {});
+    } else {
+      _startTimer();
+    }
+  }
+
   Future<void> _submitAndShowResults() async {
     _timer?.cancel();
     setState(() => _isSubmitting = true);
 
-    final bool isAuthenticated = ref.read(authServiceProvider).currentUser != null ||
+    final bool isAuthenticated =
+        ref.read(authServiceProvider).currentUser != null ||
         ref.read(authControllerProvider).isAuthenticated;
 
     final quizId = widget.quiz?.idQuiz ?? 1;
@@ -266,7 +334,8 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     for (final q in _questions) {
       maxScore += q.points;
       final ans = _userAnswers[q.idQuestion];
-      final bool isCorrect = ans != null &&
+      final bool isCorrect =
+          ans != null &&
           q.correctAnswer != null &&
           _isAnswerMatch(ans, q.correctAnswer);
 
@@ -285,54 +354,67 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     }
     if (maxScore == 0) maxScore = _questions.length * 10;
 
-    final bool perfect = _correctCount == _questions.length && _questions.isNotEmpty;
+    final bool perfect =
+        _correctCount == _questions.length && _questions.isNotEmpty;
     // Points d'activité selon cahier des charges : +20 complétion, +20 parfait
     int pointsGagnes = calculatedScore + 20 + (perfect ? 20 : 0);
 
     String badgeActuel = 'Kalanden';
     String prochainBadge = 'Fasoden';
     double progression = 0.3;
-    String messageProgression = 'Continuez vos quiz pour devenir Fasoden (Citoyen) !';
+    String messageProgression =
+        'Continuez vos quiz pour devenir Fasoden (Citoyen) !';
     int totalPointsUtilisateur = pointsGagnes;
 
     try {
       final authUser = ref.read(authControllerProvider).user;
       final int? userId = (authUser?['idUsers'] as num?)?.toInt();
 
-      final res = await ref.read(quizServiceProvider).submitQuiz(
+      final res = await ref
+          .read(quizServiceProvider)
+          .submitQuiz(
             quizId: quizId,
             reponses: _userAnswers,
             userId: userId,
             sessionId: _sessionId,
           );
 
-      calculatedScore = (res['scoreTotalObtenu'] as num?)?.toInt() ?? calculatedScore;
+      calculatedScore =
+          (res['scoreTotalObtenu'] as num?)?.toInt() ?? calculatedScore;
       maxScore = (res['scoreMaxPossible'] as num?)?.toInt() ?? maxScore;
-      pointsGagnes = (res['pointsGagnesActivite'] as num?)?.toInt() ?? pointsGagnes;
-      totalPointsUtilisateur = (res['totalPointsUtilisateur'] as num?)?.toInt() ?? totalPointsUtilisateur;
+      pointsGagnes =
+          (res['pointsGagnesActivite'] as num?)?.toInt() ?? pointsGagnes;
+      totalPointsUtilisateur =
+          (res['totalPointsUtilisateur'] as num?)?.toInt() ??
+          totalPointsUtilisateur;
 
       final rawBadge = res['badgeActuel']?.toString() ?? 'KALANDEN';
       badgeActuel = _formatBadgeName(rawBadge);
 
       final rawNextBadge = res['prochainBadge']?.toString();
-      prochainBadge = rawNextBadge != null ? _formatBadgeName(rawNextBadge) : 'Niveau maximal';
+      prochainBadge = rawNextBadge != null
+          ? _formatBadgeName(rawNextBadge)
+          : 'Niveau maximal';
 
-      progression = (res['progressionProchainBadge'] as num?)?.toDouble() ??
+      progression =
+          (res['progressionProchainBadge'] as num?)?.toDouble() ??
           (totalPointsUtilisateur / 100).clamp(0.0, 1.0);
 
       if (res['messageProgression'] != null) {
         messageProgression = res['messageProgression'] as String;
       }
 
-      // Si le backend renvoie les détails questions
-      if (res['detailsQuestions'] is List) {
+      // Si le backend renvoie les détails questions avec des données valides
+      if (res['detailsQuestions'] is List && (res['detailsQuestions'] as List).isNotEmpty) {
         final List<dynamic> details = res['detailsQuestions'] as List;
-        _questionReviewList = details.map((d) => d as Map<String, dynamic>).toList();
+        _questionReviewList = details
+            .map((d) => d as Map<String, dynamic>)
+            .toList();
       } else {
         _questionReviewList = localReview;
       }
 
-      // Synchroniser les compteurs avec la validation backend
+      // Synchroniser les compteurs avec la validation backend (ou conserver calcul local si 0)
       int backendCorrect = 0;
       int backendWrong = 0;
       for (final item in _questionReviewList) {
@@ -342,8 +424,18 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
           backendWrong++;
         }
       }
-      _correctCount = backendCorrect;
-      _wrongCount = backendWrong;
+      if (backendCorrect > 0 || backendWrong > 0) {
+        _correctCount = backendCorrect;
+        _wrongCount = backendWrong;
+      }
+      if (calculatedScore == 0 && localReview.any((r) => r['estCorrect'] == true)) {
+        calculatedScore = _questions
+            .where((q) => _isAnswerMatch(_userAnswers[q.idQuestion], q.correctAnswer))
+            .fold<int>(0, (sum, q) => sum + q.points);
+      }
+      if (maxScore == 0) {
+        maxScore = _questions.fold<int>(0, (sum, q) => sum + q.points);
+      }
 
       // Rafraîchir les données Riverpod si authentifié
       if (isAuthenticated) {
@@ -358,8 +450,8 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
         badgeActuel = totalPointsUtilisateur >= 300
             ? 'Fasoden Yuman'
             : totalPointsUtilisateur >= 100
-                ? 'Fasoden'
-                : 'Kalanden';
+            ? 'Fasoden'
+            : 'Kalanden';
       }
     }
 
@@ -388,8 +480,12 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
 
   String _formatBadgeName(String raw) {
     final clean = raw.toUpperCase().replaceAll('_', ' ');
-    if (clean.contains('YUMAN')) return 'Fasoden Yuman';
-    if (clean.contains('FASODEN') || clean.contains('FASSODEN')) return 'Fasoden';
+    if (clean.contains('YUMAN')) {
+      return 'Fasoden Yuman';
+    }
+    if (clean.contains('FASODEN') || clean.contains('FASSODEN')) {
+      return 'Fasoden';
+    }
     return 'Kalanden';
   }
 
@@ -425,7 +521,9 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF332A15) : const Color(0xFFFFF9E6),
+                color: isDark
+                    ? const Color(0xFF332A15)
+                    : const Color(0xFFFFF9E6),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -440,7 +538,9 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
-                color: isDark ? AppColors.darkTextPrimary : const Color(0xFF075E4D),
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : const Color(0xFF075E4D),
               ),
             ),
           ],
@@ -455,7 +555,9 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
-                  color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : const Color(0xFF16332D),
                 ),
               ),
               const SizedBox(height: 4),
@@ -464,29 +566,42 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : const Color(0xFF6C7C77),
                 ),
               ),
               const SizedBox(height: 14),
 
               // Points d'activité réels gagnés
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurfaceElevated : const Color(0xFF075E4D).withValues(alpha: 0.08),
+                  color: isDark
+                      ? AppColors.darkSurfaceElevated
+                      : const Color(0xFF075E4D).withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.stars_rounded, color: Color(0xFFF2B544), size: 20),
+                    const Icon(
+                      Icons.stars_rounded,
+                      color: Color(0xFFF2B544),
+                      size: 20,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       '+$pointsGagnes points calculés !',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: isDark ? AppColors.solarYellow : const Color(0xFF075E4D),
+                        color: isDark
+                            ? AppColors.solarYellow
+                            : const Color(0xFF075E4D),
                       ),
                     ),
                   ],
@@ -499,23 +614,35 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurfaceElevated : const Color(0xFFF7F8F5),
+                  color: isDark
+                      ? AppColors.darkSurfaceElevated
+                      : const Color(0xFFF7F8F5),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0)),
+                  border: Border.all(
+                    color: isDark
+                        ? AppColors.darkBorder
+                        : const Color(0xFFE2E8F0),
+                  ),
                 ),
                 child: Column(
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.military_tech_rounded, color: Color(0xFFD6A23A), size: 22),
+                        const Icon(
+                          Icons.military_tech_rounded,
+                          color: Color(0xFFD6A23A),
+                          size: 22,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           'Badge : $badge ($badgeSubtitle)',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
-                            color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : const Color(0xFF16332D),
                           ),
                         ),
                       ],
@@ -526,8 +653,12 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                       child: LinearProgressIndicator(
                         value: progression.clamp(0.0, 1.0),
                         minHeight: 6,
-                        backgroundColor: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
-                        valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0E8F76)),
+                        backgroundColor: isDark
+                            ? AppColors.darkBorder
+                            : const Color(0xFFE2E8F0),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          Color(0xFF0E8F76),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -536,7 +667,9 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 11.5,
-                        color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : const Color(0xFF6C7C77),
                         height: 1.3,
                       ),
                     ),
@@ -549,9 +682,15 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF2E2211) : const Color(0xFFFFF7ED),
+                    color: isDark
+                        ? const Color(0xFF2E2211)
+                        : const Color(0xFFFFF7ED),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: isDark ? AppColors.sahelGold : const Color(0xFFFDBA74)),
+                    border: Border.all(
+                      color: isDark
+                          ? AppColors.sahelGold
+                          : const Color(0xFFFDBA74),
+                    ),
                   ),
                   child: const Text(
                     '« Connectez-vous ou créez un compte pour valider vos points et débloquer votre badge Bambara ! »',
@@ -577,20 +716,28 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
             },
             child: const Text(
               'Retour aux quiz',
-              style: TextStyle(color: Color(0xFF6C7C77), fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: Color(0xFF6C7C77),
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF075E4D),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
             onPressed: () {
               Navigator.of(dialogCtx).pop();
               // Reste sur l'écran pour afficher le bilan question par question
             },
-            child: const Text('Bilan détaillé', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Bilan détaillé',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -602,9 +749,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: Color(0xFF075E4D),
-        body: Center(
-          child: CircularProgressIndicator(color: Colors.white),
-        ),
+        body: Center(child: CircularProgressIndicator(color: Colors.white)),
       );
     }
 
@@ -621,9 +766,15 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
             children: [
               const Icon(Icons.error_outline, color: Colors.white, size: 48),
               const SizedBox(height: 12),
-              const Text('Aucune question disponible', style: TextStyle(color: Colors.white)),
+              const Text(
+                'Aucune question disponible',
+                style: TextStyle(color: Colors.white),
+              ),
               const SizedBox(height: 12),
-              ElevatedButton(onPressed: () => context.pop(), child: const Text('Retour')),
+              ElevatedButton(
+                onPressed: () => context.pop(),
+                child: const Text('Retour'),
+              ),
             ],
           ),
         ),
@@ -633,144 +784,160 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     final QuestionItem currentQuestion = _questions[_currentQuestionIndex];
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFF075E4D),
-      body: Column(
-        children: [
-          // En-tête vert avec bouton retour et titre QUIZ
-          SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () => context.pop(),
-                    icon: const Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        widget.quiz?.nomQuiz ?? 'QUIZ',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
-                        ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _onBackPressed();
+      },
+      child: Scaffold(
+        backgroundColor: isDark
+            ? AppColors.darkBackground
+            : const Color(0xFF075E4D),
+        body: Column(
+          children: [
+            // En-tête vert avec bouton retour et titre QUIZ
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: _onBackPressed,
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: Colors.white,
+                        size: 20,
                       ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                     ),
-                  ),
-                  const SizedBox(width: 28),
-                ],
-              ),
-            ),
-          ),
-
-          // Fiche contenant la question et les options
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkBackground : const Color(0xFFF7F8F5),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-              ),
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Progression & Chronomètre
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(child: _buildProgressBar()),
-                      const SizedBox(width: 14),
-                      _buildTimerBadge(),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Titre de la question
-                  Text(
-                    currentQuestion.question,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
-                      height: 1.4,
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Liste des 4 options (A, B, C, D)
-                  Expanded(
-                    child: ListView.separated(
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: currentQuestion.options.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        return _buildOptionCard(
-                          index: index,
-                          optionText: currentQuestion.options[index],
-                          isSelected: _selectedOptionIndex == index,
-                          currentQuestion: currentQuestion,
-                        );
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Bouton manuel de passage si l'utilisateur ne souhaite pas attendre l'auto-avance
-                  if (_isAnswerValidated)
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: _isSubmitting ? null : _onNextPressed,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF075E4D),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          widget.quiz?.nomQuiz ?? 'QUIZ',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
                           ),
-                          elevation: 0,
                         ),
-                        child: _isSubmitting
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2.5,
-                                ),
-                              )
-                            : Text(
-                                _currentQuestionIndex == _questions.length - 1
-                                    ? 'Voir mes résultats'
-                                    : 'Question suivante',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
                       ),
                     ),
-                ],
+                    const SizedBox(width: 28),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+
+            // Fiche contenant la question et les options
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? AppColors.darkBackground
+                      : const Color(0xFFF7F8F5),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(28),
+                  ),
+                ),
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Progression & Chronomètre
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(child: _buildProgressBar()),
+                        const SizedBox(width: 14),
+                        _buildTimerBadge(),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Titre de la question
+                    Text(
+                      currentQuestion.question,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : const Color(0xFF16332D),
+                        height: 1.4,
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Liste des 4 options (A, B, C, D)
+                    Expanded(
+                      child: ListView.separated(
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: currentQuestion.options.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          return _buildOptionCard(
+                            index: index,
+                            optionText: currentQuestion.options[index],
+                            isSelected: _selectedOptionIndex == index,
+                            currentQuestion: currentQuestion,
+                          );
+                        },
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Bouton manuel de passage si l'utilisateur ne souhaite pas attendre l'auto-avance
+                    if (_isAnswerValidated)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: _isSubmitting ? null : _onNextPressed,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF075E4D),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2.5,
+                                  ),
+                                )
+                              : Text(
+                                  _currentQuestionIndex == _questions.length - 1
+                                      ? 'Voir mes résultats'
+                                      : 'Question suivante',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -784,7 +951,9 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     final String badge = _endReportData?['badge'] as String? ?? 'Kalanden';
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackgroundSecondary : const Color(0xFF075E4D),
+      backgroundColor: isDark
+          ? AppColors.darkBackgroundSecondary
+          : const Color(0xFF075E4D),
       body: Column(
         children: [
           SafeArea(
@@ -795,7 +964,11 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                 children: [
                   IconButton(
                     onPressed: () => context.pop(),
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
@@ -821,8 +994,12 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkBackground : const Color(0xFFF7F8F5),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                color: isDark
+                    ? AppColors.darkBackground
+                    : const Color(0xFFF7F8F5),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
+                ),
               ),
               child: ListView(
                 physics: const BouncingScrollPhysics(),
@@ -834,13 +1011,26 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                     decoration: BoxDecoration(
                       color: isDark ? AppColors.darkSurface : Colors.white,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0)),
+                      border: Border.all(
+                        color: isDark
+                            ? AppColors.darkBorder
+                            : const Color(0xFFE2E8F0),
+                      ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildSummaryColumn('Score', '$score/$maxScore', isDark),
-                        _buildSummaryColumn('Points', '+$pointsGagnes', isDark, isGold: true),
+                        _buildSummaryColumn(
+                          'Score',
+                          '$score/$maxScore',
+                          isDark,
+                        ),
+                        _buildSummaryColumn(
+                          'Points',
+                          '+$pointsGagnes',
+                          isDark,
+                          isGold: true,
+                        ),
                         _buildSummaryColumn('Badge', badge, isDark),
                       ],
                     ),
@@ -853,14 +1043,18 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
-                      color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : const Color(0xFF16332D),
                     ),
                   ),
 
                   const SizedBox(height: 12),
 
                   // Liste des questions avec retour correct / incorrect
-                  ..._questionReviewList.map((item) => _buildQuestionReviewCard(item, isDark)),
+                  ..._questionReviewList.map(
+                    (item) => _buildQuestionReviewCard(item, isDark),
+                  ),
 
                   const SizedBox(height: 20),
 
@@ -872,10 +1066,18 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF075E4D),
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                       ),
                       onPressed: () => context.pop(),
-                      child: const Text('Retour aux quiz', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        'Retour aux quiz',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -887,7 +1089,12 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     );
   }
 
-  Widget _buildSummaryColumn(String label, String value, bool isDark, {bool isGold = false}) {
+  Widget _buildSummaryColumn(
+    String label,
+    String value,
+    bool isDark, {
+    bool isGold = false,
+  }) {
     return Column(
       children: [
         Text(
@@ -897,7 +1104,9 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
             fontWeight: FontWeight.w900,
             color: isGold
                 ? const Color(0xFFF2B544)
-                : (isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D)),
+                : (isDark
+                      ? AppColors.darkTextPrimary
+                      : const Color(0xFF16332D)),
           ),
         ),
         const SizedBox(height: 3),
@@ -906,7 +1115,9 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: isDark ? AppColors.darkTextSecondary : const Color(0xFF94A3B8),
+            color: isDark
+                ? AppColors.darkTextSecondary
+                : const Color(0xFF94A3B8),
           ),
         ),
       ],
@@ -927,7 +1138,9 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
         color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: estCorrect ? AppColors.success.withValues(alpha: 0.5) : AppColors.error.withValues(alpha: 0.5),
+          color: estCorrect
+              ? AppColors.success.withValues(alpha: 0.5)
+              : AppColors.error.withValues(alpha: 0.5),
           width: 1.2,
         ),
       ),
@@ -949,7 +1162,9 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : const Color(0xFF16332D),
                   ),
                 ),
               ),
@@ -957,8 +1172,12 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: estCorrect
-                      ? (isDark ? const Color(0xFF134E42) : const Color(0xFFE8F5F1))
-                      : (isDark ? const Color(0xFF4C1D24) : const Color(0xFFFEE2E2)),
+                      ? (isDark
+                            ? const Color(0xFF134E42)
+                            : const Color(0xFFE8F5F1))
+                      : (isDark
+                            ? const Color(0xFF4C1D24)
+                            : const Color(0xFFFEE2E2)),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -993,7 +1212,9 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                     style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w700,
-                      color: isDark ? AppColors.darkTextPrimary : const Color(0xFF075E4D),
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : const Color(0xFF075E4D),
                     ),
                   ),
                 ],
@@ -1055,7 +1276,9 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                     right: index == _questions.length - 1 ? 0 : 6,
                   ),
                   decoration: BoxDecoration(
-                    color: isPassed ? const Color(0xFF075E4D) : const Color(0xFFDDE3E0),
+                    color: isPassed
+                        ? const Color(0xFF075E4D)
+                        : const Color(0xFFDDE3E0),
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
@@ -1088,13 +1311,20 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
 
     Color borderColor = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
     Color bgColor = isDark ? AppColors.darkSurface : Colors.white;
-    Color badgeColor = isDark ? AppColors.darkSurfaceElevated : const Color(0xFFF1F5F3);
-    Color letterColor = isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77);
-    Color textColor = isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D);
+    Color badgeColor = isDark
+        ? AppColors.darkSurfaceElevated
+        : const Color(0xFFF1F5F3);
+    Color letterColor = isDark
+        ? AppColors.darkTextSecondary
+        : const Color(0xFF6C7C77);
+    Color textColor = isDark
+        ? AppColors.darkTextPrimary
+        : const Color(0xFF16332D);
     Widget? statusIcon;
 
     if (_isAnswerValidated) {
-      final bool isCorrectAnswer = currentQuestion.correctAnswer != null &&
+      final bool isCorrectAnswer =
+          currentQuestion.correctAnswer != null &&
           _isAnswerMatch(optionText, currentQuestion.correctAnswer);
 
       if (isCorrectAnswer) {
@@ -1103,20 +1333,32 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
         bgColor = isDark ? const Color(0xFF134E42) : const Color(0xFFE8F5F1);
         badgeColor = AppColors.success;
         letterColor = Colors.white;
-        statusIcon = const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 22);
+        statusIcon = const Icon(
+          Icons.check_circle_rounded,
+          color: AppColors.success,
+          size: 22,
+        );
       } else if (isSelected) {
         // Mauvaise réponse sélectionnée en rouge
         borderColor = AppColors.error;
         bgColor = isDark ? const Color(0xFF4C1D24) : const Color(0xFFFEE2E2);
         badgeColor = AppColors.error;
         letterColor = Colors.white;
-        statusIcon = const Icon(Icons.cancel_rounded, color: AppColors.error, size: 22);
+        statusIcon = const Icon(
+          Icons.cancel_rounded,
+          color: AppColors.error,
+          size: 22,
+        );
       }
     } else if (isSelected) {
       borderColor = AppColors.primaryInteractive;
       badgeColor = AppColors.primaryInteractive;
       letterColor = Colors.white;
-      statusIcon = const Icon(Icons.check_circle_rounded, color: AppColors.primaryInteractive, size: 20);
+      statusIcon = const Icon(
+        Icons.check_circle_rounded,
+        color: AppColors.primaryInteractive,
+        size: 20,
+      );
     }
 
     return InkWell(
@@ -1180,10 +1422,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                 ),
               ),
             ),
-            if (statusIcon != null) ...[
-              const SizedBox(width: 8),
-              statusIcon,
-            ],
+            if (statusIcon != null) ...[const SizedBox(width: 8), statusIcon],
           ],
         ),
       ),
@@ -1213,31 +1452,54 @@ final List<QuestionItem> _defaultFallbackQuestions = [
   QuestionItem(
     idQuestion: 1,
     question: 'Qui a proclamé l\'indépendance du Mali le 22 septembre 1960 ?',
-    options: ['Modibo Keïta', 'Moussa Traoré', 'Alpha Oumar Konaré', 'Tiéba Traoré'],
+    options: [
+      'Modibo Keïta',
+      'Moussa Traoré',
+      'Alpha Oumar Konaré',
+      'Tiéba Traoré',
+    ],
     correctAnswer: 'Modibo Keïta',
     duree: 30,
     points: 10,
   ),
   QuestionItem(
     idQuestion: 2,
-    question: 'Quelle bataille historique en 1235 a consacré la victoire de Soundiata Keïta ?',
-    options: ['Bataille de Kirina', 'Bataille de Tondibi', 'Bataille de Kansala', 'Bataille de Sikasso'],
+    question:
+        'Quelle bataille historique en 1235 a consacré la victoire de Soundiata Keïta ?',
+    options: [
+      'Bataille de Kirina',
+      'Bataille de Tondibi',
+      'Bataille de Kansala',
+      'Bataille de Sikasso',
+    ],
     correctAnswer: 'Bataille de Kirina',
     duree: 30,
     points: 10,
   ),
   QuestionItem(
     idQuestion: 3,
-    question: 'Quel souverain du Mali est réputé pour son célèbre pèlerinage fastueux à La Mecque en 1324 ?',
-    options: ['Kankou Moussa', 'Soundiata Keïta', 'Sony Ali Ber', 'Askia Mohamed'],
+    question:
+        'Quel souverain du Mali est réputé pour son célèbre pèlerinage fastueux à La Mecque en 1324 ?',
+    options: [
+      'Kankou Moussa',
+      'Soundiata Keïta',
+      'Sony Ali Ber',
+      'Askia Mohamed',
+    ],
     correctAnswer: 'Kankou Moussa',
     duree: 30,
     points: 10,
   ),
   QuestionItem(
     idQuestion: 4,
-    question: 'Quel grand empire ouest-africain a précédé l\'Empire du Mali au XIe siècle ?',
-    options: ['L\'Empire du Ghana (Wagadou)', 'L\'Empire Songhaï', 'L\'Empire Mossi', 'Le Royaume Bambara de Ségou'],
+    question:
+        'Quel grand empire ouest-africain a précédé l\'Empire du Mali au XIe siècle ?',
+    options: [
+      'L\'Empire du Ghana (Wagadou)',
+      'L\'Empire Songhaï',
+      'L\'Empire Mossi',
+      'Le Royaume Bambara de Ségou',
+    ],
     correctAnswer: 'L\'Empire du Ghana (Wagadou)',
     duree: 30,
     points: 10,

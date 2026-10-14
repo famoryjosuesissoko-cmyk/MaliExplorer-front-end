@@ -6,6 +6,8 @@ class VilleModel {
   final String description;
   final String? cordonnees;
   final String imageUrl;
+  final bool misEnAvantHome;
+  final int ordreHome;
   final List<dynamic>? lieuxHistoriques;
 
   const VilleModel({
@@ -16,11 +18,14 @@ class VilleModel {
     required this.description,
     this.cordonnees,
     required this.imageUrl,
+    this.misEnAvantHome = false,
+    this.ordreHome = 0,
     this.lieuxHistoriques,
   });
 
   factory VilleModel.fromJson(Map<String, dynamic> json) {
     final nomVille = json['nom'] ?? json['nomVille'] ?? '';
+    final rawImg = json['imageUrl'] ?? json['photoUrl'];
     return VilleModel(
       id: json['id'] ?? json['idVille'] ?? 0,
       nom: nomVille,
@@ -28,7 +33,11 @@ class VilleModel {
       nbreHbt: json['nbreHbt']?.toString(),
       description: json['description'] ?? '',
       cordonnees: json['cordonnees'] ?? '',
-      imageUrl: _getImageForCity(nomVille),
+      imageUrl: (rawImg != null && rawImg.toString().trim().isNotEmpty)
+          ? rawImg.toString().trim()
+          : _getImageForCity(nomVille),
+      misEnAvantHome: json['misEnAvantHome'] ?? false,
+      ordreHome: json['ordreHome'] is int ? json['ordreHome'] : int.tryParse(json['ordreHome']?.toString() ?? '0') ?? 0,
       lieuxHistoriques: json['lieuxHistoriques'] as List<dynamic>?,
     );
   }
@@ -51,7 +60,7 @@ class VilleModel {
   }
 
   String get displayPhoto =>
-      imageUrl.isNotEmpty && !imageUrl.startsWith('http')
+      imageUrl.isNotEmpty
           ? imageUrl
           : getLocalPhoto(nom);
 

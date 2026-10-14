@@ -30,15 +30,39 @@ class PresidentModel {
   String get fullName => '$prenom $nom'.trim();
 
   /// Résout l'image locale correspondante dans assets/images/presidents/
-  static String getLocalPhoto(String name) {
-    final lower = name.toLowerCase();
+  static String getLocalPhoto(String name, [int? id]) {
+    // Si ID fourni, correspondance directe et infaillible
+    if (id != null) {
+      switch (id) {
+        case 1:
+          return 'assets/images/presidents/modibo_keita.jpeg';
+        case 2:
+          return 'assets/images/presidents/moussa_traore.jpeg';
+        case 3:
+          return 'assets/images/presidents/alpha_oumar_konare.png';
+        case 4:
+          return 'assets/images/presidents/amadou_toumani_toure.jpeg';
+        case 5:
+          return 'assets/images/presidents/amadou_haya_sanogo.jpeg';
+        case 6:
+          return 'assets/images/presidents/dioncounda_traore.png';
+        case 7:
+          return 'assets/images/presidents/ibrahim_boubacar_keita.jpeg';
+        case 8:
+          return 'assets/images/presidents/bah_ndaw.jpeg';
+        case 9:
+          return 'assets/images/presidents/assimi_goita.jpeg';
+      }
+    }
+
+    final lower = name.toLowerCase().replaceAll('é', 'e').replaceAll('è', 'e').replaceAll('ï', 'i');
     if (lower.contains('modibo')) {
       return 'assets/images/presidents/modibo_keita.jpeg';
     } else if (lower.contains('moussa')) {
       return 'assets/images/presidents/moussa_traore.jpeg';
-    } else if (lower.contains('alpha') || lower.contains('konaré') || lower.contains('konare')) {
+    } else if (lower.contains('alpha') || lower.contains('konare')) {
       return 'assets/images/presidents/alpha_oumar_konare.png';
-    } else if (lower.contains('toumani') || lower.contains('att')) {
+    } else if (lower.contains('toumani') || lower.contains('att') || (lower.contains('amadou') && lower.contains('toure'))) {
       return 'assets/images/presidents/amadou_toumani_toure.jpeg';
     } else if (lower.contains('haya') || lower.contains('sanogo')) {
       return 'assets/images/presidents/amadou_haya_sanogo.jpeg';
@@ -48,7 +72,7 @@ class PresidentModel {
       return 'assets/images/presidents/ibrahim_boubacar_keita.jpeg';
     } else if (lower.contains('daw') || lower.contains('daou') || lower.contains('bah')) {
       return 'assets/images/presidents/bah_ndaw.jpeg';
-    } else if (lower.contains('assimi') || lower.contains('goïta') || lower.contains('goita')) {
+    } else if (lower.contains('assimi') || lower.contains('goita')) {
       return 'assets/images/presidents/assimi_goita.jpeg';
     }
     return 'assets/images/presidents/modibo_keita.jpeg';
@@ -56,23 +80,28 @@ class PresidentModel {
 
   /// Image prioritaire à afficher (asset local ou image distante si valide)
   String get displayPhoto {
-    if (photoUrl.startsWith('assets/')) {
-      return photoUrl;
-    }
-    final local = getLocalPhoto(fullName);
+    final local = getLocalPhoto(fullName, id);
     if (photoUrl.isEmpty) {
       return local;
     }
-    // On privilégie l'asset local de haute qualité s'il existe
+    if (photoUrl.startsWith('assets/')) {
+      return photoUrl;
+    }
+    if (photoUrl.startsWith('http://') || photoUrl.startsWith('https://')) {
+      return photoUrl;
+    }
+    // Si la valeur reçue est un nom de fichier ou chemin relatif, on renvoie l'asset local correspondant
     return local;
   }
 
   factory PresidentModel.fromJson(Map<String, dynamic> json) {
+    final idVal = json['id'] ?? json['idPresident'] ?? 0;
+    final int resolvedId = idVal is int ? idVal : int.tryParse(idVal.toString()) ?? 0;
     final fullName = '${json['prenom'] ?? ''} ${json['nom'] ?? ''}'.trim();
-    final localPhoto = getLocalPhoto(fullName);
+    final localPhoto = getLocalPhoto(fullName, resolvedId);
 
     return PresidentModel(
-      id: json['id'] ?? json['idPresident'] ?? 0,
+      id: resolvedId,
       prenom: json['prenom'] ?? '',
       nom: json['nom'] ?? '',
       dateNaissance: json['dateNaissance']?.toString(),

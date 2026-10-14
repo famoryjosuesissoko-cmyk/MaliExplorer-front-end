@@ -93,12 +93,16 @@ class _DishDetailScreenState extends ConsumerState<DishDetailScreen> {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Text(
-                              categoriePlat,
-                              style: const TextStyle(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF0E8F76),
+                            Flexible(
+                              child: Text(
+                                categoriePlat,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF0E8F76),
+                                ),
                               ),
                             ),
                             if (ethniesText.isNotEmpty) ...[
@@ -123,20 +127,20 @@ class _DishDetailScreenState extends ConsumerState<DishDetailScreen> {
                         const SizedBox(height: 16),
 
                         // Badges indicateurs (Cuisson, Portions, Niveau)
-                        Row(
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
                           children: [
                             _buildFeatureBadge(
                               icon: Icons.timer_outlined,
                               label: currentPlat.tempsCuisson ?? '1h 15 min',
                               color: const Color(0xFF075E4D),
                             ),
-                            const SizedBox(width: 8),
                             _buildFeatureBadge(
                               icon: Icons.people_outline_rounded,
                               label: '${currentPlat.nbrePersonnes ?? 5} pers.',
                               color: const Color(0xFFD6A23A),
                             ),
-                            const SizedBox(width: 8),
                             _buildFeatureBadge(
                               icon: Icons.restaurant_rounded,
                               label: currentPlat.difficulte ?? 'Tradition',
@@ -448,12 +452,16 @@ class _DishDetailScreenState extends ConsumerState<DishDetailScreen> {
         children: [
           Icon(icon, size: 14, color: color),
           const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              color: color,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
             ),
           ),
         ],
@@ -523,7 +531,13 @@ class _DishDetailScreenState extends ConsumerState<DishDetailScreen> {
               children: [
                 // Bouton retour
                 InkWell(
-                  onTap: () => context.pop(),
+                  onTap: () {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go(AppRouter.gastronomieList);
+                    }
+                  },
                   borderRadius: BorderRadius.circular(30),
                   child: Container(
                     width: 38,
