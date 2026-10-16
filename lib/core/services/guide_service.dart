@@ -19,17 +19,19 @@ class GuideService {
       final List<dynamic> jsonList = jsonDecode(utf8.decode(response.bodyBytes));
       return jsonList.map((j) => GuideModel.fromJson(j as Map<String, dynamic>)).toList();
     } else {
-      throw Exception('Erreur ${response.statusCode}: Impossible de récupérer les guides.');
+      throw Exception('Erreur de chargement des guides (Code ${response.statusCode})');
     }
   }
 
-  Future<GuideModel> getGuideById(int id) async {
+  Future<GuideModel?> getGuideById(int id) async {
     final response = await _apiService.get('${ApiConstants.guides}/$id');
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
       return GuideModel.fromJson(data);
+    } else if (response.statusCode == 404) {
+      return null;
     } else {
-      throw Exception('Erreur ${response.statusCode}: Impossible de récupérer le guide #$id.');
+      throw Exception('Erreur lors de la récupération du guide #$id (Code ${response.statusCode})');
     }
   }
 }

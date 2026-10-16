@@ -1,3 +1,5 @@
+import '../core/constants/api_constants.dart';
+
 class PresidentModel {
   final int id;
   final String prenom;
@@ -27,12 +29,63 @@ class PresidentModel {
     this.faitsMarquants,
   });
 
+  PresidentModel copyWith({
+    int? id,
+    String? prenom,
+    String? nom,
+    String? dateNaissance,
+    String? dateDeces,
+    String? periodeMandat,
+    String? biographie,
+    String? photoUrl,
+    String? titre,
+    String? lieuNaissance,
+    String? citation,
+    List<String>? faitsMarquants,
+  }) {
+    return PresidentModel(
+      id: id ?? this.id,
+      prenom: prenom ?? this.prenom,
+      nom: nom ?? this.nom,
+      dateNaissance: dateNaissance ?? this.dateNaissance,
+      dateDeces: dateDeces ?? this.dateDeces,
+      periodeMandat: periodeMandat ?? this.periodeMandat,
+      biographie: biographie ?? this.biographie,
+      photoUrl: photoUrl ?? this.photoUrl,
+      titre: titre ?? this.titre,
+      lieuNaissance: lieuNaissance ?? this.lieuNaissance,
+      citation: citation ?? this.citation,
+      faitsMarquants: faitsMarquants ?? this.faitsMarquants,
+    );
+  }
+
   String get fullName => '$prenom $nom'.trim();
 
   /// Résout l'image locale correspondante dans assets/images/presidents/
   static String getLocalPhoto(String name, [int? id]) {
-    // Si ID fourni, correspondance directe et infaillible
-    if (id != null) {
+    final lower = name.toLowerCase().replaceAll('é', 'e').replaceAll('è', 'e').replaceAll('ï', 'i');
+    if (lower.contains('modibo')) {
+      return 'assets/images/presidents/modibo_keita.jpeg';
+    } else if (lower.contains('moussa')) {
+      return 'assets/images/presidents/moussa_traore.jpeg';
+    } else if (lower.contains('alpha') || lower.contains('konare')) {
+      return 'assets/images/presidents/alpha_oumar_konare.png';
+    } else if (lower.contains('toumani') || lower.contains('att') || (lower.contains('amadou') && lower.contains('toure'))) {
+      return 'assets/images/presidents/amadou_toumani_toure.jpeg';
+    } else if (lower.contains('haya') || lower.contains('sanogo')) {
+      return 'assets/images/presidents/amadou_haya_sanogo.jpeg';
+    } else if (lower.contains('dioncounda')) {
+      return 'assets/images/presidents/dioncounda_traore.png';
+    } else if (lower.contains('ibrahim') || lower.contains('ibk') || lower.contains('boubacar')) {
+      return 'assets/images/presidents/ibrahim_boubacar_keita.jpeg';
+    } else if (lower.contains('daw') || lower.contains('daou') || lower.contains('bah')) {
+      return 'assets/images/presidents/bah_ndaw.jpeg';
+    } else if (lower.contains('assimi') || lower.contains('goita')) {
+      return 'assets/images/presidents/assimi_goita.jpeg';
+    }
+
+    // Correspondance par ID réservée aux 9 présidents historiques officiels si le titre est générique
+    if (id != null && (name.isEmpty || lower.startsWith('chef') || lower.startsWith('president') || lower.startsWith('président'))) {
       switch (id) {
         case 1:
           return 'assets/images/presidents/modibo_keita.jpeg';
@@ -55,43 +108,26 @@ class PresidentModel {
       }
     }
 
-    final lower = name.toLowerCase().replaceAll('é', 'e').replaceAll('è', 'e').replaceAll('ï', 'i');
-    if (lower.contains('modibo')) {
-      return 'assets/images/presidents/modibo_keita.jpeg';
-    } else if (lower.contains('moussa')) {
-      return 'assets/images/presidents/moussa_traore.jpeg';
-    } else if (lower.contains('alpha') || lower.contains('konare')) {
-      return 'assets/images/presidents/alpha_oumar_konare.png';
-    } else if (lower.contains('toumani') || lower.contains('att') || (lower.contains('amadou') && lower.contains('toure'))) {
-      return 'assets/images/presidents/amadou_toumani_toure.jpeg';
-    } else if (lower.contains('haya') || lower.contains('sanogo')) {
-      return 'assets/images/presidents/amadou_haya_sanogo.jpeg';
-    } else if (lower.contains('dioncounda')) {
-      return 'assets/images/presidents/dioncounda_traore.png';
-    } else if (lower.contains('ibrahim') || lower.contains('ibk') || lower.contains('boubacar')) {
-      return 'assets/images/presidents/ibrahim_boubacar_keita.jpeg';
-    } else if (lower.contains('daw') || lower.contains('daou') || lower.contains('bah')) {
-      return 'assets/images/presidents/bah_ndaw.jpeg';
-    } else if (lower.contains('assimi') || lower.contains('goita')) {
-      return 'assets/images/presidents/assimi_goita.jpeg';
-    }
-    return 'assets/images/presidents/modibo_keita.jpeg';
+    return '';
   }
 
-  /// Image prioritaire à afficher (asset local ou image distante si valide)
+  /// Image prioritaire à afficher (URL distante, asset local ou image par défaut)
   String get displayPhoto {
+    final trimmed = photoUrl.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return ApiConstants.resolveImageUrl(trimmed);
+    }
+    if (trimmed.startsWith('assets/')) {
+      return trimmed;
+    }
+    if (trimmed.startsWith('/') || trimmed.startsWith('uploads/') || trimmed.startsWith('api/')) {
+      return ApiConstants.resolveImageUrl(trimmed);
+    }
     final local = getLocalPhoto(fullName, id);
-    if (photoUrl.isEmpty) {
+    if (local.isNotEmpty) {
       return local;
     }
-    if (photoUrl.startsWith('assets/')) {
-      return photoUrl;
-    }
-    if (photoUrl.startsWith('http://') || photoUrl.startsWith('https://')) {
-      return photoUrl;
-    }
-    // Si la valeur reçue est un nom de fichier ou chemin relatif, on renvoie l'asset local correspondant
-    return local;
+    return trimmed;
   }
 
   factory PresidentModel.fromJson(Map<String, dynamic> json) {
@@ -100,17 +136,20 @@ class PresidentModel {
     final fullName = '${json['prenom'] ?? ''} ${json['nom'] ?? ''}'.trim();
     final localPhoto = getLocalPhoto(fullName, resolvedId);
 
+    final rawPhoto = json['photoUrl'] ?? json['imageUrl'] ?? json['photo'];
+    final photoStr = (rawPhoto != null && rawPhoto.toString().trim().isNotEmpty)
+        ? rawPhoto.toString().trim()
+        : localPhoto;
+
     return PresidentModel(
       id: resolvedId,
       prenom: json['prenom'] ?? '',
       nom: json['nom'] ?? '',
       dateNaissance: json['dateNaissance']?.toString(),
       dateDeces: json['dateDeces']?.toString(),
-      periodeMandat: json['periodeMandat'] ?? '',
+      periodeMandat: json['periodeMandat'] ?? json['periode'] ?? '',
       biographie: json['biographie'] ?? '',
-      photoUrl: json['photoUrl']?.toString().isNotEmpty == true
-          ? json['photoUrl'].toString()
-          : localPhoto,
+      photoUrl: photoStr,
       titre: json['titre']?.toString(),
       lieuNaissance: json['lieuNaissance']?.toString(),
       citation: json['citation']?.toString(),

@@ -10,7 +10,6 @@ import '../features/gastronomie_list_screen.dart';
 import '../features/ethnies_list_screen.dart';
 import '../features/villes_list_screen.dart';
 import '../features/chefs_etat_screen.dart';
-import '../features/artisans_screen.dart';
 import '../features/guides_screen.dart';
 import '../features/plat_detail_screen.dart';
 import '../features/ethnie_detail_screen.dart';
@@ -20,8 +19,6 @@ import '../features/quiz_play_screen.dart';
 import '../features/profil_screen.dart';
 import '../features/mon_parcours_screen.dart';
 import '../features/favoris_screen.dart';
-import '../features/artisan_dashboard_screen.dart';
-import '../features/artisan_add_product_screen.dart';
 import '../features/terms_conditions_screen.dart';
 import '../features/personal_info_screen.dart';
 import '../features/settings_screen.dart';
@@ -43,7 +40,22 @@ import '../features/religion_detail_screen.dart';
 import '../models/region_model.dart';
 import '../models/religion_model.dart';
 import '../models/search_result_item.dart';
+import '../models/favori_model.dart';
 import '../widgets/main_shell.dart';
+
+String _normalizeText(String input) {
+  return input
+      .toLowerCase()
+      .replaceAll(RegExp(r'[éèêë]'), 'e')
+      .replaceAll(RegExp(r'[àâä]'), 'a')
+      .replaceAll(RegExp(r'[îï]'), 'i')
+      .replaceAll(RegExp(r'[ôö]'), 'o')
+      .replaceAll(RegExp(r'[ùûü]'), 'u')
+      .replaceAll('ç', 'c')
+      .replaceAll('-', ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+}
 
 /// Configuration du routeur GoRouter pour MaliExplorer avec ShellRoute persistent
 class AppRouter {
@@ -65,7 +77,6 @@ class AppRouter {
   static const String ethniesList = '/ethnies-list';
   static const String villesList = '/villes-list';
   static const String chefsEtat = '/chefs-etat';
-  static const String artisans = '/artisans';
   static const String guides = '/guides';
   static const String languesNationales = '/langues-nationales';
   static const String infosPratiques = '/infos-pratiques';
@@ -90,13 +101,11 @@ class AppRouter {
   static const String quizList = '/quiz';
   static const String quizPlay = '/quiz-play';
 
-  // Routes du Profil & Découverte & Espace Artisan
+  // Routes du Profil & Découverte
   static const String profil = '/profil';
   static const String monParcours = '/mon-parcours';
   static const String favoris = '/favoris';
   static const String historique = '/historique';
-  static const String artisanDashboard = '/artisan-dashboard';
-  static const String artisanAddProduct = '/artisan-add-product';
   static const String promoteurDashboard = '/promoteur-dashboard';
   static const String terms = '/terms';
   static const String personalInfo = '/personal-info';
@@ -212,13 +221,6 @@ class AppRouter {
       ),
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
-        path: artisans,
-        builder: (BuildContext context, GoRouterState state) {
-          return const ArtisansScreen();
-        },
-      ),
-      GoRoute(
-        parentNavigatorKey: rootNavigatorKey,
         path: guides,
         builder: (BuildContext context, GoRouterState state) {
           return const GuidesScreen();
@@ -258,11 +260,27 @@ class AppRouter {
           } else if (extra is SearchResultItem) {
             if (extra.payload is PlatModel) {
               plat = extra.payload as PlatModel;
-            } else {
-              final q = extra.titre.toLowerCase();
+            } else if (extra.payload is int) {
+              final idVal = extra.payload as int;
               plat = PlatModel.defaultPlats.firstWhere(
-                (p) => p.nom.toLowerCase().contains(q) || q.contains(p.nom.toLowerCase()) ||
-                    ((q.contains('saka') || q.contains('saga')) && (p.nom.toLowerCase().contains('saka') || p.nom.toLowerCase().contains('saga'))),
+                (p) => p.id == idVal,
+                orElse: () => PlatModel(
+                  id: idVal,
+                  nom: extra.titre,
+                  description: extra.description ?? '',
+                  imageUrl: extra.imageUrl ?? PlatModel.getLocalPhoto(extra.titre),
+                ),
+              );
+            } else {
+              final q = _normalizeText(extra.titre);
+              plat = PlatModel.defaultPlats.firstWhere(
+                (p) {
+                  final nomNorm = _normalizeText(p.nom);
+                  return nomNorm.contains(q) ||
+                      q.contains(nomNorm) ||
+                      ((q.contains('saka') || q.contains('saga')) &&
+                          (nomNorm.contains('saka') || nomNorm.contains('saga')));
+                },
                 orElse: () => PlatModel(
                   id: int.tryParse(extra.id.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
                   nom: extra.titre,
@@ -274,14 +292,39 @@ class AppRouter {
           } else if (extra is int) {
             plat = PlatModel.defaultPlats.firstWhere(
               (p) => p.id == extra,
-              orElse: () => PlatModel.defaultPlats.first,
+              orElse: () => PlatModel(
+                id: extra,
+                nom: 'Plat #$extra',
+                description: '',
+                imageUrl: 'assets/images/plats/tiguadegue_na.jpeg',
+              ),
             );
           } else if (extra is String) {
-            final q = extra.toLowerCase();
+            final q = _normalizeText(extra);
+            final parsedId = int.tryParse(extra);
             plat = PlatModel.defaultPlats.firstWhere(
-              (p) => p.nom.toLowerCase().contains(q) || q.contains(p.nom.toLowerCase()) ||
-                  ((q.contains('saka') || q.contains('saga')) && (p.nom.toLowerCase().contains('saka') || p.nom.toLowerCase().contains('saga'))),
-              orElse: () => PlatModel.defaultPlats.first,
+              (p) {
+                if (parsedId != null && p.id == parsedId) return true;
+                final nomNorm = _normalizeText(p.nom);
+                return nomNorm.contains(q) ||
+                    q.contains(nomNorm) ||
+                    ((q.contains('saka') || q.contains('saga')) &&
+                        (nomNorm.contains('saka') || nomNorm.contains('saga')));
+              },
+              orElse: () => PlatModel(
+                id: parsedId ?? 0,
+                nom: extra,
+                description: '',
+                imageUrl: PlatModel.getLocalPhoto(extra),
+              ),
+            );
+          } else if (extra is FavoriModel) {
+            plat = PlatModel(
+              id: extra.referenceId ?? extra.id,
+              nom: extra.titre,
+              description: extra.categorie,
+              imageUrl: extra.displayPhoto,
+              difficulte: 'Facile',
             );
           } else if (extra is Map<String, dynamic>) {
             try {
@@ -302,24 +345,78 @@ class AppRouter {
           } else if (extra is SearchResultItem) {
             if (extra.payload is EthnieModel) {
               ethnie = extra.payload as EthnieModel;
-            } else {
-              final q = extra.titre.toLowerCase();
+            } else if (extra.payload is int) {
+              final idVal = extra.payload as int;
               ethnie = EthnieModel.defaultEthnies.firstWhere(
-                (e) => e.nom.toLowerCase().contains(q) || q.contains(e.nom.toLowerCase()),
-                orElse: () => EthnieModel.defaultEthnies.first,
+                (e) => e.id == idVal,
+                orElse: () => EthnieModel.fromJson({
+                  'id': idVal,
+                  'nom': extra.titre,
+                  'description': extra.description ?? '',
+                  'imageUrl': extra.imageUrl ?? EthnieModel.getLocalPhotoHomme(extra.titre),
+                  'photoHomme': extra.imageUrl ?? EthnieModel.getLocalPhotoHomme(extra.titre),
+                  'photoFemme': EthnieModel.getLocalPhotoFemme(extra.titre),
+                }),
+              );
+            } else {
+              final q = _normalizeText(extra.titre);
+              ethnie = EthnieModel.defaultEthnies.firstWhere(
+                (e) {
+                  final nomNorm = _normalizeText(e.nom);
+                  return nomNorm.contains(q) || q.contains(nomNorm);
+                },
+                orElse: () => EthnieModel.fromJson({
+                  'id': int.tryParse(extra.id.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
+                  'nom': extra.titre,
+                  'description': extra.description ?? '',
+                  'imageUrl': extra.imageUrl ?? EthnieModel.getLocalPhotoHomme(extra.titre),
+                  'photoHomme': extra.imageUrl ?? EthnieModel.getLocalPhotoHomme(extra.titre),
+                  'photoFemme': EthnieModel.getLocalPhotoFemme(extra.titre),
+                }),
               );
             }
           } else if (extra is int) {
             ethnie = EthnieModel.defaultEthnies.firstWhere(
               (e) => e.id == extra,
-              orElse: () => EthnieModel.defaultEthnies.first,
+              orElse: () => EthnieModel.fromJson({
+                'id': extra,
+                'nom': 'Ethnie #$extra',
+                'description': '',
+                'imageUrl': 'assets/images/ethnies/bambara_homme.jpeg',
+                'photoHomme': 'assets/images/ethnies/bambara_homme.jpeg',
+                'photoFemme': 'assets/images/ethnies/Bambara2.jpeg',
+              }),
             );
           } else if (extra is String) {
-            final q = extra.toLowerCase();
+            final q = _normalizeText(extra);
+            final parsedId = int.tryParse(extra);
             ethnie = EthnieModel.defaultEthnies.firstWhere(
-              (e) => e.nom.toLowerCase().contains(q) || q.contains(e.nom.toLowerCase()),
-              orElse: () => EthnieModel.defaultEthnies.first,
+              (e) {
+                if (parsedId != null && e.id == parsedId) return true;
+                final nomNorm = _normalizeText(e.nom);
+                return nomNorm.contains(q) || q.contains(nomNorm);
+              },
+              orElse: () => EthnieModel.fromJson({
+                'id': parsedId ?? 0,
+                'nom': extra,
+                'description': '',
+                'imageUrl': EthnieModel.getLocalPhotoHomme(extra),
+                'photoHomme': EthnieModel.getLocalPhotoHomme(extra),
+                'photoFemme': EthnieModel.getLocalPhotoFemme(extra),
+              }),
             );
+          } else if (extra is FavoriModel) {
+            ethnie = EthnieModel.fromJson({
+              'id': extra.referenceId ?? extra.id,
+              'nom': extra.titre,
+              'description': extra.categorie,
+              'imageUrl': extra.displayPhoto,
+              'photoHomme': extra.displayPhoto,
+            });
+          } else if (extra is Map<String, dynamic>) {
+            try {
+              ethnie = EthnieModel.fromJson(extra);
+            } catch (_) {}
           }
           return EthnicityDetailScreen(ethnie: ethnie);
         },
@@ -335,15 +432,70 @@ class AppRouter {
           } else if (extra is SearchResultItem) {
             if (extra.payload is VilleModel) {
               ville = extra.payload as VilleModel;
+            } else if (extra.payload is int) {
+              final idVal = extra.payload as int;
+              ville = VilleModel.defaultVilles.firstWhere(
+                (v) => v.id == idVal,
+                orElse: () => VilleModel(
+                  id: idVal,
+                  nom: extra.titre,
+                  region: extra.sousTitre ?? '',
+                  description: extra.description ?? '',
+                  imageUrl: extra.imageUrl ?? VilleModel.getLocalPhoto(extra.titre),
+                ),
+              );
             } else {
-              ville = VilleModel(
-                id: int.tryParse(extra.id.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
-                nom: extra.titre,
-                region: extra.sousTitre ?? '',
-                description: extra.description ?? '',
-                imageUrl: extra.imageUrl ?? VilleModel.getLocalPhoto(extra.titre),
+              final q = _normalizeText(extra.titre);
+              ville = VilleModel.defaultVilles.firstWhere(
+                (v) {
+                  final nomNorm = _normalizeText(v.nom);
+                  return nomNorm.contains(q) || q.contains(nomNorm);
+                },
+                orElse: () => VilleModel(
+                  id: int.tryParse(extra.id.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
+                  nom: extra.titre,
+                  region: extra.sousTitre ?? '',
+                  description: extra.description ?? '',
+                  imageUrl: extra.imageUrl ?? VilleModel.getLocalPhoto(extra.titre),
+                ),
               );
             }
+          } else if (extra is int) {
+            ville = VilleModel.defaultVilles.firstWhere(
+              (v) => v.id == extra,
+              orElse: () => VilleModel(
+                id: extra,
+                nom: 'Ville #$extra',
+                region: '',
+                description: '',
+                imageUrl: 'assets/images/bamako_cover.jpeg',
+              ),
+            );
+          } else if (extra is String) {
+            final q = _normalizeText(extra);
+            final parsedId = int.tryParse(extra);
+            ville = VilleModel.defaultVilles.firstWhere(
+              (v) {
+                if (parsedId != null && v.id == parsedId) return true;
+                final nomNorm = _normalizeText(v.nom);
+                return nomNorm.contains(q) || q.contains(nomNorm);
+              },
+              orElse: () => VilleModel(
+                id: parsedId ?? 0,
+                nom: extra,
+                region: '',
+                description: '',
+                imageUrl: VilleModel.getLocalPhoto(extra),
+              ),
+            );
+          } else if (extra is FavoriModel) {
+            ville = VilleModel(
+              id: extra.referenceId ?? extra.id,
+              nom: extra.titre,
+              region: extra.categorie.replaceAll('Région : ', ''),
+              description: '',
+              imageUrl: extra.displayPhoto,
+            );
           } else if (extra is Map<String, dynamic>) {
             try {
               ville = VilleModel.fromJson(extra);
@@ -363,7 +515,93 @@ class AppRouter {
           } else if (extra is SearchResultItem) {
             if (extra.payload is PresidentModel) {
               president = extra.payload as PresidentModel;
+            } else if (extra.payload is int) {
+              final idVal = extra.payload as int;
+              president = PresidentModel.chronologicalPresidents.firstWhere(
+                (p) => p.id == idVal,
+                orElse: () => PresidentModel(
+                  id: idVal,
+                  prenom: '',
+                  nom: extra.titre,
+                  periodeMandat: extra.sousTitre ?? '',
+                  biographie: extra.description ?? '',
+                  photoUrl: extra.imageUrl ?? PresidentModel.getLocalPhoto(extra.titre, idVal),
+                ),
+              );
+            } else {
+              final q = _normalizeText(extra.titre);
+              president = PresidentModel.chronologicalPresidents.firstWhere(
+                (p) {
+                  final nomNorm = _normalizeText(p.nom);
+                  final prenomNorm = _normalizeText(p.prenom);
+                  final fullNorm = _normalizeText(p.fullName);
+                  return nomNorm.contains(q) ||
+                      q.contains(nomNorm) ||
+                      prenomNorm.contains(q) ||
+                      q.contains(prenomNorm) ||
+                      fullNorm.contains(q) ||
+                      q.contains(fullNorm);
+                },
+                orElse: () => PresidentModel(
+                  id: int.tryParse(extra.id.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
+                  prenom: '',
+                  nom: extra.titre,
+                  periodeMandat: extra.sousTitre ?? '',
+                  biographie: extra.description ?? '',
+                  photoUrl: extra.imageUrl ?? PresidentModel.getLocalPhoto(extra.titre),
+                ),
+              );
             }
+          } else if (extra is int) {
+            president = PresidentModel.chronologicalPresidents.firstWhere(
+              (p) => p.id == extra,
+              orElse: () => PresidentModel(
+                id: extra,
+                prenom: '',
+                nom: 'Chef d\'État #$extra',
+                periodeMandat: '',
+                biographie: '',
+                photoUrl: PresidentModel.getLocalPhoto('Chef d\'État #$extra', extra),
+              ),
+            );
+          } else if (extra is String) {
+            final q = _normalizeText(extra);
+            final parsedId = int.tryParse(extra);
+            president = PresidentModel.chronologicalPresidents.firstWhere(
+              (p) {
+                if (parsedId != null && p.id == parsedId) return true;
+                final nomNorm = _normalizeText(p.nom);
+                final prenomNorm = _normalizeText(p.prenom);
+                final fullNorm = _normalizeText(p.fullName);
+                return nomNorm.contains(q) ||
+                    q.contains(nomNorm) ||
+                    prenomNorm.contains(q) ||
+                    q.contains(prenomNorm) ||
+                    fullNorm.contains(q) ||
+                    q.contains(fullNorm);
+              },
+              orElse: () => PresidentModel(
+                id: parsedId ?? 0,
+                prenom: '',
+                nom: extra,
+                periodeMandat: '',
+                biographie: '',
+                photoUrl: PresidentModel.getLocalPhoto(extra, parsedId),
+              ),
+            );
+          } else if (extra is FavoriModel) {
+            president = PresidentModel(
+              id: extra.referenceId ?? extra.id,
+              prenom: '',
+              nom: extra.titre,
+              periodeMandat: extra.categorie,
+              biographie: '',
+              photoUrl: extra.displayPhoto,
+            );
+          } else if (extra is Map<String, dynamic>) {
+            try {
+              president = PresidentModel.fromJson(extra);
+            } catch (_) {}
           }
           return PresidentDetailScreen(president: president);
         },
@@ -374,25 +612,154 @@ class AppRouter {
         builder: (BuildContext context, GoRouterState state) {
           RegionModel? region;
           final extra = state.extra;
+
+          RegionModel? findRegion(String query) {
+            final norm = _normalizeText(query);
+            if (norm.isEmpty) return null;
+            // 1. Correspondance exacte sur identifiant, nom ou chef-lieu
+            for (final r in RegionData.regions) {
+              if (_normalizeText(r.id) == norm ||
+                  _normalizeText(r.nom) == norm ||
+                  _normalizeText(r.chefLieu) == norm) {
+                return r;
+              }
+            }
+            // 2. Correspondance partielle
+            for (final r in RegionData.regions) {
+              final nomNorm = _normalizeText(r.nom);
+              final chefNorm = _normalizeText(r.chefLieu);
+              final idNorm = _normalizeText(r.id);
+              if (nomNorm.contains(norm) ||
+                  norm.contains(nomNorm) ||
+                  chefNorm.contains(norm) ||
+                  norm.contains(chefNorm) ||
+                  idNorm.contains(norm) ||
+                  norm.contains(idNorm)) {
+                return r;
+              }
+            }
+            return null;
+          }
+
+          RegionModel? findRegionByIntId(int id) {
+            const map = {
+              1: 'bamako',
+              2: 'segou',
+              3: 'mopti',
+              4: 'tombouctou',
+              5: 'sikasso',
+              6: 'gao',
+              7: 'kayes',
+              8: 'koulikoro',
+              9: 'kidal',
+              10: 'taoudenit',
+              11: 'menaka',
+              12: 'koutiala',
+              13: 'san',
+              14: 'kenieba',
+              15: 'kita',
+              16: 'bandiagara',
+            };
+            final slug = map[id];
+            if (slug != null) {
+              return RegionData.findById(slug);
+            }
+            if (id >= 1 && id <= RegionData.regions.length) {
+              return RegionData.regions[id - 1];
+            }
+            return null;
+          }
+
           if (extra is RegionModel) {
             region = extra;
           } else if (extra is SearchResultItem) {
             if (extra.payload is RegionModel) {
               region = extra.payload as RegionModel;
+            } else if (extra.payload is int) {
+              region = findRegionByIntId(extra.payload as int) ?? findRegion(extra.titre);
             } else {
-              final q = extra.titre.toLowerCase();
-              region = RegionData.regions.firstWhere(
-                (r) => r.nom.toLowerCase().contains(q) || q.contains(r.nom.toLowerCase()) || r.chefLieu.toLowerCase().contains(q),
-                orElse: () => RegionData.regions.first,
+              region = findRegion(extra.titre);
+            }
+            if (region == null && extra.titre.isNotEmpty) {
+              region = RegionModel(
+                id: extra.id,
+                nom: extra.titre,
+                chefLieu: extra.sousTitre?.replaceFirst('Chef-lieu: ', '') ?? extra.titre,
+                latitude: 12.6392,
+                longitude: -8.0029,
+                description: extra.description ?? '',
+                imageCover: extra.imageUrl ?? 'assets/images/bamako_cover.jpeg',
+                population: 'N/A',
+                superficie: 'N/A',
               );
             }
+          } else if (extra is int) {
+            region = findRegionByIntId(extra);
           } else if (extra is String) {
-            final q = extra.toLowerCase();
-            region = RegionData.regions.firstWhere(
-              (r) => r.id.toLowerCase() == q || r.nom.toLowerCase().contains(q) || r.chefLieu.toLowerCase().contains(q),
-              orElse: () => RegionData.regions.first,
+            final parsedId = int.tryParse(extra);
+            if (parsedId != null) {
+              region = findRegionByIntId(parsedId) ?? findRegion(extra);
+            } else {
+              region = findRegion(extra);
+            }
+          } else if (extra is FavoriModel) {
+            region = findRegion(extra.titre) ??
+                RegionModel(
+                  id: (extra.referenceId ?? extra.id).toString(),
+                  nom: extra.titre,
+                  chefLieu: extra.titre,
+                  latitude: 12.6392,
+                  longitude: -8.0029,
+                  description: extra.categorie,
+                  imageCover: extra.displayPhoto,
+                  population: 'N/A',
+                  superficie: 'N/A',
+                );
+          } else if (extra is Map<String, dynamic>) {
+            final nom = extra['nom'] ?? extra['nomRegion'] ?? '';
+            final idVal = extra['id'] ?? extra['idRegion'];
+            if (idVal is int) {
+              region = findRegionByIntId(idVal);
+            }
+            region ??= findRegion(nom.toString());
+          }
+
+          if (region == null) {
+            return Scaffold(
+              appBar: AppBar(
+                title: const Text('Région introuvable'),
+                backgroundColor: const Color(0xFF075E4D),
+              ),
+              body: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.location_off_rounded, size: 64, color: Color(0xFF8B9B95)),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Aucune région correspondante trouvée',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF075E4D),
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () => context.pop(),
+                        icon: const Icon(Icons.arrow_back),
+                        label: const Text('Retour'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             );
           }
+
           return RegionDetailScreen(region: region);
         },
       ),
@@ -455,7 +822,7 @@ class AppRouter {
         },
       ),
 
-      // 7. Parcours, Favoris & Espace Artisan (Poussent au-dessus du MainShell)
+      // 7. Parcours, Favoris & Profil (Poussent au-dessus du MainShell)
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
         path: monParcours,
@@ -475,20 +842,6 @@ class AppRouter {
         path: historique,
         builder: (BuildContext context, GoRouterState state) {
           return const HistoriqueScreen();
-        },
-      ),
-      GoRoute(
-        parentNavigatorKey: rootNavigatorKey,
-        path: artisanDashboard,
-        builder: (BuildContext context, GoRouterState state) {
-          return const ArtisanDashboardScreen();
-        },
-      ),
-      GoRoute(
-        parentNavigatorKey: rootNavigatorKey,
-        path: artisanAddProduct,
-        builder: (BuildContext context, GoRouterState state) {
-          return const ArtisanAddProductScreen();
         },
       ),
       GoRoute(

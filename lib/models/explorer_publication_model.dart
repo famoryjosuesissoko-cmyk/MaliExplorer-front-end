@@ -1,5 +1,4 @@
 enum PublicationType {
-  produitArtisan,
   festivalEvenement,
   patrimoine,
 }
@@ -75,9 +74,6 @@ class ExplorerPublicationModel {
 
   factory ExplorerPublicationModel.fromJson(Map<String, dynamic> json) {
     PublicationType parseType(String? t) {
-      if (t == 'produit' || t == 'artisan' || t == 'produitArtisan') {
-        return PublicationType.produitArtisan;
-      }
       if (t == 'festival' || t == 'evenement' || t == 'festivalEvenement' || t == 'evenements') {
         return PublicationType.festivalEvenement;
       }
@@ -96,14 +92,14 @@ class ExplorerPublicationModel {
       titre: (json['titre'] ?? json['nom'] ?? '').toString(),
       description: (json['description'] ?? '').toString(),
       imageUrl: (json['imageUrl'] ?? json['afficheUrl'] ?? json['image'] ?? json['photo'] ?? '').toString().trim(),
-      auteur: (json['auteur'] ?? json['nomOrganisateur'] ?? json['nomComplet'] ?? 'Artisan / Promoteur').toString(),
+      auteur: (json['auteur'] ?? json['nomOrganisateur'] ?? json['nomComplet'] ?? 'Promoteur Culturel').toString(),
       localisation: (json['localisation'] ?? json['lieu'] ?? json['ville'] ?? 'Mali').toString(),
       prix: json['prix']?.toString(),
       date: (json['date'] ?? json['dateDebut'])?.toString(),
       vues: (json['vues'] as num?)?.toInt() ?? 0,
       commentaires: (json['nombreCommentaires'] as num?)?.toInt() ?? 0,
       statut: (json['statut'] ?? 'VALIDE').toString().toUpperCase(),
-      categorie: (json['categorie'] ?? 'Culture & Artisanat').toString(),
+      categorie: (json['categorie'] ?? 'Culture & Patrimoine').toString(),
       tags: (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
     );
   }
@@ -128,66 +124,13 @@ class ExplorerPublicationModel {
   }
 
   static const List<ExplorerPublicationModel> initialPublications = [
-    // Produits d'artisans validés
-    ExplorerPublicationModel(
-      id: 'art-001',
-      type: PublicationType.produitArtisan,
-      titre: "Canari d'argile soudanais de luxe",
-      description:
-          "Pot d'argile façonné main selon les traditions millénaires de Djenné, orné de motifs géométriques et symboles spirituels sahéliens.",
-      imageUrl:
-          'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?q=80&w=800&auto=format&fit=crop',
-      auteur: 'Mamadou Traoré (Maître potier)',
-      localisation: 'Djenné, Région de Mopti',
-      prix: '25 000 FCFA',
-      vues: 42,
-      commentaires: 8,
-      statut: 'VALIDE',
-      categorie: 'Poterie traditionnelle',
-      tags: ['Terre cuite', 'Djenné', 'Décoration'],
-    ),
-    ExplorerPublicationModel(
-      id: 'art-002',
-      type: PublicationType.produitArtisan,
-      titre: "Bogolan traditionnel teint à la boue du Niger",
-      description:
-          "Tissu noble en cotonnade brute tissée main, teint aux décoctions d'écorces sauvages et à la boue fermentée sacrée du fleuve Djoliba.",
-      imageUrl:
-          'https://images.unsplash.com/photo-1606744824163-985d376605aa?q=80&w=800&auto=format&fit=crop',
-      auteur: 'Aminata Diarra (Atelier Bogolan)',
-      localisation: 'Ségou, Cité des Balanzans',
-      prix: '15 000 FCFA',
-      vues: 67,
-      commentaires: 12,
-      statut: 'VALIDE',
-      categorie: 'Textile & Teinture naturelle',
-      tags: ['Bogolan', 'Ségou', 'Mode africaine'],
-    ),
-    ExplorerPublicationModel(
-      id: 'art-003',
-      type: PublicationType.produitArtisan,
-      titre: "Croix d'Agadez & Pendentif Touareg en Argent ciselé",
-      description:
-          "Bijou protecteur ancestral sculpté dans l'argent massif par les artisans nomades du désert, gravé d'idéogrammes Tifinagh sacrés.",
-      imageUrl:
-          'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=800&auto=format&fit=crop',
-      auteur: 'Alhousseini Ag Rhissa (Orfèvre)',
-      localisation: 'Tombouctou, La Cité Mystérieuse',
-      prix: '45 000 FCFA',
-      vues: 89,
-      commentaires: 15,
-      statut: 'VALIDE',
-      categorie: 'Bijouterie fine d\'argent',
-      tags: ['Argent', 'Touareg', 'Protection'],
-    ),
-
     // Festivals et événements culturels validés
     ExplorerPublicationModel(
       id: 'fest-001',
       type: PublicationType.festivalEvenement,
       titre: 'Festival sur le Niger — Ségou Art 2027',
       description:
-          'Grand rendez-vous panafricain de musique sur les berges du fleuve Niger, expositions d\'art contemporain, danses de masques et foire artisanale internationale.',
+          'Grand rendez-vous panafricain de musique sur les berges du fleuve Niger, expositions d\'art contemporain, danses de masques et foire culturelle internationale.',
       imageUrl:
           'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=800&auto=format&fit=crop',
       auteur: 'Fondation Festival sur le Niger (Promoteur)',

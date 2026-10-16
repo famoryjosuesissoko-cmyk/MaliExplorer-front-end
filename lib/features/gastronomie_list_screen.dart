@@ -16,188 +16,155 @@ class GastronomieListScreen extends ConsumerStatefulWidget {
 class _GastronomieListScreenState extends ConsumerState<GastronomieListScreen> {
   final TextEditingController _searchController = TextEditingController();
 
-  final List<DishListItem> _dishes = [
-    DishListItem(
-      title: 'Tiguadèguè na',
-      description:
-          'Sauce crémeuse à la pâte d\'arachide servie traditionnellement...',
-      imageUrl:
-          'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600&auto=format&fit=crop',
-      isFavorite: false,
-    ),
-    DishListItem(
-      title: 'Saka-saka',
-      description:
-          'Ragoût savoureux de feuilles de manioc pilées, d\'huile de palme et d...',
-      imageUrl:
-          'https://images.unsplash.com/photo-1512058564366-18510be2db19?q=80&w=600&auto=format&fit=crop',
-      isFavorite: false,
-    ),
-    DishListItem(
-      title: 'Fakoye',
-      description:
-          'Sauce emblématique du Nord, préparée à base de feuilles de corèt...',
-      imageUrl:
-          'https://images.unsplash.com/photo-1547592180-85f173990554?q=80&w=600&auto=format&fit=crop',
-      isFavorite: false,
-    ),
-    DishListItem(
-      title: 'Tô',
-      description:
-          'Pâte de mil compacte servie avec une sauce gluante au gombo ou à l\'...',
-      imageUrl:
-          'https://images.unsplash.com/photo-1540420773420-3366772f4999?q=80&w=600&auto=format&fit=crop',
-      isFavorite: false,
-    ),
-  ];
-
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
 
+  void _clearSearch() {
+    _searchController.clear();
+    ref.read(platSearchQueryProvider.notifier).state = '';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final searchQuery = ref.watch(platSearchQueryProvider).trim();
+    final platsAsync = ref.watch(filteredPlatsProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFF075E4D),
-      body: Stack(
+      body: Column(
         children: [
-          // 1. Structure globale en colonne : En-tête vert + Fiche blanche
-          Column(
-            children: [
-              // En-tête vert (Titre & sous-titre)
-              SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          // En-tête vert (Titre & sous-titre)
+          SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          IconButton(
-                            onPressed: () {
-                              if (context.canPop()) {
-                                context.pop();
-                              } else {
-                                context.go(AppRouter.explorer);
-                              }
-                            },
-                            icon: const Icon(
-                              Icons.arrow_back_ios_new_rounded,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Text(
-                              'Gastronomie',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                          ),
-                        ],
+                      IconButton(
+                        onPressed: () {
+                          if (context.canPop()) {
+                            context.pop();
+                          } else {
+                            context.go(AppRouter.explorer);
+                          }
+                        },
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
                       ),
-                      const SizedBox(height: 6),
-                      const Padding(
-                        padding: EdgeInsets.only(left: 32.0),
+                      const SizedBox(width: 12),
+                      const Expanded(
                         child: Text(
-                          'Découvrez les saveurs gourmandes et authentiques du Mali',
+                          'Gastronomie',
                           style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.white70,
-                            fontWeight: FontWeight.w400,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: -0.5,
                           ),
                         ),
                       ),
                     ],
                   ),
-                ),
-              ),
-
-              // 2. Fiche blanche contenant la liste des plats
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF7F8F5),
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(28),
+                  const SizedBox(height: 6),
+                  const Padding(
+                    padding: EdgeInsets.only(left: 32.0),
+                    child: Text(
+                      'Découvrez les saveurs authentiques et les délices culinaires du Mali !',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w400,
+                      ),
                     ),
                   ),
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 110),
-                    child: Column(
-                      children: [
-                        // Barre de recherche
-                        _buildSearchBar(),
+                ],
+              ),
+            ),
+          ),
 
-                        const SizedBox(height: 18),
+          // Fiche blanche contenant la liste des plats
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF7F8F5),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
+                ),
+              ),
+              child: RefreshIndicator(
+                color: const Color(0xFF075E4D),
+                onRefresh: () async {
+                  ref.invalidate(platsProvider);
+                  await ref.read(platsProvider.future);
+                },
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 110),
+                  child: Column(
+                    children: [
+                      // Barre de recherche
+                      _buildSearchBar(isDark),
 
-                        // Liste des plats connectée à Riverpod
-                        ref
-                            .watch(filteredPlatsProvider)
-                            .when(
-                              data: (plats) {
-                                final displayPlats = plats.isNotEmpty
-                                    ? plats
-                                    : _dishes
-                                          .map(
-                                            (d) => PlatModel(
-                                              id: 0,
-                                              nom: d.title,
-                                              description: d.description,
-                                              imageUrl: d.imageUrl,
-                                            ),
-                                          )
-                                          .toList();
-                                return Column(
-                                  children: displayPlats
-                                      .map((p) => _buildDishCardFromModel(p))
-                                      .toList(),
-                                );
-                              },
-                              loading: () => const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 50),
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    color: Color(0xFF075E4D),
-                                  ),
-                                ),
-                              ),
-                              error: (_, _) => Column(
-                                children: _dishes
-                                    .map((dish) => _buildDishCard(dish))
-                                    .toList(),
-                              ),
+                      const SizedBox(height: 18),
+
+                      // Liste des plats connectée à Riverpod
+                      platsAsync.when(
+                        loading: () => const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 60),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF075E4D),
                             ),
-                      ],
-                    ),
+                          ),
+                        ),
+                        error: (err, stack) => _buildErrorState(isDark),
+                        data: (plats) {
+                          if (plats.isEmpty) {
+                            if (searchQuery.isNotEmpty) {
+                              return _buildSearchEmptyState(isDark);
+                            }
+                            return _buildEmptyState(isDark);
+                          }
+
+                          return Column(
+                            children: plats
+                                .map((p) => _buildDishCardFromModel(p, isDark))
+                                .toList(),
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(bool isDark) {
     return Container(
       height: 48,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F3F1),
+        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF0F3F1),
         borderRadius: BorderRadius.circular(24),
       ),
       child: Row(
@@ -210,16 +177,180 @@ class _GastronomieListScreenState extends ConsumerState<GastronomieListScreen> {
               onChanged: (val) {
                 ref.read(platSearchQueryProvider.notifier).state = val;
               },
-              decoration: const InputDecoration(
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black87,
+                fontSize: 14,
+              ),
+              decoration: InputDecoration(
                 hintText: 'Rechercher une spécialité...',
                 hintStyle: TextStyle(
-                  color: Color(0xFF8B9B95),
+                  color: isDark ? Colors.white54 : const Color(0xFF8B9B95),
                   fontSize: 13.5,
                   fontWeight: FontWeight.w400,
                 ),
                 border: InputBorder.none,
                 isDense: true,
-                contentPadding: EdgeInsets.symmetric(vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+              ),
+            ),
+          ),
+          if (_searchController.text.isNotEmpty)
+            GestureDetector(
+              onTap: _clearSearch,
+              child: const Icon(
+                Icons.cancel_rounded,
+                color: Color(0xFF8B9B95),
+                size: 20,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: const Color(0xFF075E4D).withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.restaurant_menu_rounded,
+              color: Color(0xFF075E4D),
+              size: 38,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            'Gastronomie Malienne',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : const Color(0xFF16332D),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Aucun plat traditionnel disponible pour le moment.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.5,
+              color: isDark ? Colors.white70 : const Color(0xFF6C7C77),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchEmptyState(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.search_off_rounded,
+              color: Colors.orange,
+              size: 34,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Aucun plat ne correspond à vos critères de recherche',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : const Color(0xFF16332D),
+            ),
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: _clearSearch,
+            icon: const Icon(Icons.clear_rounded, size: 16),
+            label: const Text('Effacer la recherche'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF075E4D),
+              side: const BorderSide(color: Color(0xFF075E4D)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.cloud_off_rounded,
+              color: Colors.redAccent,
+              size: 34,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Impossible de charger les spécialités gastronomiques',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : const Color(0xFF16332D),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Vérifiez votre connexion réseau et réessayez.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: isDark ? Colors.white70 : const Color(0xFF6C7C77),
+            ),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            onPressed: () => ref.refresh(platsProvider),
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text(
+              'Réessayer',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF075E4D),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
               ),
             ),
           ),
@@ -228,22 +359,24 @@ class _GastronomieListScreenState extends ConsumerState<GastronomieListScreen> {
     );
   }
 
-  Widget _buildDishCardFromModel(PlatModel plat) {
+  Widget _buildDishCardFromModel(PlatModel plat, bool isDark) {
     final photo = plat.displayPhoto;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
         ],
-        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : Colors.black.withValues(alpha: 0.05),
+        ),
       ),
       child: Material(
         color: Colors.transparent,
@@ -299,7 +432,9 @@ class _GastronomieListScreenState extends ConsumerState<GastronomieListScreen> {
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 7, vertical: 2),
+                                horizontal: 7,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFF075E4D)
                                     .withValues(alpha: 0.08),
@@ -322,9 +457,9 @@ class _GastronomieListScreenState extends ConsumerState<GastronomieListScreen> {
                         plat.description,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF6C7C77),
+                          color: isDark ? Colors.white70 : const Color(0xFF6C7C77),
                           height: 1.3,
                         ),
                       ),
@@ -368,137 +503,4 @@ class _GastronomieListScreenState extends ConsumerState<GastronomieListScreen> {
       ),
     );
   }
-
-  Widget _buildDishCard(DishListItem dish) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            final lowerTitle = dish.title.toLowerCase();
-            final matchedPlat = PlatModel.defaultPlats.firstWhere(
-              (p) {
-                final pLower = p.nom.toLowerCase();
-                return pLower.contains(lowerTitle) ||
-                    lowerTitle.contains(pLower) ||
-                    ((lowerTitle.contains('saka') || lowerTitle.contains('saga')) &&
-                        (pLower.contains('saka') || pLower.contains('saga')));
-              },
-              orElse: () => PlatModel(
-                id: 0,
-                nom: dish.title,
-                description: dish.description,
-                imageUrl: dish.imageUrl,
-              ),
-            );
-            context.push(AppRouter.dishDetail, extra: matchedPlat);
-          },
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Row(
-              children: [
-                // Image carrée du plat
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    dish.imageUrl,
-                    width: 76,
-                    height: 76,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      width: 76,
-                      height: 76,
-                      color: const Color(0xFFD6A23A).withValues(alpha: 0.2),
-                      child: const Icon(
-                        Icons.restaurant_menu_rounded,
-                        color: Color(0xFF075E4D),
-                        size: 32,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 14),
-
-                // Titre et description
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        dish.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF075E4D),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        dish.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF6C7C77),
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Bouton favori
-                IconButton(
-                  onPressed: () {
-                    setState(() {
-                      dish.isFavorite = !dish.isFavorite;
-                    });
-                  },
-                  icon: Icon(
-                    dish.isFavorite
-                        ? Icons.favorite_rounded
-                        : Icons.favorite_border_rounded,
-                    color: dish.isFavorite
-                        ? const Color(0xFFE53935)
-                        : const Color(0xFF9E9E9E),
-                    size: 20,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class DishListItem {
-  final String title;
-  final String description;
-  final String imageUrl;
-  bool isFavorite;
-
-  DishListItem({
-    required this.title,
-    required this.description,
-    required this.imageUrl,
-    this.isFavorite = false,
-  });
 }

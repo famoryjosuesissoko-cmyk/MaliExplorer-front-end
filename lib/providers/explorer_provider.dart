@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/services/api_service.dart';
 import '../models/explorer_publication_model.dart';
 
-/// Filtre actif dans Explorer : 'tous', 'produits', 'festivals', 'patrimoine'
+/// Filtre actif dans Explorer : 'tous', 'festivals', 'patrimoine'
 final explorerFilterTypeProvider = StateProvider<String>((ref) => 'tous');
 
 /// Recherche textuelle dans Explorer
@@ -46,28 +46,7 @@ class ExplorerPublicationsNotifier
         debugPrint('[ExplorerProvider] Fallback local événements: $e');
       }
 
-      // 2. Tenter de charger les opportunités d'artisans validées
-      try {
-        final res = await _apiService.get('/opportunites?type=ARTISAN');
-        if (res.statusCode == 200) {
-          final List<dynamic> data = jsonDecode(utf8.decode(res.bodyBytes));
-          for (final item in data) {
-            if (item is Map<String, dynamic>) {
-              if (item['type'] == null) {
-                item['type'] = 'produitArtisan';
-              }
-              final pub = ExplorerPublicationModel.fromJson(item);
-              if (pub.isValide && !publications.any((p) => p.id == pub.id)) {
-                publications.add(pub);
-              }
-            }
-          }
-        }
-      } catch (e) {
-        debugPrint('[ExplorerProvider] Fallback local opportunités: $e');
-      }
-
-      // 3. Compléter avec les publications initiales pour assurer la continuité
+      // 2. Compléter avec les publications initiales pour assurer la continuité
       for (final initial in ExplorerPublicationModel.initialPublications) {
         if (!publications.any((p) => p.id == initial.id)) {
           publications.add(initial);
@@ -108,7 +87,7 @@ class ExplorerPublicationsNotifier
     } catch (_) {}
   }
 
-  /// Publication soumise par un artisan ou un promoteur :
+  /// Publication soumise par un promoteur :
   /// Passe au statut "EN_ATTENTE" -> NE s'affiche PAS dans Explorer tant que non validée !
   void soumettrePublication(ExplorerPublicationModel nouvelle) {
     // Si la publication est en attente, elle n'est pas ajoutée à la vue publique
@@ -145,7 +124,7 @@ final explorerPublicationsProvider = StateNotifierProvider<
   return ExplorerPublicationsNotifier(api);
 });
 
-/// Publications filtrées par type ('tous', 'produits', 'festivals') et recherche
+/// Publications filtrées par type ('tous', 'festivals') et recherche
 final filteredExplorerPublicationsProvider =
     Provider<List<ExplorerPublicationModel>>((ref) {
   final asyncPubs = ref.watch(explorerPublicationsProvider);
@@ -159,10 +138,6 @@ final filteredExplorerPublicationsProvider =
         if (!p.isValide) return false;
 
         // 2. Filtre par type
-        if (filter == 'produits' &&
-            p.type != PublicationType.produitArtisan) {
-          return false;
-        }
         if (filter == 'festivals' &&
             p.type != PublicationType.festivalEvenement) {
           return false;

@@ -355,13 +355,16 @@ class _ChefsEtatScreenState extends ConsumerState<ChefsEtatScreen> {
     final localAsset = PresidentModel.getLocalPhoto(president.fullName, president.id);
 
     if (pathOrUrl.isEmpty) {
-      return Image.asset(
-        localAsset,
-        width: double.infinity,
-        height: double.infinity,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildImageFallback(),
-      );
+      if (localAsset.isNotEmpty) {
+        return Image.asset(
+          localAsset,
+          width: double.infinity,
+          height: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildImageFallback(),
+        );
+      }
+      return _buildImageFallback();
     }
 
     if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
@@ -370,29 +373,32 @@ class _ChefsEtatScreenState extends ConsumerState<ChefsEtatScreen> {
         width: double.infinity,
         height: double.infinity,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => Image.asset(
-          localAsset,
-          width: double.infinity,
-          height: double.infinity,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _buildImageFallback(),
-        ),
+        errorBuilder: (context, error, stackTrace) {
+          if (localAsset.isNotEmpty) {
+            return Image.asset(
+              localAsset,
+              width: double.infinity,
+              height: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => _buildImageFallback(),
+            );
+          }
+          return _buildImageFallback();
+        },
       );
     }
 
-    return Image.asset(
-      pathOrUrl,
-      width: double.infinity,
-      height: double.infinity,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => Image.asset(
-        localAsset,
+    if (pathOrUrl.startsWith('assets/')) {
+      return Image.asset(
+        pathOrUrl,
         width: double.infinity,
         height: double.infinity,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) => _buildImageFallback(),
-      ),
-    );
+      );
+    }
+
+    return _buildImageFallback();
   }
 
   Widget _buildImageFallback() {

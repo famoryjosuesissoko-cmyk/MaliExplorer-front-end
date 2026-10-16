@@ -6,6 +6,8 @@ import 'package:mali_explorer_frontend/features/chefs_etat_screen.dart';
 import 'package:mali_explorer_frontend/models/president_model.dart';
 import 'package:mali_explorer_frontend/router/app_router.dart';
 
+import 'package:mali_explorer_frontend/providers/presidents_provider.dart';
+
 void main() {
   group('ChefsEtatScreen R6 Tests - Interactivity & Display', () {
     Widget buildTestWidget({void Function(PresidentModel? p)? onDetailTapped}) {
@@ -32,6 +34,9 @@ void main() {
       );
 
       return ProviderScope(
+        overrides: [
+          presidentsProvider.overrideWith((ref) => Future.value(PresidentModel.chronologicalPresidents)),
+        ],
         child: MaterialApp.router(
           routerConfig: testRouter,
         ),
@@ -43,18 +48,18 @@ void main() {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
-      // Check header
+      // Vérifie l'en-tête
       expect(find.text('Chefs d\'État'), findsOneWidget);
 
-      // Verify Modibo Keïta is present and is first
+      // Vérifie que Modibo Keïta est présent et en première position
       expect(find.text('Modibo Keïta'), findsOneWidget);
       expect(find.text('1960 - 1968'), findsOneWidget);
 
-      // Verify other chronological presidents exist
+      // Vérifie que les autres présidents chronologiques existent
       expect(find.text('Moussa Traoré'), findsOneWidget);
       expect(find.text('1968 - 1991'), findsOneWidget);
 
-      // Check InkWells exist for cards
+      // Vérifie la présence des InkWells pour les cartes
       expect(find.byType(InkWell), findsWidgets);
     });
 
@@ -69,14 +74,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Tap on the first president card (Modibo Keïta)
+      // Clic sur la carte du premier président (Modibo Keïta)
       final modiboText = find.text('Modibo Keïta');
       expect(modiboText, findsOneWidget);
 
       await tester.tap(modiboText);
       await tester.pumpAndSettle();
 
-      // Verify navigation occurred to detail screen
+      // Vérifie que la navigation vers l'écran de détail a bien eu lieu
       expect(find.text('DETAIL_VIEW: Modibo Keïta'), findsOneWidget);
       expect(navigatedPresident, isNotNull);
       expect(navigatedPresident!.fullName, 'Modibo Keïta');
@@ -92,17 +97,17 @@ void main() {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
-      // Enter search query
+      // Saisie du critère de recherche
       final searchField = find.byType(TextField);
       expect(searchField, findsOneWidget);
 
       await tester.enterText(searchField, 'Assimi');
       await tester.pumpAndSettle();
 
-      // Modibo Keïta should no longer be visible
+      // Modibo Keïta ne doit plus être visible
       expect(find.text('Modibo Keïta'), findsNothing);
 
-      // Assimi Goïta should be displayed
+      // Assimi Goïta doit être affiché
       expect(find.text('Assimi Goïta'), findsOneWidget);
       expect(find.text('2021 - Présent'), findsOneWidget);
     });

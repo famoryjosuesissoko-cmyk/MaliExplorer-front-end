@@ -220,97 +220,114 @@ class _QuizListScreenState extends ConsumerState<QuizListScreen> {
                     ),
                   ),
 
-                  // Liste des cartes de quiz
+                  // Liste des cartes de quiz avec pull-to-refresh
                   Expanded(
-                    child: ref.watch(quizListProvider).when(
-                          data: (quizzes) {
-                            final filtered = quizzes.where((q) {
-                              if (_selectedCategory == 'Tous') return true;
-                              return q.categorie.toLowerCase().contains(_selectedCategory.toLowerCase()) ||
-                                  q.nomQuiz.toLowerCase().contains(_selectedCategory.toLowerCase());
-                            }).toList();
+                    child: RefreshIndicator(
+                      color: isDark ? AppColors.secondaryEmerald : AppColors.primaryForest,
+                      onRefresh: () async {
+                        ref.invalidate(quizListProvider);
+                        await ref.read(quizListProvider.future);
+                      },
+                      child: ref.watch(quizListProvider).when(
+                            data: (quizzes) {
+                              final filtered = quizzes.where((q) {
+                                if (_selectedCategory == 'Tous') return true;
+                                return q.categorie.toLowerCase().contains(_selectedCategory.toLowerCase()) ||
+                                    q.nomQuiz.toLowerCase().contains(_selectedCategory.toLowerCase());
+                              }).toList();
 
-                            if (filtered.isEmpty) {
-                              return Center(
+                              if (filtered.isEmpty) {
+                                return LayoutBuilder(
+                                  builder: (context, constraints) => SingleChildScrollView(
+                                    physics: const AlwaysScrollableScrollPhysics(),
+                                    child: ConstrainedBox(
+                                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                                      child: Center(
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.quiz_outlined,
+                                              size: 48,
+                                              color: isDark ? AppColors.darkTextDisabled : const Color(0xFF8B9B95),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            Text(
+                                              'Aucun quiz pour cette catégorie.',
+                                              style: TextStyle(
+                                                fontSize: 14.5,
+                                                fontWeight: FontWeight.w600,
+                                                color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
+
+                              return ListView.builder(
+                                physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                                padding: const EdgeInsets.fromLTRB(16, 4, 16, 110),
+                                itemCount: filtered.length,
+                                itemBuilder: (context, index) {
+                                  return _buildQuizCard(filtered[index], isDark);
+                                },
+                              );
+                            },
+                            loading: () => Center(
+                              child: CircularProgressIndicator(
+                                color: isDark ? AppColors.secondaryEmerald : AppColors.primaryForest,
+                              ),
+                            ),
+                            error: (error, stack) => SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(
-                                      Icons.quiz_outlined,
-                                      size: 48,
-                                      color: isDark ? AppColors.darkTextDisabled : const Color(0xFF8B9B95),
-                                    ),
-                                    const SizedBox(height: 12),
+                                    const SizedBox(height: 60),
+                                    const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
+                                    const SizedBox(height: 10),
                                     Text(
-                                      'Aucun quiz pour cette catégorie.',
+                                      'Erreur de chargement des quiz',
                                       style: TextStyle(
-                                        fontSize: 14.5,
-                                        fontWeight: FontWeight.w600,
-                                        color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                                        color: isDark ? AppColors.darkTextPrimary : const Color(0xFF991B1B),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
                                       ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      error.toString(),
+                                      textAlign: TextAlign.center,
+                                      maxLines: 2,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primaryForest,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                      ),
+                                      onPressed: () => ref.refresh(quizListProvider),
+                                      icon: const Icon(Icons.refresh_rounded, size: 18),
+                                      label: const Text('Réessayer'),
                                     ),
                                   ],
                                 ),
-                              );
-                            }
-
-                            return ListView.builder(
-                              physics: const BouncingScrollPhysics(),
-                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 110),
-                              itemCount: filtered.length,
-                              itemBuilder: (context, index) {
-                                return _buildQuizCard(filtered[index], isDark);
-                              },
-                            );
-                          },
-                          loading: () => Center(
-                            child: CircularProgressIndicator(
-                              color: isDark ? AppColors.secondaryEmerald : AppColors.primaryForest,
-                            ),
-                          ),
-                          error: (error, stack) => Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    'Erreur de chargement des quiz',
-                                    style: TextStyle(
-                                      color: isDark ? AppColors.darkTextPrimary : const Color(0xFF991B1B),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    error.toString(),
-                                    textAlign: TextAlign.center,
-                                    maxLines: 2,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 14),
-                                  ElevatedButton.icon(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.primaryForest,
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                    ),
-                                    onPressed: () => ref.refresh(quizListProvider),
-                                    icon: const Icon(Icons.refresh_rounded, size: 18),
-                                    label: const Text('Réessayer'),
-                                  ),
-                                ],
                               ),
                             ),
                           ),
-                        ),
+                    ),
                   ),
                 ],
               ),

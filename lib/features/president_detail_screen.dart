@@ -15,7 +15,12 @@ class PresidentDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final current = president ?? PresidentModel.chronologicalPresidents.first;
     final allPresidents = PresidentModel.chronologicalPresidents;
-    final currentIndex = allPresidents.indexWhere((p) => p.id == current.id);
+    final currentIndex = allPresidents.indexWhere(
+      (p) =>
+          p.id == current.id &&
+          (p.nom.toLowerCase() == current.nom.toLowerCase() ||
+              p.fullName.toLowerCase() == current.fullName.toLowerCase()),
+    );
 
     final PresidentModel? prevPresident = currentIndex > 0
         ? allPresidents[currentIndex - 1]
@@ -541,13 +546,16 @@ class PresidentDetailScreen extends ConsumerWidget {
     );
 
     if (pathOrUrl.isEmpty) {
-      return Image.asset(
-        localAsset,
-        width: double.infinity,
-        height: double.infinity,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => buildFallback(),
-      );
+      if (localAsset.isNotEmpty) {
+        return Image.asset(
+          localAsset,
+          width: double.infinity,
+          height: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => buildFallback(),
+        );
+      }
+      return buildFallback();
     }
 
     if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
@@ -556,29 +564,32 @@ class PresidentDetailScreen extends ConsumerWidget {
         width: double.infinity,
         height: double.infinity,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => Image.asset(
-          localAsset,
-          width: double.infinity,
-          height: double.infinity,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => buildFallback(),
-        ),
+        errorBuilder: (context, error, stackTrace) {
+          if (localAsset.isNotEmpty) {
+            return Image.asset(
+              localAsset,
+              width: double.infinity,
+              height: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => buildFallback(),
+            );
+          }
+          return buildFallback();
+        },
       );
     }
 
-    return Image.asset(
-      pathOrUrl,
-      width: double.infinity,
-      height: double.infinity,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => Image.asset(
-        localAsset,
+    if (pathOrUrl.startsWith('assets/')) {
+      return Image.asset(
+        pathOrUrl,
         width: double.infinity,
         height: double.infinity,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) => buildFallback(),
-      ),
-    );
+      );
+    }
+
+    return buildFallback();
   }
 
   Widget _buildInfoCard({

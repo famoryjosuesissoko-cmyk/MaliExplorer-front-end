@@ -76,14 +76,14 @@ class AuthService {
         };
   }
 
-  /// Inscription d'un nouvel utilisateur (Touriste, Guide, Artisan ou Promoteur)
+  /// Inscription d'un nouvel utilisateur (Touriste, Guide ou Promoteur)
   /// OBJECTIF 2 : Firebase crée le compte d'abord. Spring Boot persiste ensuite sans bloquer.
   Future<Map<String, dynamic>> register({
     required String prenom,
     required String nom,
     required String email,
     required String password,
-    required String role, // 'touriste', 'guide', 'artisan', 'promoteur'
+    required String role, // 'touriste', 'guide', 'promoteur'
     String? adresse,
     String? telephone,
     String? photoUrl,
@@ -150,7 +150,7 @@ class AuthService {
       _apiService.setAuthToken(token);
     }
     try {
-      // 1. Lecture directe depuis MySQL via l'endpoint profil connecté
+      // 1. Lecture directe depuis MySQL via la route de profil connecté
       final meResponse = await _apiService.get('/utilisateurs/me');
       if (meResponse.statusCode == 200) {
         return jsonDecode(utf8.decode(meResponse.bodyBytes)) as Map<String, dynamic>;
@@ -159,7 +159,7 @@ class AuthService {
       debugPrint('[AuthService] Info sync direct /me: $e');
     }
 
-    // 2. Fallback via /auth/login avec idToken Firebase
+    // 2. Repli via /auth/login avec idToken Firebase
     try {
       if (token != null) {
         final response = await _apiService.post(

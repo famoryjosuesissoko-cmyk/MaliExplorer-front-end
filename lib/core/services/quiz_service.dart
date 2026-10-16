@@ -24,9 +24,23 @@ class QuizService {
         final list = jsonList
             .map((j) => QuizModel.fromJson(j as Map<String, dynamic>))
             .toList();
-        if (list.isNotEmpty) {
-          _cachedQuizzes = list;
-          return list;
+
+        // Sécurité anti-doublons par identifiant et par titre normalisé
+        final seenTitles = <String>{};
+        final seenIds = <int>{};
+        final uniqueList = <QuizModel>[];
+        for (final q in list) {
+          final normalizedTitle = q.nomQuiz.trim().toLowerCase();
+          if (seenIds.contains(q.idQuiz)) continue;
+          if (normalizedTitle.isNotEmpty && seenTitles.contains(normalizedTitle)) continue;
+          seenIds.add(q.idQuiz);
+          if (normalizedTitle.isNotEmpty) seenTitles.add(normalizedTitle);
+          uniqueList.add(q);
+        }
+
+        if (uniqueList.isNotEmpty) {
+          _cachedQuizzes = uniqueList;
+          return uniqueList;
         }
       }
     } catch (e) {

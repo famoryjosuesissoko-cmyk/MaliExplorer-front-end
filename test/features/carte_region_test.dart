@@ -5,8 +5,8 @@ import 'package:mali_explorer_frontend/features/region_detail_screen.dart';
 
 void main() {
   group('Carte Immersive & Regions Tests', () {
-    test('RegionData contains 11 administrative regions and 6 priority regions', () {
-      expect(RegionData.regions.length, equals(11));
+    test('RegionData contains 16 administrative regions and 6 priority regions', () {
+      expect(RegionData.regions.length, equals(16));
       expect(RegionData.priorityRegions.length, equals(6));
 
       final priorityIds = RegionData.priorityRegions.map((r) => r.id).toList();
