@@ -1,4 +1,20 @@
 {
     "dart.flutterSdkPath": "/usr/programs/flutter",
-    "dart.androidSdkPath": "/home/joshua/Android/Sdk"
+    "dart.androidSdkPath": "/home/joshua/Android/Sdk",
+    "sqltools.connections": [
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 3306,
+            "driver": "MySQL",
+            "name": "maliexplorer_db",
+            "database": "maliexplorer_db",
+            "username": "root"
+        }
+    ]
 }

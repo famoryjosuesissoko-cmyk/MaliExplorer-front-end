@@ -400,7 +400,7 @@ class _LanguesNationalesScreenState extends State<LanguesNationalesScreen> {
                               ),
                               SizedBox(height: 2),
                               Text(
-                                'Lexique pratique pour voyager et échanger (F16)',
+                                'Lexique pratique pour voyager et échanger',
                                 style: TextStyle(
                                   fontSize: 11.5,
                                   color: Color(0xFFD1E7DD),

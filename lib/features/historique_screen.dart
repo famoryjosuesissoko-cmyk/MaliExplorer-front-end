@@ -91,6 +91,7 @@ class HistoriqueScreen extends ConsumerWidget {
                           if (items.isEmpty) {
                             return _buildEmptyView(isDark);
                           }
+                          final isOffline = ref.watch(historiqueIsOfflineProvider);
                           return RefreshIndicator(
                             color: const Color(0xFF075E4D),
                             onRefresh: () async {
@@ -101,10 +102,14 @@ class HistoriqueScreen extends ConsumerWidget {
                                 parent: BouncingScrollPhysics(),
                               ),
                               padding: const EdgeInsets.fromLTRB(18, 20, 18, 32),
-                              itemCount: items.length,
+                              itemCount: items.length + (isOffline ? 1 : 0),
                               separatorBuilder: (context, index) => const SizedBox(height: 12),
                               itemBuilder: (context, index) {
-                                return _buildHistoriqueItem(context, ref, items[index], isDark);
+                                if (isOffline && index == 0) {
+                                  return _buildOfflineBanner(context, isDark);
+                                }
+                                final itemIndex = isOffline ? index - 1 : index;
+                                return _buildHistoriqueItem(context, ref, items[itemIndex], isDark);
                               },
                             ),
                           );
@@ -359,6 +364,40 @@ class HistoriqueScreen extends ConsumerWidget {
         );
       }
     }
+  }
+
+  Widget _buildOfflineBanner(BuildContext context, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF3B2F17) : const Color(0xFFFEF9C3),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark ? const Color(0xFF854D0E) : const Color(0xFFFDE047),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.cloud_off_rounded,
+            size: 20,
+            color: isDark ? const Color(0xFFFACC15) : const Color(0xFFCA8A04),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Mode hors ligne — Affichage des activités récentes locales. Tirez vers le bas pour synchroniser dès la reconnexion.',
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? const Color(0xFFFEF08A) : const Color(0xFF854D0E),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildEmptyView(bool isDark) {

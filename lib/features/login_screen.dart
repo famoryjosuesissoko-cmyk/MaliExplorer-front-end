@@ -459,7 +459,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
         const SizedBox(height: 28),
 
-        // Footer Inscription
+        // Pied de page Inscription
         Center(child: _buildFooterRegister(isDark)),
       ],
     );
@@ -651,7 +651,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
           const SizedBox(height: 24),
 
-          // Footer Inscription
+          // Pied de page Inscription
           Center(child: _buildFooterRegister(isDark)),
         ],
       ),

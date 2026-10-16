@@ -1,3 +1,5 @@
+import '../core/constants/api_constants.dart';
+
 class QuestionModel {
   final int idQuestion;
   final String nomQuestion;
@@ -83,13 +85,19 @@ class QuizModel {
       } catch (_) {}
     }
 
+    final rawImg = json['imageQuiz'] ?? json['imageUrl'] ?? json['logoUrl'];
+    final resolvedImg = (rawImg != null && rawImg.toString().trim().isNotEmpty)
+        ? ApiConstants.resolveImageUrl(rawImg.toString().trim())
+        : 'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?q=80&w=800&auto=format&fit=crop';
+
+    final pts = (json['point'] ?? json['points'] as num?)?.toInt() ?? 40;
+
     return QuizModel(
-      idQuiz: json['idQuiz'] ?? 0,
-      nomQuiz: json['nomQuiz'] ?? '',
+      idQuiz: (json['idQuiz'] ?? json['id'] as num?)?.toInt() ?? 0,
+      nomQuiz: json['nomQuiz'] ?? json['titre'] ?? '',
       description: json['description'] ?? '',
-      imageQuiz: json['imageQuiz'] ??
-          'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?q=80&w=800&auto=format&fit=crop',
-      point: json['point'] ?? 30,
+      imageQuiz: resolvedImg,
+      point: pts,
       categorie: json['categorie'] ?? 'Culture',
       difficulte: json['difficulte']?.toString() ?? 'MOYEN',
       dateCreation: parsedDate,

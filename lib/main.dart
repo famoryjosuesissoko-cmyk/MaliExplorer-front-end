@@ -24,6 +24,53 @@ void main() async {
   await FirebaseService.init();
   await StorageService.init();
 
+  // Élimine définitivement l'écran rouge d'erreur Flutter en cas de rupture réseau temporaire
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Container(
+      color: const Color(0xFFF7F8F5),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF075E4D).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.cloud_off_rounded,
+                size: 42,
+                color: Color(0xFF075E4D),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Contenu en cours d\'actualisation',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF16332D),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Connexion temporairement indisponible. Les données locales sauvegardées restent accessibles.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12.5,
+                color: Color(0xFF6C7C77),
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  };
+
   // Lancement de l'application avec Riverpod (ProviderScope)
   runApp(
     const ProviderScope(

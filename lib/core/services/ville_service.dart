@@ -19,27 +19,17 @@ class VilleService {
       final List<dynamic> jsonList = jsonDecode(utf8.decode(response.bodyBytes));
       return jsonList.map((j) => VilleModel.fromJson(j as Map<String, dynamic>)).toList();
     } else {
-      throw Exception('Erreur ${response.statusCode}: Impossible de récupérer les villes.');
+      throw Exception('Erreur de chargement des villes et territoires (Code ${response.statusCode})');
     }
   }
 
   Future<List<VilleModel>> getHomeVilles() async {
-    try {
-      final response = await _apiService.get(ApiConstants.homeVilles);
-      if (response.statusCode == 200) {
-        final List<dynamic> jsonList = jsonDecode(utf8.decode(response.bodyBytes));
-        if (jsonList.isNotEmpty) {
-          return jsonList.map((j) => VilleModel.fromJson(j as Map<String, dynamic>)).toList();
-        }
-      }
-    } catch (_) {
-      // Fallback
-    }
-    // Fallback sur getVilles ou villes statiques
-    try {
+    final response = await _apiService.get(ApiConstants.homeVilles);
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = jsonDecode(utf8.decode(response.bodyBytes));
+      return jsonList.map((j) => VilleModel.fromJson(j as Map<String, dynamic>)).toList();
+    } else {
       return await getVilles();
-    } catch (_) {
-      return [];
     }
   }
 
@@ -49,7 +39,7 @@ class VilleService {
       final Map<String, dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
       return VilleModel.fromJson(data);
     } else {
-      throw Exception('Erreur ${response.statusCode}: Impossible de récupérer la ville #$id.');
+      throw Exception('Ville introuvable avec l\'identifiant #$id (Code ${response.statusCode})');
     }
   }
 }

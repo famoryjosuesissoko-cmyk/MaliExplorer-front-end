@@ -45,7 +45,7 @@ class InfosPratiquesScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'INFORMATIONS PRATIQUES (F17)',
+                            'INFORMATIONS PRATIQUES',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w900,

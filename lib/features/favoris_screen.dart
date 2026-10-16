@@ -9,6 +9,7 @@ import '../models/president_model.dart';
 import '../models/plat_model.dart';
 import '../models/ethnie_model.dart';
 import '../models/ville_model.dart';
+import '../models/region_model.dart';
 import '../providers/favoris_provider.dart';
 
 class FavorisScreen extends ConsumerStatefulWidget {
@@ -216,34 +217,119 @@ class _FavorisScreenState extends ConsumerState<FavorisScreen> {
           final route = item.route;
           final titre = item.titre.toLowerCase();
           if (route == AppRouter.presidentDetail || route.contains('president')) {
-            final match = PresidentModel.chronologicalPresidents.firstWhere(
-              (p) =>
-                  p.nom.toLowerCase().contains(titre) ||
-                  titre.contains(p.nom.toLowerCase()) ||
-                  p.fullName.toLowerCase().contains(titre) ||
-                  titre.contains(p.prenom.toLowerCase()),
-              orElse: () => PresidentModel.chronologicalPresidents.first,
-            );
-            context.push(AppRouter.presidentDetail, extra: match);
+            PresidentModel? match;
+            try {
+              match = PresidentModel.chronologicalPresidents.firstWhere(
+                (p) =>
+                    p.nom.toLowerCase().contains(titre) ||
+                    titre.contains(p.nom.toLowerCase()) ||
+                    p.fullName.toLowerCase().contains(titre) ||
+                    titre.contains(p.prenom.toLowerCase()),
+              );
+            } catch (_) {
+              match = null;
+            }
+            if (match != null) {
+              final resolvedPhoto = (item.imageUrl.isNotEmpty &&
+                      (item.imageUrl.startsWith('http') || item.imageUrl.startsWith('/') || item.imageUrl.startsWith('uploads/')))
+                  ? item.displayPhoto
+                  : match.photoUrl;
+              context.push(AppRouter.presidentDetail, extra: match.copyWith(photoUrl: resolvedPhoto));
+            } else {
+              final dynamicPres = PresidentModel(
+                id: item.referenceId ?? item.id,
+                prenom: '',
+                nom: item.titre,
+                periodeMandat: item.categorie,
+                biographie: '',
+                photoUrl: item.displayPhoto,
+              );
+              context.push(AppRouter.presidentDetail, extra: dynamicPres);
+            }
           } else if (route == AppRouter.dishDetail || route.contains('dish')) {
-            final match = PlatModel.defaultPlats.firstWhere(
-              (p) =>
-                  p.nom.toLowerCase().contains(titre) ||
-                  titre.contains(p.nom.toLowerCase()),
-              orElse: () => PlatModel.defaultPlats.first,
-            );
-            context.push(AppRouter.dishDetail, extra: match);
+            PlatModel? match;
+            try {
+              match = PlatModel.defaultPlats.firstWhere(
+                (p) =>
+                    p.nom.toLowerCase().contains(titre) ||
+                    titre.contains(p.nom.toLowerCase()) ||
+                    ((titre.contains('saka') || titre.contains('saga')) &&
+                        (p.nom.toLowerCase().contains('saka') ||
+                            p.nom.toLowerCase().contains('saga'))),
+              );
+            } catch (_) {
+              match = null;
+            }
+            if (match != null) {
+              final resolvedPhoto = (item.imageUrl.isNotEmpty &&
+                      (item.imageUrl.startsWith('http') || item.imageUrl.startsWith('/') || item.imageUrl.startsWith('uploads/')))
+                  ? item.displayPhoto
+                  : match.imageUrl;
+              context.push(AppRouter.dishDetail, extra: match.copyWith(imageUrl: resolvedPhoto));
+            } else {
+              final dynamicPlat = PlatModel(
+                id: item.referenceId ?? item.id,
+                nom: item.titre,
+                description: item.categorie,
+                imageUrl: item.displayPhoto,
+                difficulte: 'Facile',
+              );
+              context.push(AppRouter.dishDetail, extra: dynamicPlat);
+            }
           } else if (route == AppRouter.ethnicityDetail || route.contains('ethnic')) {
-            final match = EthnieModel.defaultEthnies.firstWhere(
-              (e) =>
-                  e.nom.toLowerCase().contains(titre) ||
-                  titre.contains(e.nom.toLowerCase()),
-              orElse: () => EthnieModel.defaultEthnies.first,
-            );
-            context.push(AppRouter.ethnicityDetail, extra: match);
+            EthnieModel? match;
+            try {
+              match = EthnieModel.defaultEthnies.firstWhere(
+                (e) =>
+                    e.nom.toLowerCase().contains(titre) ||
+                    titre.contains(e.nom.toLowerCase()),
+              );
+            } catch (_) {
+              match = null;
+            }
+            if (match != null) {
+              context.push(AppRouter.ethnicityDetail, extra: match);
+            } else {
+              final dynamicEthnie = EthnieModel.fromJson({
+                'id': item.referenceId ?? item.id,
+                'nom': item.titre,
+                'imageUrl': item.displayPhoto,
+                'photoHomme': item.displayPhoto,
+                'region': item.categorie,
+              });
+              context.push(AppRouter.ethnicityDetail, extra: dynamicEthnie);
+            }
+          } else if (route == AppRouter.regionDetail || route.contains('region')) {
+            RegionModel? match;
+            try {
+              match = RegionData.regions.firstWhere(
+                (r) =>
+                    r.nom.toLowerCase().contains(titre) ||
+                    titre.contains(r.nom.toLowerCase()) ||
+                    r.id.toLowerCase() == titre,
+              );
+            } catch (_) {
+              match = null;
+            }
+            if (match != null) {
+              context.push(AppRouter.regionDetail, extra: match);
+            } else {
+              final dynamicRegion = RegionModel(
+                id: (item.referenceId ?? item.id).toString(),
+                nom: item.titre,
+                chefLieu: item.titre,
+                latitude: 12.6392,
+                longitude: -8.0029,
+                description: '',
+                imageCover: item.displayPhoto,
+                population: 'N/A',
+                superficie: 'N/A',
+              );
+              context.push(AppRouter.regionDetail, extra: dynamicRegion);
+            }
           } else if (route == AppRouter.cityDetail || route.contains('city')) {
             final ville = VilleModel(
-              id: item.referenceId ?? 0,
+              id: item.referenceId ?? item.id,
               nom: item.titre,
               region: item.categorie.replaceAll('Région : ', ''),
               description: '',
@@ -251,7 +337,7 @@ class _FavorisScreenState extends ConsumerState<FavorisScreen> {
             );
             context.push(AppRouter.cityDetail, extra: ville);
           } else if (route.isNotEmpty) {
-            context.push(route);
+            context.push(route, extra: item);
           }
         },
         borderRadius: BorderRadius.circular(16),

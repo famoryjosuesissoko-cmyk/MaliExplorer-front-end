@@ -1,3 +1,5 @@
+import '../core/constants/api_constants.dart';
+
 class PlatIngredient {
   final String nom;
   final String? quantite;
@@ -51,6 +53,36 @@ class PlatModel {
     this.isFavorite = false,
   });
 
+  PlatModel copyWith({
+    int? id,
+    String? nom,
+    String? description,
+    int? nbrePersonnes,
+    String? tempsCuisson,
+    String? difficulte,
+    String? imageUrl,
+    List<String>? regions,
+    List<String>? ethnies,
+    List<PlatIngredient>? ingredients,
+    String? secretPreparation,
+    bool? isFavorite,
+  }) {
+    return PlatModel(
+      id: id ?? this.id,
+      nom: nom ?? this.nom,
+      description: description ?? this.description,
+      nbrePersonnes: nbrePersonnes ?? this.nbrePersonnes,
+      tempsCuisson: tempsCuisson ?? this.tempsCuisson,
+      difficulte: difficulte ?? this.difficulte,
+      imageUrl: imageUrl ?? this.imageUrl,
+      regions: regions ?? this.regions,
+      ethnies: ethnies ?? this.ethnies,
+      ingredients: ingredients ?? this.ingredients,
+      secretPreparation: secretPreparation ?? this.secretPreparation,
+      isFavorite: isFavorite ?? this.isFavorite,
+    );
+  }
+
   static String getLocalPhoto(String dishName) {
     final lower = dishName.toLowerCase();
     if (lower.contains('tiga') || lower.contains('arachide')) {
@@ -71,7 +103,7 @@ class PlatModel {
 
   String get displayPhoto {
     if (imageUrl.isNotEmpty) {
-      return imageUrl;
+      return ApiConstants.resolveImageUrl(imageUrl);
     }
     return getLocalPhoto(nom);
   }
@@ -80,7 +112,7 @@ class PlatModel {
     final nomPlat = json['nom'] ?? json['nomPlat'] ?? '';
     final rawImg = json['imageUrl'] ?? json['photoUrl'];
     final resolvedImg = (rawImg != null && rawImg.toString().trim().isNotEmpty)
-        ? rawImg.toString().trim()
+        ? ApiConstants.resolveImageUrl(rawImg.toString().trim())
         : getLocalPhoto(nomPlat);
 
     List<String> regionNames = [];

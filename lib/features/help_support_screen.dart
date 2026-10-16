@@ -11,7 +11,7 @@ class HelpSupportScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFF7F8F5),
       body: Column(
         children: [
-          // Header
+          // En-tête
           Container(
             color: const Color(0xFF075E4D),
             child: SafeArea(
@@ -137,11 +137,11 @@ class HelpSupportScreen extends StatelessWidget {
                           ),
                           child: const Row(
                             children: [
-                              Icon(Icons.info_outline_rounded, color: Color(0xFF075E4D), size: 20),
+                               Icon(Icons.info_outline_rounded, color: Color(0xFF075E4D), size: 20),
                               SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Infos Pratiques (F17)',
+                                  'Infos Pratiques',
                                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF075E4D)),
                                 ),
                               ),
@@ -168,7 +168,7 @@ class HelpSupportScreen extends StatelessWidget {
                               SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Lexique Langues (F16)',
+                                  'Lexique Langues',
                                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF075E4D)),
                                 ),
                               ),
@@ -200,8 +200,8 @@ class HelpSupportScreen extends StatelessWidget {
                   'Participez aux Quiz thématiques sur l\'histoire, la gastronomie et le patrimoine malien. Chaque bonne réponse vous rapporte des points pour faire évoluer votre badge Bambara.',
                 ),
                 _buildFaqTile(
-                  'Comment s\'inscrire comme Guide ou Artisan ?',
-                  'Lors de l\'inscription, sélectionnez le rôle correspondant (Guide ou Artisan). Fournissez vos justificatifs professionnels (pièce d\'identité, certificat) pour validation par notre équipe.',
+                  'Comment s\'inscrire comme Guide ou Promoteur ?',
+                  'Lors de l\'inscription, sélectionnez le rôle correspondant (Guide ou Promoteur). Fournissez vos justificatifs professionnels (pièce d\'identité, certificat) pour validation par notre équipe.',
                 ),
                 _buildFaqTile(
                   'Les photos et documents sont-ils protégés ?',

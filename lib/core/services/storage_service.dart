@@ -90,7 +90,7 @@ class StorageService {
     }
   }
 
-  /// Upload direct sans fallback
+  /// Téléversement direct sans repli
   static Future<String> uploadBytes({
     required String bucket,
     required String path,

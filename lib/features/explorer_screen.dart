@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/constants/app_colors.dart';
@@ -52,14 +51,6 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
       'icon': Icons.history_edu_rounded,
     },
     {
-      'titre': 'Artisans du Mali',
-      'sousTitre': 'Poterie, cuir, bogolan et bijoux',
-      'route': AppRouter.artisans,
-      'image': 'assets/images/explorer_artisans.jpeg',
-      'badge': 'Artisanat',
-      'icon': Icons.handyman_rounded,
-    },
-    {
       'titre': 'Guides Touristiques',
       'sousTitre': 'Professionnels locaux certifiés',
       'route': AppRouter.guides,
@@ -72,7 +63,7 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
       'sousTitre': 'Bamanankan, Fulfulde, Songhaï, Soninké, Tamasheq',
       'route': AppRouter.languesNationales,
       'image': 'assets/images/explorer_ethnies_traditions.jpeg',
-      'badge': 'Lexique (F16)',
+      'badge': 'Lexique',
       'icon': Icons.record_voice_over_rounded,
     },
     {
@@ -80,7 +71,7 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
       'sousTitre': 'Visas, santé, devises, saisons & urgences',
       'route': AppRouter.infosPratiques,
       'image': 'assets/images/explorer_villes_regions.jpeg',
-      'badge': 'Guide Voyage (F17)',
+      'badge': 'Guide Voyage',
       'icon': Icons.info_outline_rounded,
     },
     {
@@ -221,8 +212,6 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                       children: [
                         _buildFilterChip('tous', 'Tout', Icons.dashboard_rounded, currentFilter),
                         const SizedBox(width: 8),
-                        _buildFilterChip('produits', 'Créations Artisans', Icons.handyman_rounded, currentFilter),
-                        const SizedBox(width: 8),
                         _buildFilterChip('festivals', 'Festivals & Événements', Icons.festival_rounded, currentFilter),
                         const SizedBox(width: 8),
                         _buildFilterChip('patrimoine', 'Patrimoine Culturel', Icons.account_balance_rounded, currentFilter),
@@ -259,13 +248,13 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                           )),
                     ],
 
-                    // Si 'produits' ou 'tous' ou 'festivals', afficher les publications validées
+                    // Si 'tous' ou 'festivals', afficher les publications validées
                     if (currentFilter != 'patrimoine') ...[
                       if (currentFilter == 'tous' && publications.isNotEmpty) ...[
                         const SizedBox(height: 12),
                         _buildSectionHeader(
-                          'Créations & Événements Validés',
-                          'Par nos Artisans et Promoteurs partenaires',
+                          'Événements Culturels Validés',
+                          'Par nos Promoteurs et Partenaires culturels',
                           isDark,
                         ),
                       ],
@@ -496,9 +485,9 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
     );
   }
 
-  /// Carte dynamique pour les publications d'Artisans ou Promoteurs
+  /// Carte dynamique pour les événements et festivals culturels
   Widget _buildPublicationCard(ExplorerPublicationModel pub, bool isDark) {
-    final isProduct = pub.type == PublicationType.produitArtisan;
+    final isFestival = pub.type == PublicationType.festivalEvenement;
 
     return InkWell(
       onTap: () {
@@ -531,7 +520,7 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
               child: SizedBox(
                 width: 120,
                 height: double.infinity,
-                child: _buildSafePublicationImage(pub.imageUrl, isProduct),
+                child: _buildSafePublicationImage(pub.imageUrl),
               ),
             ),
 
@@ -549,17 +538,15 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                           decoration: BoxDecoration(
-                            color: isProduct
-                                ? const Color(0xFF075E4D).withValues(alpha: 0.12)
-                                : const Color(0xFFE65100).withValues(alpha: 0.12),
+                            color: const Color(0xFFE65100).withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            isProduct ? 'Artisanat' : 'Festival',
-                            style: TextStyle(
+                            isFestival ? 'Festival' : 'Patrimoine',
+                            style: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: isProduct ? const Color(0xFF075E4D) : const Color(0xFFE65100),
+                              color: Color(0xFFE65100),
                             ),
                           ),
                         ),
@@ -655,43 +642,43 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
     );
   }
 
-  Widget _buildImageFallback(bool isProduct) {
+  Widget _buildImageFallback() {
     return Container(
       color: const Color(0xFF075E4D).withValues(alpha: 0.1),
-      child: Center(
+      child: const Center(
         child: Icon(
-          isProduct ? Icons.handyman_rounded : Icons.festival_rounded,
-          color: const Color(0xFF075E4D),
+          Icons.festival_rounded,
+          color: Color(0xFF075E4D),
           size: 32,
         ),
       ),
     );
   }
 
-  Widget _buildSafePublicationImage(String imageUrl, bool isProduct) {
+  Widget _buildSafePublicationImage(String imageUrl) {
     final clean = imageUrl.trim();
     if (clean.isEmpty) {
-      return _buildImageFallback(isProduct);
+      return _buildImageFallback();
     }
     if (clean.startsWith('assets/')) {
       return Image.asset(
         clean,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildImageFallback(isProduct),
+        errorBuilder: (context, error, stackTrace) => _buildImageFallback(),
       );
     }
     if (clean.startsWith('http://') || clean.startsWith('https://')) {
       return Image.network(
         clean,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildImageFallback(isProduct),
+        errorBuilder: (context, error, stackTrace) => _buildImageFallback(),
       );
     }
-    return _buildImageFallback(isProduct);
+    return _buildImageFallback();
   }
 
   void _showPublicationDetailsModal(BuildContext context, ExplorerPublicationModel pub, bool isDark) {
-    final isProduct = pub.type == PublicationType.produitArtisan;
+    final isFestival = pub.type == PublicationType.festivalEvenement;
 
     showModalBottomSheet(
       context: context,
@@ -735,7 +722,7 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                         child: SizedBox(
                           height: 200,
                           width: double.infinity,
-                          child: _buildSafePublicationImage(pub.imageUrl, isProduct),
+                          child: _buildSafePublicationImage(pub.imageUrl),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -745,17 +732,15 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: isProduct
-                                  ? const Color(0xFF075E4D).withValues(alpha: 0.12)
-                                  : const Color(0xFFE65100).withValues(alpha: 0.12),
+                              color: const Color(0xFFE65100).withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
-                              isProduct ? 'Création Artisanale' : 'Événement Culturel',
-                              style: TextStyle(
+                              isFestival ? 'Événement Culturel' : 'Patrimoine',
+                              style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: isProduct ? const Color(0xFF075E4D) : const Color(0xFFE65100),
+                                color: Color(0xFFE65100),
                               ),
                             ),
                           ),
@@ -835,11 +820,7 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () {
                     Navigator.pop(ctx);
-                    if (isProduct) {
-                      _handleContactArtisan(pub);
-                    } else {
-                      _handleInscriptionEvenement(pub);
-                    }
+                    _handleInscriptionEvenement(pub);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF075E4D),
@@ -847,10 +828,10 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                     elevation: 2,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  icon: Icon(isProduct ? Icons.chat_outlined : Icons.confirmation_number_outlined),
-                  label: Text(
-                    isProduct ? 'Contacter l\'Artisan' : 'S\'inscrire à l\'Événement',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  icon: const Icon(Icons.confirmation_number_outlined),
+                  label: const Text(
+                    'S\'inscrire à l\'Événement',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                   ),
                 ),
               ),
@@ -858,216 +839,6 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
           ),
         );
       },
-    );
-  }
-
-  void _handleContactArtisan(ExplorerPublicationModel pub) {
-    final isProduct = pub.type == PublicationType.produitArtisan;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    const String defaultPhone = '+223 76 45 28 90';
-    final String messageWhatsApp =
-        'Bonjour ${pub.auteur}, je suis très intéressé(e) par votre création "${pub.titre}"'
-        '${pub.prix != null ? ' (${pub.prix})' : ''} découverte sur MaliExplorer. '
-        'Est-elle toujours disponible pour une commande ?';
-
-    showModalBottomSheet(
-      context: context,
-      useRootNavigator: true,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: EdgeInsets.only(
-          top: 16,
-          left: 20,
-          right: 20,
-          bottom: MediaQuery.of(ctx).padding.bottom + 20,
-        ),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: const Color(0xFF075E4D).withValues(alpha: 0.12),
-                  child: const Icon(Icons.handyman_rounded, color: Color(0xFF075E4D), size: 24),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        pub.auteur,
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                          color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
-                        ),
-                      ),
-                      Text(
-                        'Artisan certifié • ${pub.localisation}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkBackground : const Color(0xFFF7F9F8),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB),
-                ),
-              ),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: SizedBox(
-                      width: 48,
-                      height: 48,
-                      child: _buildSafePublicationImage(pub.imageUrl, isProduct),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          pub.titre,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
-                          ),
-                        ),
-                        if (pub.prix != null)
-                          Text(
-                            pub.prix!,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF2E7D32),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'Coordonnées & Messagerie Directe :',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF075E4D),
-              ),
-            ),
-            const SizedBox(height: 10),
-            InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () {
-                Clipboard.setData(const ClipboardData(text: defaultPhone));
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Numéro $defaultPhone copié dans le presse-papiers !'),
-                    backgroundColor: Color(0xFF075E4D),
-                  ),
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkBackground : const Color(0xFFF1F5F4),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF075E4D).withValues(alpha: 0.2)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.phone_rounded, color: Color(0xFF075E4D), size: 20),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        defaultPhone,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
-                        ),
-                      ),
-                    ),
-                    const Text(
-                      'Copier',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF075E4D),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: messageWhatsApp));
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Message de commande copié ! Vous pouvez le coller dans WhatsApp ou SMS.'),
-                      backgroundColor: Color(0xFF075E4D),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF25D366),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                icon: const Icon(Icons.chat_bubble_outline_rounded, size: 20),
-                label: const Text(
-                  'Copier le message pour WhatsApp',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 

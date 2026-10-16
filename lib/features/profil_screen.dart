@@ -192,7 +192,6 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
     final bool isAppAdmin = currentEmail == 'famoryjosuesissoko@gmail.com' || currentEmail == 'hamath.o.diallo18@gmail.com';
     final String rawRole = (userMap?['role'] ?? userMap?['roleName'] ?? (isAppAdmin ? 'admin' : 'touriste')).toString().toLowerCase();
     final bool isAdmin = rawRole.contains('admin') || isAppAdmin;
-    final bool isArtisan = !isAdmin && rawRole.contains('artisan');
     final bool isPromoteur = !isAdmin && rawRole.contains('promoteur');
 
     final String displayName = (user?.displayName != null && user!.displayName!.trim().isNotEmpty)
@@ -377,34 +376,28 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                       decoration: BoxDecoration(
-                        color: (isArtisan
-                                ? const Color(0xFFD97706)
-                                : isPromoteur
-                                    ? const Color(0xFF2563EB)
-                                    : isAdmin
-                                        ? const Color(0xFF7C3AED)
-                                        : const Color(0xFF075E4D))
+                        color: (isPromoteur
+                                ? const Color(0xFF2563EB)
+                                : isAdmin
+                                    ? const Color(0xFF7C3AED)
+                                    : const Color(0xFF075E4D))
                             .withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        isArtisan
-                            ? 'Artisan'
-                            : isPromoteur
-                                ? 'Promoteur Culturel'
-                                : isAdmin
-                                    ? 'Administrateur'
-                                    : 'Touriste',
+                        isPromoteur
+                            ? 'Promoteur Culturel'
+                            : isAdmin
+                                ? 'Administrateur'
+                                : 'Touriste',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: isArtisan
-                              ? const Color(0xFFD97706)
-                              : isPromoteur
-                                  ? const Color(0xFF2563EB)
-                                  : isAdmin
-                                      ? const Color(0xFF7C3AED)
-                                      : const Color(0xFF075E4D),
+                          color: isPromoteur
+                              ? const Color(0xFF2563EB)
+                              : isAdmin
+                                  ? const Color(0xFF7C3AED)
+                                  : const Color(0xFF075E4D),
                         ),
                       ),
                     ),
@@ -449,14 +442,6 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
                       onTap: () => context.push(AppRouter.historique),
                     ),
                     // Espaces Professionnels & Partenariats B2B (Strictement isolés par rôle)
-                    if (isArtisan || isAdmin)
-                      _buildMenuItem(
-                        icon: Icons.storefront_rounded,
-                        title: 'Espace Artisan',
-                        subtitle: 'Atelier, catalogue de vente & outillage',
-                        isDark: isDarkMode,
-                        onTap: () => context.push(AppRouter.artisanDashboard),
-                      ),
                     if (isPromoteur || isAdmin)
                       _buildMenuItem(
                         icon: Icons.campaign_rounded,

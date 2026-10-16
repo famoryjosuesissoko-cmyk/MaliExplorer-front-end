@@ -697,16 +697,16 @@ class _PromoteurDashboardScreenState
                         ),
                         const SizedBox(height: 14),
 
-                        // 2 cartes d'actions rapides (Artisans & Guides)
+                        // Cartes d'actions rapides (Villes & Guides)
                         Row(
                           children: [
                             Expanded(
                               child: _buildSynergyCard(
-                                title: 'Artisans Exposants',
-                                subtitle: 'Bogolan, cuir, bijoux',
-                                icon: Icons.handyman_rounded,
+                                title: 'Villes & Régions',
+                                subtitle: 'Territoires & circuits',
+                                icon: Icons.location_city_rounded,
                                 color: const Color(0xFF075E4D),
-                                onTap: () => context.push(AppRouter.artisans),
+                                onTap: () => context.push(AppRouter.villesList),
                               ),
                             ),
                             const SizedBox(width: 12),

@@ -5,6 +5,8 @@ import '../../models/ethnie_model.dart';
 import '../../models/plat_model.dart';
 import '../../models/region_model.dart';
 import '../../models/religion_model.dart';
+import '../../models/president_model.dart';
+import '../../models/ville_model.dart';
 import '../../models/search_result_item.dart';
 import '../../router/app_router.dart';
 import '../constants/api_constants.dart';
@@ -42,22 +44,38 @@ class SearchService {
       return remoteResults;
     }
 
-    // Fallback dynamique local garanti
+    // Solution de repli dynamique locale garantie
     return _localSearch(cleanQuery);
   }
 
+  /// Normalisation diacritique insensible aux accents et à la casse
+  static String normalizeText(String input) {
+    return input
+        .toLowerCase()
+        .replaceAll(RegExp(r'[éèêë]'), 'e')
+        .replaceAll(RegExp(r'[àâä]'), 'a')
+        .replaceAll(RegExp(r'[îï]'), 'i')
+        .replaceAll(RegExp(r'[ôö]'), 'o')
+        .replaceAll(RegExp(r'[ùûü]'), 'u')
+        .replaceAll('ç', 'c')
+        .replaceAll('-', ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
   List<SearchResultItem> _localSearch(String query) {
-    final q = query.toLowerCase();
+    final q = normalizeText(query);
     final List<SearchResultItem> results = [];
 
     // 1. Plats & Gastronomie
     final isSakaOrSaga = q.contains('saka') || q.contains('saga');
     for (final plat in PlatModel.defaultPlats) {
-      final nomLower = plat.nom.toLowerCase();
-      final matchesName = nomLower.contains(q);
-      final matchesSpecial = isSakaOrSaga && (nomLower.contains('saka') || nomLower.contains('saga'));
-      final matchesRegion = plat.regions.any((r) => r.toLowerCase().contains(q));
-      final matchesEthnie = plat.ethnies.any((e) => e.toLowerCase().contains(q));
+      final nomNorm = normalizeText(plat.nom);
+      final descNorm = normalizeText(plat.description);
+      final matchesName = nomNorm.contains(q) || descNorm.contains(q);
+      final matchesSpecial = isSakaOrSaga && (nomNorm.contains('saka') || nomNorm.contains('saga'));
+      final matchesRegion = plat.regions.any((r) => normalizeText(r).contains(q));
+      final matchesEthnie = plat.ethnies.any((e) => normalizeText(e).contains(q));
 
       if (matchesName || matchesSpecial || matchesRegion || matchesEthnie) {
         results.add(SearchResultItem(
@@ -73,10 +91,60 @@ class SearchService {
       }
     }
 
-    // 2. Ethnies & Traditions
+    // 2. Chefs d'État & Présidents
+    for (final pres in PresidentModel.chronologicalPresidents) {
+      final nomNorm = normalizeText(pres.nom);
+      final prenomNorm = normalizeText(pres.prenom);
+      final fullNorm = normalizeText(pres.fullName);
+      final bioNorm = normalizeText(pres.biographie);
+      final mandatNorm = normalizeText(pres.periodeMandat);
+
+      if (nomNorm.contains(q) ||
+          prenomNorm.contains(q) ||
+          fullNorm.contains(q) ||
+          bioNorm.contains(q) ||
+          mandatNorm.contains(q)) {
+        results.add(SearchResultItem(
+          id: 'president-${pres.id}',
+          titre: pres.fullName,
+          sousTitre: pres.periodeMandat,
+          categorie: 'Chefs d\'État',
+          description: pres.biographie,
+          imageUrl: pres.displayPhoto,
+          route: AppRouter.presidentDetail,
+          payload: pres,
+        ));
+      }
+    }
+
+    // 3. Villes & Lieux Historiques
+    for (final ville in VilleModel.defaultVilles) {
+      final nomNorm = normalizeText(ville.nom);
+      final regNorm = normalizeText(ville.region);
+      final descNorm = normalizeText(ville.description);
+
+      if (nomNorm.contains(q) || regNorm.contains(q) || descNorm.contains(q)) {
+        results.add(SearchResultItem(
+          id: 'ville-${ville.id}',
+          titre: ville.nom,
+          sousTitre: ville.region.isNotEmpty ? 'Région : ${ville.region}' : 'Ville du Mali',
+          categorie: 'Villes & Patrimoine',
+          description: ville.description,
+          imageUrl: ville.displayPhoto,
+          route: AppRouter.cityDetail,
+          payload: ville,
+        ));
+      }
+    }
+
+    // 4. Ethnies & Traditions
     for (final ethnie in EthnieModel.defaultEthnies) {
-      final nomLower = ethnie.nom.toLowerCase();
-      if (nomLower.contains(q) || ethnie.region.toLowerCase().contains(q) || ethnie.langue.toLowerCase().contains(q)) {
+      final nomNorm = normalizeText(ethnie.nom);
+      final regNorm = normalizeText(ethnie.region);
+      final langueNorm = normalizeText(ethnie.langue);
+      final descNorm = normalizeText(ethnie.description);
+
+      if (nomNorm.contains(q) || regNorm.contains(q) || langueNorm.contains(q) || descNorm.contains(q)) {
         results.add(SearchResultItem(
           id: 'ethnie-${ethnie.id}',
           titre: ethnie.nom,
@@ -90,11 +158,13 @@ class SearchService {
       }
     }
 
-    // 3. Régions
+    // 5. Régions
     for (final reg in RegionData.regions) {
-      final nomLower = reg.nom.toLowerCase();
-      final chefLower = reg.chefLieu.toLowerCase();
-      if (nomLower.contains(q) || chefLower.contains(q) || reg.description.toLowerCase().contains(q)) {
+      final nomNorm = normalizeText(reg.nom);
+      final chefNorm = normalizeText(reg.chefLieu);
+      final descNorm = normalizeText(reg.description);
+
+      if (nomNorm.contains(q) || chefNorm.contains(q) || descNorm.contains(q)) {
         results.add(SearchResultItem(
           id: 'region-${reg.id}',
           titre: reg.nom,
@@ -108,10 +178,13 @@ class SearchService {
       }
     }
 
-    // 4. Religions & Spiritualités
+    // 6. Religions & Spiritualités
     for (final rel in ReligionModel.defaultReligions) {
-      final nomLower = rel.nom.toLowerCase();
-      if (nomLower.contains(q) || (rel.categorie?.toLowerCase().contains(q) ?? false) || rel.description.toLowerCase().contains(q)) {
+      final nomNorm = normalizeText(rel.nom);
+      final catNorm = rel.categorie != null ? normalizeText(rel.categorie!) : '';
+      final descNorm = normalizeText(rel.description);
+
+      if (nomNorm.contains(q) || catNorm.contains(q) || descNorm.contains(q)) {
         results.add(SearchResultItem(
           id: 'religion-${rel.id}',
           titre: rel.nom,
