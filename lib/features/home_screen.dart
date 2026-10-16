@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/constants/api_constants.dart';
 import '../core/constants/app_colors.dart';
 import '../models/home_slide_model.dart';
 import '../models/search_result_item.dart';
@@ -84,8 +85,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   void _startCityAutoScroll() {
     _cityAutoScrollTimer?.cancel();
-    _cityAutoScrollTimer = Timer.periodic(const Duration(milliseconds: 40), (_) {
-      if (!mounted || _isCityUserScrolling || !_cityScrollController.hasClients) return;
+    _cityAutoScrollTimer = Timer.periodic(const Duration(milliseconds: 40), (
+      _,
+    ) {
+      if (!mounted ||
+          _isCityUserScrolling ||
+          !_cityScrollController.hasClients) {
+        return;
+      }
       final maxScroll = _cityScrollController.position.maxScrollExtent;
       final currentScroll = _cityScrollController.offset;
       if (currentScroll >= maxScroll - 2) {
@@ -133,34 +140,58 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final isSearching = searchQuery.length >= 2;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFFF7F8F5),
+      backgroundColor: isDark
+          ? AppColors.darkBackground
+          : const Color(0xFFF7F8F5),
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           // 1. Contenu principal défilant sous l'en-tête et la barre de recherche
           Positioned.fill(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.only(
-                top: fixedHeaderTotalHeight + 16,
-                bottom: 110,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Grille responsive des 4 catégories
-                  _buildCategoriesSection(screenWidth, isDark),
+            child: RefreshIndicator(
+              color: const Color(0xFF075E4D),
+              backgroundColor: Colors.white,
+              edgeOffset: fixedHeaderTotalHeight,
+              onRefresh: () async {
+                ref.invalidate(homeSlidesProvider);
+                ref.invalidate(homeVillesProvider);
+                ref.invalidate(religionsProvider);
+                try {
+                  await Future.wait([
+                    ref.read(homeSlidesProvider.future),
+                    ref.read(homeVillesProvider.future),
+                  ]);
+                } catch (_) {}
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
+                padding: EdgeInsets.only(
+                  top: fixedHeaderTotalHeight + 16,
+                  bottom: 110,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Grille responsive des 4 catégories
+                    _buildCategoriesSection(screenWidth, isDark),
 
-                  const SizedBox(height: 22),
+                    const SizedBox(height: 22),
 
-                  // Section Villes : Carrousel horizontal continu et fluide
-                  _buildContinuousCitiesCarousel(screenWidth, screenHeight, isDark),
+                    // Section Villes : Carrousel horizontal continu et fluide
+                    _buildContinuousCitiesCarousel(
+                      screenWidth,
+                      screenHeight,
+                      isDark,
+                    ),
 
-                  const SizedBox(height: 18),
+                    const SizedBox(height: 18),
 
-                  // Bannière interactive du Quiz Culturel
-                  _buildQuizBanner(screenWidth, isDark),
-                ],
+                    // Bannière interactive du Quiz Culturel
+                    _buildQuizBanner(screenWidth, isDark),
+                  ],
+                ),
               ),
             ),
           ),
@@ -212,7 +243,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return slidesAsync.when(
       data: (slides) {
-        final slideList = slides.isNotEmpty ? slides : HomeSlideModel.defaultSlides;
+        final slideList = slides.isNotEmpty
+            ? slides
+            : HomeSlideModel.defaultSlides;
         final currentSlide = slideList[_currentSlideIndex % slideList.length];
 
         return Container(
@@ -228,12 +261,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 switchInCurve: Curves.easeInOut,
                 switchOutCurve: Curves.easeInOut,
                 child: KeyedSubtree(
-                  key: ValueKey<String>('${currentSlide.id}_${currentSlide.imageUrl}'),
+                  key: ValueKey<String>(
+                    '${currentSlide.id}_${currentSlide.imageUrl}',
+                  ),
                   child: _buildSlideImage(currentSlide.imageUrl),
                 ),
               ),
 
-              // Dégradé sombre pour préserver la lisibilité parfaite du header
+              // Dégradé sombre pour préserver la lisibilité parfaite de l'en-tête
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -267,7 +302,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 'assets/images/MaliExplorer.png',
                                 height: 42,
                                 fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => const Icon(
+                                errorBuilder: (_, _, _) => const Icon(
                                   Icons.explore,
                                   color: Colors.white,
                                   size: 36,
@@ -302,62 +337,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
 
-              // Indicateur discret de pagination du diaporama et titre du slide en bas à gauche
+              // Indicateur discret de pagination du diaporama
               Positioned(
                 left: 16,
                 bottom: 34,
                 right: 16,
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Flexible(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            currentSlide.titre,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              shadows: [
-                                Shadow(blurRadius: 4, color: Colors.black87),
-                              ],
-                            ),
-                          ),
-                          if (currentSlide.sousTitre != null)
-                            Text(
-                              currentSlide.sousTitre!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.85),
-                                fontSize: 11,
-                                shadows: const [
-                                  Shadow(blurRadius: 4, color: Colors.black87),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
                     // Points indicateurs
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: List.generate(slideList.length, (idx) {
-                        final isActive = idx == (_currentSlideIndex % slideList.length);
+                        final isActive =
+                            idx == (_currentSlideIndex % slideList.length);
                         return AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
                           margin: const EdgeInsets.symmetric(horizontal: 2.5),
                           width: isActive ? 16 : 6,
                           height: 5,
                           decoration: BoxDecoration(
-                            color: isActive ? const Color(0xFFD6A23A) : Colors.white60,
+                            color: isActive
+                                ? const Color(0xFFD6A23A)
+                                : Colors.white60,
                             borderRadius: BorderRadius.circular(3),
                           ),
                         );
@@ -373,20 +376,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       loading: () => Container(
         height: height,
         color: const Color(0xFFB5703C),
-        child: const Center(child: CircularProgressIndicator(color: Colors.white)),
+        child: const Center(
+          child: CircularProgressIndicator(color: Colors.white),
+        ),
       ),
-      error: (_, __) => _buildHeroStaticFallback(context, height),
+      error: (_, _) => _buildHeroStaticFallback(context, height),
     );
   }
 
   Widget _buildSlideImage(String url) {
-    if (url.startsWith('http://') || url.startsWith('https://')) {
+    final trimmed = url.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
       return Image.network(
-        url,
+        trimmed,
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
-        errorBuilder: (_, __, ___) => Image.asset(
+        errorBuilder: (_, _, _) => Image.asset(
+          'assets/images/home_hero.jpeg',
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+        ),
+      );
+    }
+    if (trimmed.startsWith('/')) {
+      return Image.network(
+        '${ApiConstants.baseUrl}$trimmed',
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (_, _, _) => Image.asset(
           'assets/images/home_hero.jpeg',
           fit: BoxFit.cover,
           width: double.infinity,
@@ -395,11 +415,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       );
     }
     return Image.asset(
-      url,
+      trimmed,
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,
-      errorBuilder: (_, __, ___) => Container(color: const Color(0xFFB5703C)),
+      errorBuilder: (_, _, _) => Container(color: const Color(0xFFB5703C)),
     );
   }
 
@@ -443,12 +463,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 shadowColor: Colors.transparent,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
               ),
-              icon: const Icon(Icons.logout_rounded, color: Colors.white, size: 18),
+              icon: const Icon(
+                Icons.logout_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
               label: const Text(
                 'Se déconnecter',
-                style: TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           );
@@ -474,11 +504,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               shadowColor: Colors.transparent,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
             ),
             child: const Text(
               'Se connecter',
-              style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         );
@@ -495,20 +531,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             Icon(Icons.logout_rounded, color: Color(0xFFDC2626)),
             SizedBox(width: 10),
-            Text('Déconnexion', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              'Déconnexion',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
-        content: const Text('Êtes-vous sûr de vouloir vous déconnecter de MaliExplorer ?'),
+        content: const Text(
+          'Êtes-vous sûr de vouloir vous déconnecter de MaliExplorer ?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annuler', style: TextStyle(color: Color(0xFF6C7C77))),
+            child: const Text(
+              'Annuler',
+              style: TextStyle(color: Color(0xFF6C7C77)),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFDC2626),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             onPressed: () async {
               Navigator.pop(ctx);
@@ -561,13 +607,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               focusNode: _searchFocusNode,
               onChanged: _onSearchChanged,
               style: TextStyle(
-                color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : const Color(0xFF16332D),
                 fontSize: 14,
               ),
               decoration: InputDecoration(
                 hintText: 'Rechercher une ville, région, religion, recette...',
                 hintStyle: TextStyle(
-                  color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8B9B95),
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : const Color(0xFF8B9B95),
                   fontSize: 13.5,
                   fontWeight: FontWeight.w400,
                 ),
@@ -591,7 +641,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   color: Colors.grey.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF6C7C77)),
+                child: const Icon(
+                  Icons.close_rounded,
+                  size: 18,
+                  color: Color(0xFF6C7C77),
+                ),
               ),
             ),
         ],
@@ -601,7 +655,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   /// Overlay de suggestions sous la barre de recherche
   Widget _buildSearchSuggestionsOverlay(
-      AsyncValue<List<SearchResultItem>> searchResultsAsync, bool isDark) {
+    AsyncValue<List<SearchResultItem>> searchResultsAsync,
+    bool isDark,
+  ) {
     return Material(
       elevation: 8,
       borderRadius: BorderRadius.circular(20),
@@ -610,7 +666,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isDark ? AppColors.darkBorder : const Color(0xFF075E4D).withValues(alpha: 0.15),
+            color: isDark
+                ? AppColors.darkBorder
+                : const Color(0xFF075E4D).withValues(alpha: 0.15),
           ),
         ),
         child: searchResultsAsync.when(
@@ -622,14 +680,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.search_off_rounded, size: 40, color: Colors.grey.shade400),
+                      Icon(
+                        Icons.search_off_rounded,
+                        size: 40,
+                        color: Colors.grey.shade400,
+                      ),
                       const SizedBox(height: 10),
                       Text(
-                        'Aucun résultat correspondant.',
+                        'Aucun résultat correspondant',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: isDark ? Colors.white70 : const Color(0xFF6C7C77),
+                          color: isDark
+                              ? Colors.white70
+                              : const Color(0xFF6C7C77),
                         ),
                       ),
                     ],
@@ -641,9 +705,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             return ListView.separated(
               padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: results.length,
-              separatorBuilder: (_, __) => Divider(
+              separatorBuilder: (_, _) => Divider(
                 height: 1,
-                color: isDark ? AppColors.darkBorder : Colors.black.withValues(alpha: 0.05),
+                color: isDark
+                    ? AppColors.darkBorder
+                    : Colors.black.withValues(alpha: 0.05),
               ),
               itemBuilder: (context, index) {
                 final item = results[index];
@@ -655,11 +721,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       height: 44,
                       color: const Color(0xFF075E4D).withValues(alpha: 0.1),
                       child: item.imageUrl != null && item.imageUrl!.isNotEmpty
-                          ? Image.network(
-                              item.imageUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => _getCategoryIcon(item.categorie),
-                            )
+                          ? (item.imageUrl!.startsWith('assets/')
+                              ? Image.asset(
+                                  item.imageUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      _getCategoryIcon(item.categorie),
+                                )
+                              : Image.network(
+                                  ApiConstants.resolveImageUrl(item.imageUrl!),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      _getCategoryIcon(item.categorie),
+                                ))
                           : _getCategoryIcon(item.categorie),
                     ),
                   ),
@@ -676,7 +750,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   subtitle: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFF075E4D).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
@@ -697,18 +774,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             item.sousTitre!,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 11, color: Color(0xFF8B9B95)),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF8B9B95),
+                            ),
                           ),
                         ),
                       ],
                     ],
                   ),
-                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFF8B9B95)),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: Color(0xFF8B9B95),
+                  ),
                   onTap: () {
                     _searchFocusNode.unfocus();
                     ref.read(homeSearchQueryProvider.notifier).state = '';
                     _searchController.clear();
-                    context.push(item.route, extra: item.payload ?? item);
+                    context.push(item.route, extra: item);
                   },
                 );
               },
@@ -723,15 +807,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF075E4D)),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(0xFF075E4D),
+                    ),
                   ),
                   SizedBox(width: 12),
-                  Text('Recherche en cours...', style: TextStyle(color: Color(0xFF6C7C77))),
+                  Text(
+                    'Recherche en cours...',
+                    style: TextStyle(color: Color(0xFF6C7C77)),
+                  ),
                 ],
               ),
             ),
           ),
-          error: (_, __) => const Padding(
+          error: (_, _) => const Padding(
             padding: EdgeInsets.all(20),
             child: Center(
               child: Text(
@@ -754,7 +844,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (cat.contains('Ethnie')) icon = Icons.groups_rounded;
     if (cat.contains('Religion')) icon = Icons.mosque_rounded;
     if (cat.contains('Président')) icon = Icons.history_edu_rounded;
-    if (cat.contains('Artisan')) icon = Icons.handyman_rounded;
+    if (cat.contains('Guide')) icon = Icons.person_pin_circle_rounded;
     return Icon(icon, color: const Color(0xFF075E4D), size: 24);
   }
 
@@ -787,19 +877,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               borderRadius: BorderRadius.circular(16),
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 3.5),
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 4,
+                ),
                 decoration: BoxDecoration(
                   color: isDark ? AppColors.darkSurface : Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.2 : 0.04,
+                      ),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
                   ],
                   border: Border.all(
-                    color: isDark ? AppColors.darkBorder : Colors.black.withValues(alpha: 0.05),
+                    color: isDark
+                        ? AppColors.darkBorder
+                        : Colors.black.withValues(alpha: 0.05),
                     width: 1,
                   ),
                 ),
@@ -810,7 +907,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkSurfaceElevated : cat.bgColor,
+                        color: isDark
+                            ? AppColors.darkSurfaceElevated
+                            : cat.bgColor,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(cat.icon, color: cat.iconColor, size: 25),
@@ -827,7 +926,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           style: TextStyle(
                             fontSize: 10.5,
                             fontWeight: FontWeight.w600,
-                            color: isDark ? AppColors.darkTextPrimary : const Color(0xFF2C3E38),
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : const Color(0xFF2C3E38),
                             height: 1.15,
                           ),
                         ),
@@ -845,7 +946,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   /// 4. Carrousel continu et fluide des Villes
   Widget _buildContinuousCitiesCarousel(
-      double screenWidth, double screenHeight, bool isDark) {
+    double screenWidth,
+    double screenHeight,
+    bool isDark,
+  ) {
     final double cardHeight = (screenHeight * 0.27).clamp(190.0, 240.0);
     final double horizontalPadding = math.max(12.0, screenWidth * 0.035);
     final villesAsync = ref.watch(homeVillesProvider);
@@ -884,7 +988,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
         villesAsync.when(
           data: (villes) {
-            final cityList = villes.isNotEmpty ? villes : _getStaticDefaultCities();
+            final cityList = villes.isNotEmpty
+                ? villes
+                : _getStaticDefaultCities();
             // Création d'une liste multipliée pour boucle continue sans accroc
             final infiniteCities = [...cityList, ...cityList, ...cityList];
 
@@ -919,7 +1025,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: CircularProgressIndicator(color: Color(0xFF075E4D)),
             ),
           ),
-          error: (_, __) => SizedBox(
+          error: (_, _) => SizedBox(
             height: cardHeight,
             child: _buildStaticFallbackCityCard(cardHeight, horizontalPadding),
           ),
@@ -986,7 +1092,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                           shadows: [
-                            Shadow(offset: Offset(0, 1), blurRadius: 3, color: Colors.black87),
+                            Shadow(
+                              offset: Offset(0, 1),
+                              blurRadius: 3,
+                              color: Colors.black87,
+                            ),
                           ],
                         ),
                       ),
@@ -1018,7 +1128,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       color: Colors.white,
                       shape: BoxShape.circle,
                       boxShadow: [
-                        BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2)),
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 6,
+                          offset: Offset(0, 2),
+                        ),
                       ],
                     ),
                     child: const Icon(
@@ -1037,24 +1151,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildCityImage(String photo) {
-    if (photo.startsWith('http://') || photo.startsWith('https://')) {
+    final trimmed = photo.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
       return Image.network(
-        photo,
+        trimmed,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Image.asset(
+        errorBuilder: (_, _, _) => Image.asset(
+          'assets/images/home_tombouctou.jpeg',
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+    if (trimmed.startsWith('/')) {
+      return Image.network(
+        '${ApiConstants.baseUrl}$trimmed',
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => Image.asset(
           'assets/images/home_tombouctou.jpeg',
           fit: BoxFit.cover,
         ),
       );
     }
     return Image.asset(
-      photo,
+      trimmed,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => Container(color: const Color(0xFF075E4D)),
+      errorBuilder: (_, _, _) => Container(color: const Color(0xFF075E4D)),
     );
   }
 
-  Widget _buildStaticFallbackCityCard(double cardHeight, double horizontalPadding) {
+  Widget _buildStaticFallbackCityCard(
+    double cardHeight,
+    double horizontalPadding,
+  ) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       child: InkWell(
@@ -1081,42 +1209,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         id: 1,
         nom: 'Tombouctou',
         region: 'Région de Tombouctou',
-        description: 'Cité mystérieuse des 333 saints et patrimoine mondial de l\'humanité.',
+        description:
+            'Cité mystérieuse des 333 saints et patrimoine mondial de l\'humanité.',
         imageUrl: 'assets/images/home_tombouctou.jpeg',
       ),
       VilleModel(
         id: 2,
         nom: 'Djenné',
         region: 'Région de Mopti',
-        description: 'Cité millénaire réputée pour sa majestueuse Grande Mosquée en terre crue.',
+        description:
+            'Cité millénaire réputée pour sa majestueuse Grande Mosquée en terre crue.',
         imageUrl: 'assets/images/djenne_cover.jpeg',
       ),
       VilleModel(
         id: 3,
         nom: 'Ségou',
         region: 'Région de Ségou',
-        description: 'Cité des balanzans, capitale historique du fier royaume Bambara.',
+        description:
+            'Cité des balanzans, capitale historique du fier royaume Bambara.',
         imageUrl: 'assets/images/segou_cover.jpg',
       ),
       VilleModel(
         id: 4,
         nom: 'Mopti',
         region: 'Région de Mopti',
-        description: 'La "Venise du Mali", port fluvial et grand carrefour des cultures fluviales.',
+        description:
+            'La "Venise du Mali", port fluvial et grand carrefour des cultures fluviales.',
         imageUrl: 'assets/images/mopti_cover.jpg',
       ),
       VilleModel(
         id: 5,
         nom: 'Bamako',
         region: 'District de Bamako',
-        description: 'Capitale vibrante sur les rives du fleuve Niger, cœur économique et artistique.',
+        description:
+            'Capitale vibrante sur les rives du fleuve Niger, cœur économique et artistique.',
         imageUrl: 'assets/images/bamako_cover.jpeg',
       ),
       VilleModel(
         id: 6,
         nom: 'Sikasso',
         region: 'Région de Sikasso',
-        description: 'Capitale du Kénédougou, grenier verdoyant et verger nourricier du Mali.',
+        description:
+            'Capitale du Kénédougou, grenier verdoyant et verger nourricier du Mali.',
         imageUrl: 'assets/images/sikasso_cover.jpeg',
       ),
     ];
@@ -1150,7 +1284,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF332A15) : const Color(0xFFFEF3C7),
+                color: isDark
+                    ? const Color(0xFF332A15)
+                    : const Color(0xFFFEF3C7),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: const Icon(
@@ -1169,7 +1305,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     style: TextStyle(
                       fontSize: 14.5,
                       fontWeight: FontWeight.w800,
-                      color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : const Color(0xFF16332D),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -1179,7 +1317,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 11.5,
-                      color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : const Color(0xFF6C7C77),
                     ),
                   ),
                 ],
@@ -1194,7 +1334,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 elevation: 0,
               ),
               child: const Text(

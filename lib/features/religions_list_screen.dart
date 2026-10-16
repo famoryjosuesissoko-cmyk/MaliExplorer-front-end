@@ -9,7 +9,8 @@ class ReligionsListScreen extends ConsumerStatefulWidget {
   const ReligionsListScreen({super.key});
 
   @override
-  ConsumerState<ReligionsListScreen> createState() => _ReligionsListScreenState();
+  ConsumerState<ReligionsListScreen> createState() =>
+      _ReligionsListScreenState();
 }
 
 class _ReligionsListScreenState extends ConsumerState<ReligionsListScreen> {
@@ -99,8 +100,16 @@ class _ReligionsListScreenState extends ConsumerState<ReligionsListScreen> {
                       top: Radius.circular(28),
                     ),
                   ),
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
+                  child: RefreshIndicator(
+                    color: const Color(0xFF075E4D),
+                    onRefresh: () async {
+                      ref.invalidate(religionsProvider);
+                      await ref.read(religionsProvider.future);
+                    },
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
                     padding: const EdgeInsets.fromLTRB(16, 20, 16, 110),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,9 +131,11 @@ class _ReligionsListScreenState extends ConsumerState<ReligionsListScreen> {
                               if (_searchQuery.isEmpty) return true;
                               final q = _searchQuery.toLowerCase();
                               return r.nom.toLowerCase().contains(q) ||
-                                  (r.categorie?.toLowerCase().contains(q) ?? false) ||
+                                  (r.categorie?.toLowerCase().contains(q) ??
+                                      false) ||
                                   r.description.toLowerCase().contains(q) ||
-                                  (r.branches?.toLowerCase().contains(q) ?? false);
+                                  (r.branches?.toLowerCase().contains(q) ??
+                                      false);
                             }).toList();
 
                             if (filtered.isEmpty) {
@@ -133,7 +144,10 @@ class _ReligionsListScreenState extends ConsumerState<ReligionsListScreen> {
                                 child: Center(
                                   child: Text(
                                     'Aucune tradition ou religion trouvée.',
-                                    style: TextStyle(color: Color(0xFF6C7C77), fontSize: 14),
+                                    style: TextStyle(
+                                      color: Color(0xFF6C7C77),
+                                      fontSize: 14,
+                                    ),
                                   ),
                                 ),
                               );
@@ -143,7 +157,8 @@ class _ReligionsListScreenState extends ConsumerState<ReligionsListScreen> {
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               itemCount: filtered.length,
-                              separatorBuilder: (_, __) => const SizedBox(height: 14),
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(height: 14),
                               itemBuilder: (context, index) {
                                 final religion = filtered[index];
                                 return _buildReligionCard(religion);
@@ -153,15 +168,18 @@ class _ReligionsListScreenState extends ConsumerState<ReligionsListScreen> {
                           loading: () => const Center(
                             child: Padding(
                               padding: EdgeInsets.all(32),
-                              child: CircularProgressIndicator(color: Color(0xFF075E4D)),
+                              child: CircularProgressIndicator(
+                                color: Color(0xFF075E4D),
+                              ),
                             ),
                           ),
-                          error: (_, __) => _buildErrorState(),
+                          error: (_, _) => _buildErrorState(),
                         ),
                       ],
                     ),
                   ),
                 ),
+              ),
               ),
             ],
           ),
@@ -205,7 +223,11 @@ class _ReligionsListScreenState extends ConsumerState<ReligionsListScreen> {
                 _searchController.clear();
                 setState(() => _searchQuery = '');
               },
-              child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF8B9B95)),
+              child: const Icon(
+                Icons.close_rounded,
+                size: 18,
+                color: Color(0xFF8B9B95),
+              ),
             ),
         ],
       ),
@@ -218,7 +240,9 @@ class _ReligionsListScreenState extends ConsumerState<ReligionsListScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFE8F5E9),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF075E4D).withValues(alpha: 0.15)),
+        border: Border.all(
+          color: const Color(0xFF075E4D).withValues(alpha: 0.15),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,7 +253,11 @@ class _ReligionsListScreenState extends ConsumerState<ReligionsListScreen> {
               color: const Color(0xFF075E4D).withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.handshake_rounded, color: Color(0xFF075E4D), size: 22),
+            child: const Icon(
+              Icons.handshake_rounded,
+              color: Color(0xFF075E4D),
+              size: 22,
+            ),
           ),
           const SizedBox(width: 12),
           const Expanded(
@@ -328,9 +356,14 @@ class _ReligionsListScreenState extends ConsumerState<ReligionsListScreen> {
                           const SizedBox(height: 4),
                           // Badge proportion statistique
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF075E4D).withValues(alpha: 0.08),
+                              color: const Color(
+                                0xFF075E4D,
+                              ).withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -376,13 +409,18 @@ class _ReligionsListScreenState extends ConsumerState<ReligionsListScreen> {
       return Image.network(
         url,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => const Icon(Icons.mosque_rounded, color: Color(0xFF075E4D), size: 30),
+        errorBuilder: (_, _, _) => const Icon(
+          Icons.mosque_rounded,
+          color: Color(0xFF075E4D),
+          size: 30,
+        ),
       );
     }
     return Image.asset(
       url,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => const Icon(Icons.mosque_rounded, color: Color(0xFF075E4D), size: 30),
+      errorBuilder: (_, _, _) =>
+          const Icon(Icons.mosque_rounded, color: Color(0xFF075E4D), size: 30),
     );
   }
 
@@ -390,7 +428,11 @@ class _ReligionsListScreenState extends ConsumerState<ReligionsListScreen> {
     return Center(
       child: Column(
         children: [
-          const Icon(Icons.error_outline_rounded, color: Color(0xFFE53935), size: 36),
+          const Icon(
+            Icons.error_outline_rounded,
+            color: Color(0xFFE53935),
+            size: 36,
+          ),
           const SizedBox(height: 10),
           const Text('Impossible de charger les données.'),
           TextButton(
@@ -402,4 +444,3 @@ class _ReligionsListScreenState extends ConsumerState<ReligionsListScreen> {
     );
   }
 }
-

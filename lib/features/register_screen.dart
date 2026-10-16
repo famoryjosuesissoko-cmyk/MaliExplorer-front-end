@@ -10,7 +10,7 @@ import '../core/services/api_service.dart';
 import '../router/app_router.dart';
 import 'auth/auth_controller.dart';
 
-enum UserRole { touriste, promoteur, guide, artisan }
+enum UserRole { touriste, promoteur, guide }
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -46,10 +46,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _telephoneController = TextEditingController();
   final _adresseController = TextEditingController();
 
-  // Contrôleurs Promoteur / Artisan / Guide
+  // Contrôleurs Promoteur / Guide
   final _nomOrganisationController = TextEditingController();
   final _nifRccmController = TextEditingController();
-  final _specialiteController = TextEditingController();
 
   @override
   void dispose() {
@@ -62,7 +61,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     _nomOrganisationController.dispose();
     _nifRccmController.dispose();
-    _specialiteController.dispose();
     super.dispose();
   }
 
@@ -261,9 +259,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       adresse: _adresseController.text,
       telephone: _telephoneController.text,
       photoUrl: photoUrl,
-      nomOrganisation: _nomOrganisationController.text.isNotEmpty
-          ? _nomOrganisationController.text
-          : _specialiteController.text,
+      nomOrganisation: _nomOrganisationController.text,
       pieceIdentite: pieceIdentiteUrl,
     );
 
@@ -367,8 +363,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   _buildTouristeForm()
                 else if (_selectedRole == UserRole.guide)
                   _buildGuideForm()
-                else if (_selectedRole == UserRole.artisan)
-                  _buildArtisanForm()
                 else
                   _buildPromoteurForm(),
 
@@ -433,7 +427,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Footer vers Connexion
+                // Pied de page vers Connexion
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -469,8 +463,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         return 'Rejoignez MaliExplorer et commencez votre aventure dès maintenant.';
       case UserRole.guide:
         return 'Rejoignez MaliExplorer comme guide touristique certifié.';
-      case UserRole.artisan:
-        return 'Faites découvrir vos créations artisanales du Mali au monde.';
       case UserRole.promoteur:
         return 'Rejoignez MaliExplorer comme promoteur culturel ou événementiel.';
     }
@@ -532,12 +524,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             role: UserRole.guide,
             label: 'Guide',
             icon: Icons.lightbulb_outline,
-          ),
-          const SizedBox(width: 8),
-          _buildRoleButton(
-            role: UserRole.artisan,
-            label: 'Artisan',
-            icon: Icons.palette_outlined,
           ),
           const SizedBox(width: 8),
           _buildRoleButton(
@@ -791,100 +777,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 
-  // ==================== 3. FORMULAIRE ARTISAN ====================
-  Widget _buildArtisanForm() {
-    return _buildCardSection(
-      icon: Icons.palette_outlined,
-      title: 'Atelier & Créations',
-      subtitle: 'Présentez votre métier artisanal et votre atelier',
-      children: [
-        _buildPillField(
-          controller: _prenomController,
-          hint: 'Prénom',
-          icon: Icons.person_outline,
-          validator: (val) => val == null || val.isEmpty ? 'Prénom requis' : null,
-        ),
-        const SizedBox(height: 12),
-        _buildPillField(
-          controller: _nomController,
-          hint: 'Nom',
-          icon: Icons.person_outline,
-          validator: (val) => val == null || val.isEmpty ? 'Nom requis' : null,
-        ),
-        const SizedBox(height: 12),
-        _buildPillField(
-          controller: _emailController,
-          hint: 'Email',
-          icon: Icons.mail_outline,
-          keyboardType: TextInputType.emailAddress,
-          validator: (val) => (val == null || !val.contains('@')) ? 'Email invalide' : null,
-        ),
-        const SizedBox(height: 12),
-        _buildPillField(
-          controller: _passwordController,
-          hint: 'Mot de passe',
-          icon: Icons.lock_outline,
-          obscureText: _obscurePassword,
-          suffixIcon: IconButton(
-            icon: Icon(
-              _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-              color: AppColors.textSecondary,
-              size: 20,
-            ),
-            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-          ),
-          validator: (val) => (val == null || val.length < 6) ? 'Min 6 caractères' : null,
-        ),
-        const SizedBox(height: 12),
-        _buildPillField(
-          controller: _telephoneController,
-          hint: 'Téléphone / WhatsApp',
-          icon: Icons.phone_outlined,
-          keyboardType: TextInputType.phone,
-        ),
-        const SizedBox(height: 12),
-        _buildPillField(
-          controller: _specialiteController,
-          hint: 'Spécialité (ex: Bijouterie Touareg, Poterie, Bogolan)',
-          icon: Icons.handyman_outlined,
-        ),
-        const SizedBox(height: 12),
-        _buildPillField(
-          controller: _adresseController,
-          hint: 'Adresse de l\'atelier (ex: Marché artisanal de Bamako)',
-          icon: Icons.location_on_outlined,
-        ),
-        const SizedBox(height: 14),
-        _buildInteractiveFilePickerTile(
-          title: 'Photo de profil ou atelier',
-          subtitle: 'JPG, PNG (max 10 MO)',
-          selectedBytes: _avatarBytes,
-          selectedName: _avatarName,
-          onTap: _pickAvatar,
-          onRemove: () => setState(() {
-            _avatarBytes = null;
-            _avatarName = null;
-          }),
-          placeholderIcon: Icons.camera_alt_outlined,
-        ),
-        const SizedBox(height: 12),
-        _buildInteractiveFilePickerTile(
-          title: 'Pièce d’identité ou Carte artisanale',
-          subtitle: 'JPG, PNG, PDF (max 10 MO)',
-          selectedBytes: _idDocBytes,
-          selectedName: _idDocName,
-          onTap: _pickIdDoc,
-          onRemove: () => setState(() {
-            _idDocBytes = null;
-            _idDocName = null;
-          }),
-          placeholderIcon: Icons.badge_outlined,
-        ),
-      ],
-    );
-  }
-
-  // ==================== 4. FORMULAIRE PROMOTEUR ====================
+  // ==================== 3. FORMULAIRE PROMOTEUR ====================
   Widget _buildPromoteurForm() {
     return Column(
       children: [

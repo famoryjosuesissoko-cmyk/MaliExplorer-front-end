@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/constants/api_constants.dart';
 import '../core/constants/app_colors.dart';
 import '../models/ville_model.dart';
 import '../providers/favoris_provider.dart';
@@ -22,42 +23,56 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
     final list = <String>[];
     final nom = (widget.ville?.nom ?? 'tombouctou').toLowerCase();
 
-    if (nom.contains('bamako')) {
-      list.add('assets/images/bamako_gallery_1.jpeg');
-      list.add('assets/images/bamako_gallery_2.jpeg');
-      list.add('assets/images/bamako_cover.jpeg');
-    } else if (nom.contains('djenne') || nom.contains('djenné')) {
-      list.add('assets/pannellum/djenne_vue_aerienne_360.jpg');
-      list.add('assets/pannellum/djenne_nef_hypostyle_360.jpg');
-      list.add('assets/pannellum/djenne_cour_centrale_360.jpg');
-      list.add('assets/pannellum/djenne_minarets_zoom_360.jpg');
-      list.add('assets/pannellum/djenne_ruelle_contreforts_360.jpg');
-      list.add('assets/images/djenne_gallery_1.jpeg');
-      list.add('assets/images/djenne_gallery_2.jpeg');
-      list.add('assets/images/djenne_cover.jpeg');
-    } else if (nom.contains('mopti')) {
-      list.add('assets/images/mopti_gallery_1.jpg');
-      list.add('assets/images/mopti_gallery_2.jpeg');
-      list.add('assets/images/mopti_gallery_3.webp');
-    } else if (nom.contains('segou') || nom.contains('ségou')) {
-      list.add('assets/images/segou_gallery_1.jpg');
-      list.add('assets/images/segou_gallery_2.jpeg');
-      list.add('assets/images/segou_gallery_3.jpeg');
-    } else if (nom.contains('sikasso')) {
-      list.add('assets/images/sikasso_gallery_1.jpg');
-      list.add('assets/images/sikasso_gallery_2.jpg');
-      list.add('assets/images/sikasso_gallery_3.jpeg');
-    } else {
-      list.add('assets/images/tombouctou_gallery_1.jpeg');
-      list.add('assets/images/tombouctou_gallery_2.jpeg');
-      list.add('assets/images/tombouctou_hero.jpeg');
+    // 1. Priorité aux images dynamiques de la ville configurées depuis l'administration
+    if (widget.ville != null && widget.ville!.images.isNotEmpty) {
+      for (final img in widget.ville!.images) {
+        final trimmed = img.trim();
+        if (trimmed.isNotEmpty && !list.contains(trimmed)) {
+          list.add(trimmed);
+        }
+      }
     }
 
     if (widget.ville?.imageUrl != null &&
-        widget.ville!.imageUrl.isNotEmpty &&
-        !list.contains(widget.ville!.imageUrl)) {
-      list.insert(0, widget.ville!.imageUrl);
+        widget.ville!.imageUrl.trim().isNotEmpty &&
+        !list.contains(widget.ville!.imageUrl.trim())) {
+      list.insert(0, widget.ville!.imageUrl.trim());
     }
+
+    // 2. Si aucune image dynamique n'est présente, repli sur la galerie locale
+    if (list.isEmpty) {
+      if (nom.contains('bamako')) {
+        list.add('assets/images/bamako_gallery_1.jpeg');
+        list.add('assets/images/bamako_gallery_2.jpeg');
+        list.add('assets/images/bamako_cover.jpeg');
+      } else if (nom.contains('djenne') || nom.contains('djenné')) {
+        list.add('assets/pannellum/djenne_vue_aerienne_360.jpg');
+        list.add('assets/pannellum/djenne_nef_hypostyle_360.jpg');
+        list.add('assets/pannellum/djenne_cour_centrale_360.jpg');
+        list.add('assets/pannellum/djenne_minarets_zoom_360.jpg');
+        list.add('assets/pannellum/djenne_ruelle_contreforts_360.jpg');
+        list.add('assets/images/djenne_gallery_1.jpeg');
+        list.add('assets/images/djenne_gallery_2.jpeg');
+        list.add('assets/images/djenne_cover.jpeg');
+      } else if (nom.contains('mopti')) {
+        list.add('assets/images/mopti_gallery_1.jpg');
+        list.add('assets/images/mopti_gallery_2.jpeg');
+        list.add('assets/images/mopti_gallery_3.webp');
+      } else if (nom.contains('segou') || nom.contains('ségou')) {
+        list.add('assets/images/segou_gallery_1.jpg');
+        list.add('assets/images/segou_gallery_2.jpeg');
+        list.add('assets/images/segou_gallery_3.jpeg');
+      } else if (nom.contains('sikasso')) {
+        list.add('assets/images/sikasso_gallery_1.jpg');
+        list.add('assets/images/sikasso_gallery_2.jpg');
+        list.add('assets/images/sikasso_gallery_3.jpeg');
+      } else {
+        list.add('assets/images/tombouctou_gallery_1.jpeg');
+        list.add('assets/images/tombouctou_gallery_2.jpeg');
+        list.add('assets/images/tombouctou_hero.jpeg');
+      }
+    }
+
     return list;
   }
 
@@ -433,47 +448,64 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
     );
   }
 
-  ImageProvider _getHeroImageProvider(String? imageUrl) {
-    if (imageUrl != null && imageUrl.startsWith('http')) {
-      return NetworkImage(imageUrl);
-    }
-    final nom = (widget.ville?.nom ?? '').toLowerCase();
-    if (nom.contains('bamako')) {
-      return const AssetImage('assets/images/bamako_hero.jpeg');
-    } else if (nom.contains('djenne') || nom.contains('djenné')) {
-      return const AssetImage('assets/images/djenne_hero.jpeg');
-    } else if (nom.contains('mopti')) {
-      return const AssetImage('assets/images/mopti_cover.jpg');
-    } else if (nom.contains('segou') || nom.contains('ségou')) {
-      return const AssetImage('assets/images/segou_cover.jpg');
-    } else if (nom.contains('sikasso')) {
-      return const AssetImage('assets/images/sikasso_cover.jpeg');
-    } else if (nom.contains('tombouctou')) {
-      return const AssetImage('assets/images/tombouctou_hero.jpeg');
-    }
-    if (imageUrl != null && imageUrl.isNotEmpty) {
-      if (imageUrl.startsWith('assets/')) {
-        return AssetImage(imageUrl);
+  Widget _buildHeroImageContent(double height) {
+    final rawUrl = widget.ville?.imageUrl.trim();
+    final localFallback = VilleModel.getLocalPhoto(widget.ville?.nom ?? 'Tombouctou');
+
+    Widget fallbackWidget() => Image.asset(
+          localFallback,
+          height: height,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Container(
+            height: height,
+            color: AppColors.textPrimary,
+            child: const Center(
+              child: Icon(Icons.location_city_rounded, color: Colors.white, size: 48),
+            ),
+          ),
+        );
+
+    if (rawUrl != null && rawUrl.isNotEmpty) {
+      if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+        return Image.network(
+          ApiConstants.resolveImageUrl(rawUrl),
+          height: height,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => fallbackWidget(),
+        );
       }
-      return NetworkImage(imageUrl);
+      if (rawUrl.startsWith('assets/')) {
+        return Image.asset(
+          rawUrl,
+          height: height,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => fallbackWidget(),
+        );
+      }
+      if (rawUrl.startsWith('/')) {
+        return Image.network(
+          '${ApiConstants.baseUrl}$rawUrl',
+          height: height,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => fallbackWidget(),
+        );
+      }
     }
-    return const AssetImage('assets/images/tombouctou_hero.jpeg');
+    return fallbackWidget();
   }
 
   Widget _buildHeroImage(BuildContext context, double height) {
     return Stack(
       children: [
-        // Image de la ville
-        Container(
+        // Image de la ville sécurisée avec fallback local
+        SizedBox(
           height: height,
           width: double.infinity,
-          decoration: BoxDecoration(
-            color: AppColors.textPrimary,
-            image: DecorationImage(
-              image: _getHeroImageProvider(widget.ville?.imageUrl),
-              fit: BoxFit.cover,
-            ),
-          ),
+          child: _buildHeroImageContent(height),
         ),
 
         // Boutons Retour & Favoris

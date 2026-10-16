@@ -567,7 +567,7 @@ class _DishDetailScreenState extends ConsumerState<DishDetailScreen> {
                     ref.watch(favorisNotifierProvider);
                     final String nomPlat = plat.nom;
                     final String categoriePlat = plat.regions.isNotEmpty
-                        ? 'Origine : ${plat.regions.join(", ")}'
+                        ? 'Plat traditionnel (Origine : ${plat.regions.join(", ")})'
                         : 'Plat traditionnel';
                     final isFav = ref
                         .read(favorisNotifierProvider.notifier)

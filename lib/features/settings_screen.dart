@@ -25,7 +25,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       backgroundColor: isDarkMode ? AppColors.darkBackground : const Color(0xFFF7F8F5),
       body: Column(
         children: [
-          // Header
+          // En-tête
           Container(
             color: isDarkMode ? AppColors.darkBackgroundSecondary : const Color(0xFF075E4D),
             child: SafeArea(

@@ -11,7 +11,7 @@ final favorisNotifierProvider =
   return FavorisNotifier(service);
 });
 
-// Alias for compatibility with existing code
+// Alias pour la compatibilité avec le code existant
 final favorisProvider = Provider<AsyncValue<List<FavoriModel>>>((ref) {
   return ref.watch(favorisNotifierProvider);
 });
@@ -115,7 +115,19 @@ class FavorisNotifier extends StateNotifier<AsyncValue<List<FavoriModel>>> {
           map[item.titre] = item;
         }
         for (final item in backendList) {
-          map[item.titre] = item;
+          final existing = map[item.titre];
+          if (existing != null && item.imageUrl.isEmpty && existing.imageUrl.isNotEmpty) {
+            map[item.titre] = FavoriModel(
+              id: item.id,
+              titre: item.titre,
+              categorie: item.categorie.isNotEmpty ? item.categorie : existing.categorie,
+              imageUrl: existing.imageUrl,
+              route: item.route.isNotEmpty ? item.route : existing.route,
+              referenceId: item.referenceId ?? existing.referenceId,
+            );
+          } else {
+            map[item.titre] = item;
+          }
         }
         final merged = map.values.toList();
         _saveLocalCache(merged);

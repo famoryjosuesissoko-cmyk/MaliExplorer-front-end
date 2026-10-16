@@ -1,3 +1,5 @@
+import '../core/constants/api_constants.dart';
+
 class ReligionModel {
   final int id;
   final String nom;
@@ -40,25 +42,67 @@ class ReligionModel {
   });
 
   factory ReligionModel.fromJson(Map<String, dynamic> json) {
+    final idVal = json['id'] ?? json['idReligion'] ?? 0;
+    final int resolvedId = idVal is int ? idVal : int.tryParse(idVal.toString()) ?? 0;
+
+    final rawDesc = json['description'] ?? json['descriptionHistorique'] ?? '';
+    final rawHistoire = json['histoire'] ?? json['descriptionHistorique'] ?? '';
+    final rawPratiques = json['pratiques'] ?? json['pratiquesEtFetes'] ?? '';
+    final rawFetes = json['fetes'] ?? json['pratiquesEtFetes'] ?? '';
+    final rawLieux = json['lieuxDeCulte'] ?? json['lieuxEmblematiques'] ?? '';
+
+    // Branches / Courants (support String ou List)
+    String? resolvedBranches;
+    final rawBranches = json['branches'] ?? json['courantsOuBranches'];
+    if (rawBranches is List) {
+      resolvedBranches = rawBranches.join('\n');
+    } else if (rawBranches != null) {
+      resolvedBranches = rawBranches.toString();
+    }
+
+    // Proportion de la population / Pourcentage
+    String resolvedProportion = 'Données non disponibles';
+    final rawProp = json['proportionPopulation'] ?? json['pourcentageEstime'];
+    if (rawProp != null && rawProp.toString().trim().isNotEmpty) {
+      final s = rawProp.toString().trim();
+      resolvedProportion = s.endsWith('%') ? s : '$s%';
+    }
+
+    // Ordre
+    final rawOrdre = json['ordre'] ?? json['ordreAffichage'] ?? 0;
+    final int resolvedOrdre = rawOrdre is int ? rawOrdre : int.tryParse(rawOrdre.toString()) ?? 0;
+
+    // Publié
+    final dynamic rawPublie = json['publie'] ?? json['estPublie'];
+    final bool resolvedPublie = rawPublie is bool
+        ? rawPublie
+        : (rawPublie != null ? rawPublie.toString().toLowerCase() == 'true' : true);
+
+    // Image URL
+    final rawImg = json['imageUrl'] ?? json['photoUrl'];
+    final String resolvedImg = (rawImg != null && rawImg.toString().trim().isNotEmpty)
+        ? ApiConstants.resolveImageUrl(rawImg.toString().trim())
+        : 'assets/images/home_hero.jpeg';
+
     return ReligionModel(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      id: resolvedId,
       nom: json['nom'] ?? '',
-      categorie: json['categorie'],
-      description: json['description'] ?? '',
-      histoire: json['histoire'] ?? '',
-      pratiques: json['pratiques'] ?? '',
-      fetes: json['fetes'] ?? '',
-      lieuxDeCulte: json['lieuxDeCulte'] ?? '',
-      regionsConcernees: json['regionsConcernees'] ?? '',
-      branches: json['branches'],
-      proportionPopulation: json['proportionPopulation'] ?? 'Données non disponibles',
-      nombrePratiquantsEstime: json['nombrePratiquantsEstime'] ?? 'Données non disponibles',
-      sourceStatistiques: json['sourceStatistiques'] ?? 'INSTAT Mali / Rapports démographiques officiels',
-      anneeStatistiques: json['anneeStatistiques'] ?? '2022',
-      methodologieStatistiques: json['methodologieStatistiques'] ?? 'Recensement RGPH-5',
-      imageUrl: json['imageUrl'] ?? 'assets/images/home_hero.jpeg',
-      ordre: json['ordre'] is int ? json['ordre'] : int.tryParse(json['ordre']?.toString() ?? '0') ?? 0,
-      publie: json['publie'] ?? true,
+      categorie: json['categorie']?.toString(),
+      description: rawDesc.toString(),
+      histoire: rawHistoire.toString(),
+      pratiques: rawPratiques.toString(),
+      fetes: rawFetes.toString(),
+      lieuxDeCulte: rawLieux.toString(),
+      regionsConcernees: json['regionsConcernees']?.toString() ?? '',
+      branches: resolvedBranches,
+      proportionPopulation: resolvedProportion,
+      nombrePratiquantsEstime: json['nombrePratiquantsEstime']?.toString() ?? 'Données non disponibles',
+      sourceStatistiques: json['sourceStatistiques']?.toString() ?? 'INSTAT Mali / Rapports démographiques officiels',
+      anneeStatistiques: json['anneeStatistiques']?.toString() ?? '2022',
+      methodologieStatistiques: json['methodologieStatistiques']?.toString() ?? 'Recensement RGPH-5',
+      imageUrl: resolvedImg,
+      ordre: resolvedOrdre,
+      publie: resolvedPublie,
     );
   }
 

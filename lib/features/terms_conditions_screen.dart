@@ -137,7 +137,7 @@ class TermsConditionsScreen extends StatelessWidget {
                     title: '2. Acceptation des Conditions',
                     content:
                         'L\'accès et l\'utilisation de MaliExplorer sont subordonnés à l\'acceptation pleine et sans réserve des présentes Conditions Générales d\'Utilisation (CGU). '
-                        'En créant un compte sur la plateforme (que ce soit en qualité de Touriste, de Guide, d\'Artisan ou de Promoteur culturel), vous reconnaissez avoir pris connaissance des présentes dispositions et vous engagez à les respecter.',
+                        'En créant un compte sur la plateforme (que ce soit en qualité de Touriste, de Guide ou de Promoteur culturel), vous reconnaissez avoir pris connaissance des présentes dispositions et vous engagez à les respecter.',
                   ),
 
                   _buildSection(
@@ -145,7 +145,7 @@ class TermsConditionsScreen extends StatelessWidget {
                     content:
                         '• Exactitude des informations : L\'utilisateur s\'engage à fournir des renseignements personnels et professionnels sincères, exacts et à jour lors de son inscription.\n'
                         '• Sécurité du compte : Chaque utilisateur est responsable de la confidentialité de ses identifiants et de toutes les activités effectuées sous son profil.\n'
-                        '• Rôles professionnels (Guides, Artisans, Promoteurs) : Les professionnels s\'engagent à soumettre des pièces justificatives authentiques (pièces d\'identité, enregistrements légaux, certifications) soumises à la modération de l\'équipe MaliExplorer.',
+                        '• Rôles professionnels (Guides, Promoteurs) : Les professionnels s\'engagent à soumettre des pièces justificatives authentiques (pièces d\'identité, enregistrements légaux, certifications) soumises à la modération de l\'équipe MaliExplorer.',
                   ),
 
                   _buildSection(
@@ -160,7 +160,7 @@ class TermsConditionsScreen extends StatelessWidget {
                   _buildSection(
                     title: '5. Contenus Publiés par les Utilisateurs & Partenaires',
                     content:
-                        'Les artisans, guides et promoteurs demeurent propriétaires des contenus (textes, photographies de créations, tarifs) qu\'ils publient sur la plateforme. Toutefois, ils concèdent à MaliExplorer une licence non exclusive, gratuite et mondiale pour afficher, diffuser et promouvoir ces créations dans le cadre de la promotion du savoir-faire malien.\n\n'
+                        'Les guides et promoteurs demeurent propriétaires des contenus (textes, photographies d\'événements, programmes) qu\'ils publient sur la plateforme. Toutefois, ils concèdent à MaliExplorer une licence non exclusive, gratuite et mondiale pour afficher, diffuser et promouvoir ces contenus dans le cadre de la promotion du patrimoine et des événements culturels maliens.\n\n'
                         'MaliExplorer se réserve le droit de retirer sans préavis tout contenu ne respectant pas les critères de qualité, d\'authenticité ou de légalité.',
                   ),
 
@@ -174,7 +174,7 @@ class TermsConditionsScreen extends StatelessWidget {
                     title: '7. Droits & Responsabilités de MaliExplorer',
                     content:
                         'MaliExplorer s\'efforce d\'assurer une disponibilité optimale des services, mais ne peut garantir une absence totale d\'interruptions techniques temporaires. '
-                        'La plateforme intervient comme facilitateur culturel et vitrine d\'artisans et guides locaux, sans se substituer aux transactions directes conclues entre visiteurs et prestataires indépendants.',
+                        'La plateforme intervient comme facilitateur culturel et vitrine pour les guides et promoteurs locaux, sans se substituer aux transactions directes conclues entre visiteurs et prestataires indépendants.',
                   ),
 
                   _buildSection(

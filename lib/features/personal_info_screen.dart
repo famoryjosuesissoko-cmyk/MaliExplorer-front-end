@@ -379,7 +379,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
       backgroundColor: const Color(0xFFF7F8F5),
       body: Column(
         children: [
-          // Header
+          // En-tête
           Container(
             color: const Color(0xFF075E4D),
             child: SafeArea(

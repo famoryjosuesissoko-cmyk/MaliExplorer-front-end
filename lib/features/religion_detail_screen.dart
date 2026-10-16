@@ -36,7 +36,9 @@ class ReligionDetailScreen extends ConsumerWidget {
                     width: double.infinity,
                     decoration: const BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(28),
+                      ),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black12,
@@ -97,7 +99,8 @@ class ReligionDetailScreen extends ConsumerWidget {
                         const SizedBox(height: 16),
 
                         // Section 4 : Branches, Confréries & Courants
-                        if (current.branches != null && current.branches!.trim().isNotEmpty) ...[
+                        if (current.branches != null &&
+                            current.branches!.trim().isNotEmpty) ...[
                           _buildSectionCard(
                             icon: Icons.alt_route_rounded,
                             title: 'Principaux courants & branches documentés',
@@ -157,7 +160,12 @@ class ReligionDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeroHeader(BuildContext context, WidgetRef ref, ReligionModel current, double height) {
+  Widget _buildHeroHeader(
+    BuildContext context,
+    WidgetRef ref,
+    ReligionModel current,
+    double height,
+  ) {
     return SizedBox(
       height: height,
       width: double.infinity,
@@ -219,10 +227,14 @@ class ReligionDetailScreen extends ConsumerWidget {
                   Builder(
                     builder: (ctx) {
                       ref.watch(favorisNotifierProvider);
-                      final isFav = ref.read(favorisNotifierProvider.notifier).isFavorite(current.nom);
+                      final isFav = ref
+                          .read(favorisNotifierProvider.notifier)
+                          .isFavorite(current.nom);
                       return InkWell(
                         onTap: () async {
-                          await ref.read(favorisNotifierProvider.notifier).toggleFavori(
+                          await ref
+                              .read(favorisNotifierProvider.notifier)
+                              .toggleFavori(
                                 titre: current.nom,
                                 categorie: 'Religion & Spiritualité',
                                 imageUrl: current.imageUrl,
@@ -246,8 +258,12 @@ class ReligionDetailScreen extends ConsumerWidget {
                             ],
                           ),
                           child: Icon(
-                            isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                            color: isFav ? const Color(0xFFE53935) : const Color(0xFF16332D),
+                            isFav
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            color: isFav
+                                ? const Color(0xFFE53935)
+                                : const Color(0xFF16332D),
                             size: 20,
                           ),
                         ),
@@ -268,13 +284,13 @@ class ReligionDetailScreen extends ConsumerWidget {
       return Image.network(
         url,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Container(color: const Color(0xFF075E4D)),
+        errorBuilder: (_, _, _) => Container(color: const Color(0xFF075E4D)),
       );
     }
     return Image.asset(
       url,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => Container(color: const Color(0xFF075E4D)),
+      errorBuilder: (_, _, _) => Container(color: const Color(0xFF075E4D)),
     );
   }
 
@@ -284,7 +300,9 @@ class ReligionDetailScreen extends ConsumerWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF7F8F5),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFD6A23A).withValues(alpha: 0.3)),
+        border: Border.all(
+          color: const Color(0xFFD6A23A).withValues(alpha: 0.3),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -307,11 +325,17 @@ class ReligionDetailScreen extends ConsumerWidget {
           Row(
             children: [
               Expanded(
-                child: _buildStatItem('Proportion nationale', r.proportionPopulation),
+                child: _buildStatItem(
+                  'Proportion nationale',
+                  r.proportionPopulation,
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _buildStatItem('Fidèles estimés', r.nombrePratiquantsEstime),
+                child: _buildStatItem(
+                  'Fidèles estimés',
+                  r.nombrePratiquantsEstime,
+                ),
               ),
             ],
           ),
@@ -329,10 +353,7 @@ class ReligionDetailScreen extends ConsumerWidget {
           const SizedBox(height: 2),
           Text(
             'Méthode : ${r.methodologieStatistiques}',
-            style: const TextStyle(
-              fontSize: 10.5,
-              color: Color(0xFF8B9B95),
-            ),
+            style: const TextStyle(fontSize: 10.5, color: Color(0xFF8B9B95)),
           ),
         ],
       ),
@@ -416,4 +437,3 @@ class ReligionDetailScreen extends ConsumerWidget {
     );
   }
 }
-
