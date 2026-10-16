@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import '../core/services/api_service.dart';
 import '../core/services/storage_service.dart';
 import '../router/app_router.dart';
 
@@ -97,6 +98,20 @@ class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
         );
         uploadedUrls.add(url);
       }
+
+      // Synchroniser avec le backend Spring Boot pour la modération et l'espace partenaire
+      try {
+        await ApiService().put(
+          '/partenaires/mon-projet',
+          body: {
+            'titreProjet': _nameController.text.trim(),
+            'besoinPartenariat': '${_priceController.text.trim()} FCFA - ${_descController.text.trim()}',
+            'recherchePartenariat': true,
+          },
+        );
+      } catch (syncErr) {
+        debugPrint('[ArtisanAddProduct] Info synchronisation projet: $syncErr');
+      }
     } catch (e) {
       debugPrint('[ArtisanAddProduct] Erreur téléversement images: $e');
     } finally {
@@ -185,7 +200,7 @@ class _ArtisanAddProductScreenState extends State<ArtisanAddProductScreen> {
                               if (context.canPop()) {
                                 context.pop();
                               } else {
-                                context.go(AppRouter.home);
+                                context.go(AppRouter.artisanDashboard);
                               }
                             },
                             icon: const Icon(

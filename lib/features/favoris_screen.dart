@@ -42,7 +42,7 @@ class _FavorisScreenState extends ConsumerState<FavorisScreen> {
                           if (context.canPop()) {
                             context.pop();
                           } else {
-                            context.go(AppRouter.home);
+                            context.go(AppRouter.profil);
                           }
                         },
                         icon: const Icon(
@@ -120,22 +120,24 @@ class _FavorisScreenState extends ConsumerState<FavorisScreen> {
                           ),
                         ),
                         data: (favorites) {
-                          if (favorites.isEmpty) {
-                            return _buildEmptyState(isDark);
-                          }
                           return RefreshIndicator(
                             color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
-                            onRefresh: () async => ref.read(favorisNotifierProvider.notifier).loadFavoris(),
-                            child: ListView.separated(
+                            onRefresh: () async {
+                              await ref.read(favorisNotifierProvider.notifier).loadFavoris();
+                            },
+                            child: ListView(
                               physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                               padding: const EdgeInsets.fromLTRB(18, 20, 18, 110),
-                              itemCount: favorites.length,
-                              separatorBuilder: (context, index) =>
-                                  const SizedBox(height: 12),
-                              itemBuilder: (context, index) {
-                                final item = favorites[index];
-                                return _buildFavoriteCard(item, index, isDark);
-                              },
+                              children: [
+                                if (favorites.isEmpty)
+                                  _buildEmptyState(isDark)
+                                else ...[
+                                  ...favorites.asMap().entries.map((entry) => Padding(
+                                        padding: const EdgeInsets.only(bottom: 12),
+                                        child: _buildFavoriteCard(entry.value, entry.key, isDark),
+                                      )),
+                                ],
+                              ],
                             ),
                           );
                         },
@@ -148,6 +150,9 @@ class _FavorisScreenState extends ConsumerState<FavorisScreen> {
       ),
     );
   }
+
+
+
 
   Widget _buildEmptyState(bool isDark) {
     return Center(

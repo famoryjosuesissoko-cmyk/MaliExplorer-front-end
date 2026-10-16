@@ -42,7 +42,13 @@ class _EthniesListScreenState extends ConsumerState<EthniesListScreen> {
                       Row(
                         children: [
                           IconButton(
-                            onPressed: () => context.go('/home'),
+                            onPressed: () {
+                              if (context.canPop()) {
+                                context.pop();
+                              } else {
+                                context.go(AppRouter.explorer);
+                              }
+                            },
                             icon: const Icon(
                               Icons.arrow_back_ios_new_rounded,
                               color: Colors.white,
@@ -299,28 +305,37 @@ class _EthniesListScreenState extends ConsumerState<EthniesListScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Peuple ${eth.nom}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF075E4D),
-                            letterSpacing: -0.3,
+                        Expanded(
+                          child: Text(
+                            'Peuple ${eth.nom}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF075E4D),
+                              letterSpacing: -0.3,
+                            ),
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFD6A23A).withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            eth.population,
-                            style: const TextStyle(
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF8B4513),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD6A23A).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              eth.population,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF8B4513),
+                              ),
                             ),
                           ),
                         ),
@@ -343,15 +358,19 @@ class _EthniesListScreenState extends ConsumerState<EthniesListScreen> {
                         const Icon(Icons.people_alt_rounded,
                             size: 14, color: Color(0xFF075E4D)),
                         const SizedBox(width: 4),
-                        const Text(
-                          'Photos Homme & Femme disponibles',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF075E4D),
+                        const Expanded(
+                          child: Text(
+                            'Photos Homme & Femme disponibles',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF075E4D),
+                            ),
                           ),
                         ),
-                        const Spacer(),
+                        const SizedBox(width: 4),
                         const Icon(
                           Icons.arrow_forward_ios_rounded,
                           size: 13,

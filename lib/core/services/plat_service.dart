@@ -19,9 +19,10 @@ class PlatService {
       if (response.statusCode == 200) {
         final List<dynamic> jsonList = jsonDecode(utf8.decode(response.bodyBytes));
         if (jsonList.isNotEmpty) {
-          return jsonList
+          final apiPlats = jsonList
               .map((j) => PlatModel.fromJson(j as Map<String, dynamic>))
               .toList();
+          return apiPlats;
         }
       }
     } catch (_) {

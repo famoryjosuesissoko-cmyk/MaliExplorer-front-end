@@ -17,12 +17,13 @@ class PresidentDetailScreen extends ConsumerWidget {
     final allPresidents = PresidentModel.chronologicalPresidents;
     final currentIndex = allPresidents.indexWhere((p) => p.id == current.id);
 
-    final PresidentModel? prevPresident =
-        currentIndex > 0 ? allPresidents[currentIndex - 1] : null;
+    final PresidentModel? prevPresident = currentIndex > 0
+        ? allPresidents[currentIndex - 1]
+        : null;
     final PresidentModel? nextPresident =
         currentIndex >= 0 && currentIndex < allPresidents.length - 1
-            ? allPresidents[currentIndex + 1]
-            : null;
+        ? allPresidents[currentIndex + 1]
+        : null;
 
     final isAlive = current.dateDeces == null;
 
@@ -35,31 +36,34 @@ class PresidentDetailScreen extends ConsumerWidget {
             bottom: false,
             child: Column(
               children: [
-                // Barre supérieure avec bouton retour
+                // Barre supérieure avec bouton retour, date parfaitement centrée et actions
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
                     children: [
-                      IconButton(
-                        onPressed: () => context.pop(),
-                        icon: const Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
+                      // Date de mandat parfaitement centrée par rapport à l'écran et au portrait
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: const Color(0xFFD6A23A).withValues(alpha: 0.5),
+                            color: const Color(
+                              0xFFD6A23A,
+                            ).withValues(alpha: 0.5),
                           ),
                         ),
                         child: Text(
                           current.periodeMandat,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Color(0xFFF9DC96),
                             fontWeight: FontWeight.bold,
@@ -67,52 +71,76 @@ class PresidentDetailScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
+                      // Bouton retour à gauche et actions favori/partage à droite
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Builder(
-                            builder: (context) {
-                              ref.watch(favorisNotifierProvider);
-                              final isFav = ref
-                                  .read(favorisNotifierProvider.notifier)
-                                  .isFavorite(current.fullName);
-                              return IconButton(
-                                onPressed: () async {
-                                  await ref
-                                      .read(favorisNotifierProvider.notifier)
-                                      .toggleFavori(
-                                        titre: current.fullName,
-                                        categorie:
-                                            'Chef d\'État (${current.periodeMandat})',
-                                        imageUrl: current.displayPhoto,
-                                        route: AppRouter.presidentDetail,
-                                        referenceId: current.id,
-                                      );
-                                },
-                                icon: Icon(
-                                  isFav
-                                      ? Icons.favorite_rounded
-                                      : Icons.favorite_border_rounded,
-                                  color: isFav
-                                      ? const Color(0xFFE53935)
-                                      : Colors.white,
-                                  size: 24,
-                                ),
-                              );
-                            },
-                          ),
                           IconButton(
                             onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                      '${current.fullName} fait partie du patrimoine républicain du Mali.'),
-                                  backgroundColor: const Color(0xFF075E4D),
-                                  duration: const Duration(seconds: 2),
-                                ),
-                              );
+                              if (context.canPop()) {
+                                context.pop();
+                              } else {
+                                context.go(AppRouter.chefsEtat);
+                              }
                             },
-                            icon: const Icon(Icons.share_rounded,
-                                color: Colors.white, size: 22),
+                            icon: const Icon(
+                              Icons.arrow_back_ios_new_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Builder(
+                                builder: (context) {
+                                  ref.watch(favorisNotifierProvider);
+                                  final isFav = ref
+                                      .read(favorisNotifierProvider.notifier)
+                                      .isFavorite(current.fullName);
+                                  return IconButton(
+                                    onPressed: () async {
+                                      await ref
+                                          .read(favorisNotifierProvider.notifier)
+                                          .toggleFavori(
+                                            titre: current.fullName,
+                                            categorie:
+                                                'Chef d\'État (${current.periodeMandat})',
+                                            imageUrl: current.displayPhoto,
+                                            route: AppRouter.presidentDetail,
+                                            referenceId: current.id,
+                                          );
+                                    },
+                                    icon: Icon(
+                                      isFav
+                                          ? Icons.favorite_rounded
+                                          : Icons.favorite_border_rounded,
+                                      color: isFav
+                                          ? const Color(0xFFE53935)
+                                          : Colors.white,
+                                      size: 24,
+                                    ),
+                                  );
+                                },
+                              ),
+                              IconButton(
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        '${current.fullName} fait partie du patrimoine républicain du Mali.',
+                                      ),
+                                      backgroundColor: const Color(0xFF075E4D),
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(
+                                  Icons.share_rounded,
+                                  color: Colors.white,
+                                  size: 22,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -125,10 +153,10 @@ class PresidentDetailScreen extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
                   child: Column(
                     children: [
-                      // Photo circulaire avec bordure dorée
+                      // Photo circulaire avec bordure dorée #D6A23A et date de mandat centrée
                       Container(
-                        width: 110,
-                        height: 110,
+                        width: 120,
+                        height: 120,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
@@ -144,7 +172,7 @@ class PresidentDetailScreen extends ConsumerWidget {
                           ],
                         ),
                         child: ClipOval(
-                          child: _buildPresidentImage(current.displayPhoto),
+                          child: _buildPresidentImage(current.displayPhoto, current),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -184,7 +212,9 @@ class PresidentDetailScreen extends ConsumerWidget {
                     width: double.infinity,
                     decoration: const BoxDecoration(
                       color: Color(0xFFF7F8F5),
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(28),
+                      ),
                     ),
                     child: SingleChildScrollView(
                       physics: const BouncingScrollPhysics(),
@@ -199,7 +229,8 @@ class PresidentDetailScreen extends ConsumerWidget {
                                 child: _buildInfoCard(
                                   icon: Icons.cake_rounded,
                                   title: 'Naissance',
-                                  value: current.dateNaissance ?? 'Non renseignée',
+                                  value:
+                                      current.dateNaissance ?? 'Non renseignée',
                                   color: const Color(0xFF075E4D),
                                 ),
                               ),
@@ -228,10 +259,16 @@ class PresidentDetailScreen extends ConsumerWidget {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: _buildInfoCard(
-                                  icon: isAlive ? Icons.favorite_rounded : Icons.history_edu_rounded,
+                                  icon: isAlive
+                                      ? Icons.favorite_rounded
+                                      : Icons.history_edu_rounded,
                                   title: 'Statut',
-                                  value: isAlive ? 'En vie' : 'Mémoire nationale',
-                                  color: isAlive ? const Color(0xFF2E7D32) : const Color(0xFF6C7C77),
+                                  value: isAlive
+                                      ? 'En vie'
+                                      : 'Mémoire nationale',
+                                  color: isAlive
+                                      ? const Color(0xFF2E7D32)
+                                      : const Color(0xFF6C7C77),
                                 ),
                               ),
                             ],
@@ -240,15 +277,20 @@ class PresidentDetailScreen extends ConsumerWidget {
                           const SizedBox(height: 24),
 
                           // 2. Citation emblématique (si présente)
-                          if (current.citation != null && current.citation!.isNotEmpty) ...[
+                          if (current.citation != null &&
+                              current.citation!.isNotEmpty) ...[
                             Container(
                               width: double.infinity,
                               padding: const EdgeInsets.all(18),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF075E4D).withValues(alpha: 0.06),
+                                color: const Color(
+                                  0xFF075E4D,
+                                ).withValues(alpha: 0.06),
                                 borderRadius: BorderRadius.circular(18),
                                 border: Border.all(
-                                  color: const Color(0xFF075E4D).withValues(alpha: 0.15),
+                                  color: const Color(
+                                    0xFF075E4D,
+                                  ).withValues(alpha: 0.15),
                                 ),
                               ),
                               child: Row(
@@ -302,7 +344,9 @@ class PresidentDetailScreen extends ConsumerWidget {
                                   offset: const Offset(0, 2),
                                 ),
                               ],
-                              border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+                              border: Border.all(
+                                color: Colors.black.withValues(alpha: 0.05),
+                              ),
                             ),
                             child: Text(
                               current.biographie,
@@ -318,7 +362,8 @@ class PresidentDetailScreen extends ConsumerWidget {
                           const SizedBox(height: 24),
 
                           // 4. Faits marquants & Réalisations
-                          if (current.faitsMarquants != null && current.faitsMarquants!.isNotEmpty) ...[
+                          if (current.faitsMarquants != null &&
+                              current.faitsMarquants!.isNotEmpty) ...[
                             const Text(
                               'Faits marquants & Réalisations',
                               style: TextStyle(
@@ -329,21 +374,29 @@ class PresidentDetailScreen extends ConsumerWidget {
                               ),
                             ),
                             const SizedBox(height: 12),
-                            ...List.generate(current.faitsMarquants!.length, (index) {
+                            ...List.generate(current.faitsMarquants!.length, (
+                              index,
+                            ) {
                               final fait = current.faitsMarquants![index];
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 10.0),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 12,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(14),
                                     border: Border.all(
-                                      color: const Color(0xFFD6A23A).withValues(alpha: 0.25),
+                                      color: const Color(
+                                        0xFFD6A23A,
+                                      ).withValues(alpha: 0.25),
                                     ),
                                   ),
                                   child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Container(
                                         width: 24,
@@ -390,8 +443,13 @@ class PresidentDetailScreen extends ConsumerWidget {
                                 Expanded(
                                   child: OutlinedButton.icon(
                                     style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-                                      side: const BorderSide(color: Color(0xFF075E4D)),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                        horizontal: 10,
+                                      ),
+                                      side: const BorderSide(
+                                        color: Color(0xFF075E4D),
+                                      ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(14),
                                       ),
@@ -402,7 +460,11 @@ class PresidentDetailScreen extends ConsumerWidget {
                                         extra: prevPresident,
                                       );
                                     },
-                                    icon: const Icon(Icons.arrow_back_rounded, size: 18, color: Color(0xFF075E4D)),
+                                    icon: const Icon(
+                                      Icons.arrow_back_rounded,
+                                      size: 18,
+                                      color: Color(0xFF075E4D),
+                                    ),
                                     label: Text(
                                       prevPresident.nom,
                                       maxLines: 1,
@@ -422,7 +484,10 @@ class PresidentDetailScreen extends ConsumerWidget {
                                 Expanded(
                                   child: ElevatedButton.icon(
                                     style: ElevatedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                        horizontal: 10,
+                                      ),
                                       backgroundColor: const Color(0xFF075E4D),
                                       foregroundColor: Colors.white,
                                       shape: RoundedRectangleBorder(
@@ -435,7 +500,10 @@ class PresidentDetailScreen extends ConsumerWidget {
                                         extra: nextPresident,
                                       );
                                     },
-                                    icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+                                    icon: const Icon(
+                                      Icons.arrow_forward_rounded,
+                                      size: 18,
+                                    ),
                                     label: Text(
                                       nextPresident.nom,
                                       maxLines: 1,
@@ -464,27 +532,51 @@ class PresidentDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPresidentImage(String pathOrUrl) {
-    if (pathOrUrl.startsWith('assets/')) {
+  Widget _buildPresidentImage(String pathOrUrl, PresidentModel president) {
+    final localAsset = PresidentModel.getLocalPhoto(president.fullName, president.id);
+
+    Widget buildFallback() => Container(
+      color: const Color(0xFF075E4D).withValues(alpha: 0.2),
+      child: const Icon(Icons.person, color: Colors.white, size: 50),
+    );
+
+    if (pathOrUrl.isEmpty) {
       return Image.asset(
-        pathOrUrl,
-        width: 110,
-        height: 110,
+        localAsset,
+        width: double.infinity,
+        height: double.infinity,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => Container(
-          color: const Color(0xFF075E4D).withValues(alpha: 0.2),
-          child: const Icon(Icons.person, color: Colors.white, size: 50),
+        errorBuilder: (context, error, stackTrace) => buildFallback(),
+      );
+    }
+
+    if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
+      return Image.network(
+        pathOrUrl,
+        width: double.infinity,
+        height: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => Image.asset(
+          localAsset,
+          width: double.infinity,
+          height: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => buildFallback(),
         ),
       );
     }
-    return Image.network(
+
+    return Image.asset(
       pathOrUrl,
-      width: 110,
-      height: 110,
+      width: double.infinity,
+      height: double.infinity,
       fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => Container(
-        color: const Color(0xFF075E4D).withValues(alpha: 0.2),
-        child: const Icon(Icons.person, color: Colors.white, size: 50),
+      errorBuilder: (context, error, stackTrace) => Image.asset(
+        localAsset,
+        width: double.infinity,
+        height: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => buildFallback(),
       ),
     );
   }
@@ -544,4 +636,3 @@ class PresidentDetailScreen extends ConsumerWidget {
     );
   }
 }
-

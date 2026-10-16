@@ -78,7 +78,13 @@ class ExplorerPublicationModel {
       if (t == 'produit' || t == 'artisan' || t == 'produitArtisan') {
         return PublicationType.produitArtisan;
       }
-      if (t == 'festival' || t == 'evenement' || t == 'festivalEvenement') {
+      if (t == 'festival' || t == 'evenement' || t == 'festivalEvenement' || t == 'evenements') {
+        return PublicationType.festivalEvenement;
+      }
+      if (json.containsKey('dateDebut') ||
+          json.containsKey('nomOrganisateur') ||
+          json.containsKey('heureDebut') ||
+          json.containsKey('afficheUrl')) {
         return PublicationType.festivalEvenement;
       }
       return PublicationType.patrimoine;
@@ -86,18 +92,18 @@ class ExplorerPublicationModel {
 
     return ExplorerPublicationModel(
       id: (json['id'] ?? '').toString(),
-      type: parseType(json['type']),
-      titre: json['titre'] ?? json['nom'] ?? '',
-      description: json['description'] ?? '',
-      imageUrl: json['imageUrl'] ?? json['afficheUrl'] ?? '',
-      auteur: json['auteur'] ?? json['nomOrganisateur'] ?? json['nomComplet'] ?? 'Artisan / Promoteur',
-      localisation: json['localisation'] ?? json['lieu'] ?? json['ville'] ?? 'Mali',
+      type: parseType(json['type']?.toString()),
+      titre: (json['titre'] ?? json['nom'] ?? '').toString(),
+      description: (json['description'] ?? '').toString(),
+      imageUrl: (json['imageUrl'] ?? json['afficheUrl'] ?? json['image'] ?? json['photo'] ?? '').toString().trim(),
+      auteur: (json['auteur'] ?? json['nomOrganisateur'] ?? json['nomComplet'] ?? 'Artisan / Promoteur').toString(),
+      localisation: (json['localisation'] ?? json['lieu'] ?? json['ville'] ?? 'Mali').toString(),
       prix: json['prix']?.toString(),
-      date: json['date'] ?? json['dateDebut']?.toString(),
+      date: (json['date'] ?? json['dateDebut'])?.toString(),
       vues: (json['vues'] as num?)?.toInt() ?? 0,
       commentaires: (json['nombreCommentaires'] as num?)?.toInt() ?? 0,
       statut: (json['statut'] ?? 'VALIDE').toString().toUpperCase(),
-      categorie: json['categorie'] ?? 'Culture & Artisanat',
+      categorie: (json['categorie'] ?? 'Culture & Artisanat').toString(),
       tags: (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
     );
   }

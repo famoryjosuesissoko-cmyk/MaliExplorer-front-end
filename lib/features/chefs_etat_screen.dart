@@ -42,7 +42,13 @@ class _ChefsEtatScreenState extends ConsumerState<ChefsEtatScreen> {
                       Row(
                         children: [
                           IconButton(
-                            onPressed: () => context.pop(),
+                            onPressed: () {
+                              if (context.canPop()) {
+                                context.pop();
+                              } else {
+                                context.go(AppRouter.explorer);
+                              }
+                            },
                             icon: const Icon(
                               Icons.arrow_back_ios_new_rounded,
                               color: Colors.white,
@@ -267,19 +273,26 @@ class _ChefsEtatScreenState extends ConsumerState<ChefsEtatScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Photo de profil circulaire
+                // Photo de profil circulaire avec bordure or sahélien #D6A23A et date centrée
                 Container(
-                  width: 60,
-                  height: 60,
+                  width: 74,
+                  height: 74,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: const Color(0xFF075E4D).withValues(alpha: 0.2),
-                      width: 2,
+                      color: const Color(0xFFD6A23A), // Or sahélien #D6A23A
+                      width: 2.5,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFD6A23A).withValues(alpha: 0.25),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: ClipOval(
-                    child: _buildPresidentImage(president.displayPhoto),
+                    child: _buildPresidentImage(president.displayPhoto, president),
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -289,29 +302,24 @@ class _ChefsEtatScreenState extends ConsumerState<ChefsEtatScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Nom & Années de mandat
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              president.fullName,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF075E4D),
-                              ),
-                            ),
-                          ),
-                          Text(
-                            president.periodeMandat,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFFC62828), // Rouge bordeaux
-                            ),
-                          ),
-                        ],
+                      Text(
+                        president.fullName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF075E4D),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        president.periodeMandat,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFD6A23A),
+                        ),
                       ),
                       const SizedBox(height: 4),
 
@@ -343,36 +351,54 @@ class _ChefsEtatScreenState extends ConsumerState<ChefsEtatScreen> {
     );
   }
 
-  Widget _buildPresidentImage(String pathOrUrl) {
+  Widget _buildPresidentImage(String pathOrUrl, PresidentModel president) {
+    final localAsset = PresidentModel.getLocalPhoto(president.fullName, president.id);
+
     if (pathOrUrl.isEmpty) {
-      return _buildImageFallback();
-    }
-    if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
-      return Image.network(
-        pathOrUrl,
-        width: 60,
-        height: 60,
+      return Image.asset(
+        localAsset,
+        width: double.infinity,
+        height: double.infinity,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) => _buildImageFallback(),
       );
     }
+
+    if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
+      return Image.network(
+        pathOrUrl,
+        width: double.infinity,
+        height: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => Image.asset(
+          localAsset,
+          width: double.infinity,
+          height: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildImageFallback(),
+        ),
+      );
+    }
+
     return Image.asset(
       pathOrUrl,
-      width: 60,
-      height: 60,
+      width: double.infinity,
+      height: double.infinity,
       fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => _buildImageFallback(),
+      errorBuilder: (context, error, stackTrace) => Image.asset(
+        localAsset,
+        width: double.infinity,
+        height: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildImageFallback(),
+      ),
     );
   }
 
   Widget _buildImageFallback() {
     return Container(
       color: const Color(0xFF075E4D).withValues(alpha: 0.15),
-      child: const Icon(
-        Icons.person,
-        color: Color(0xFF075E4D),
-        size: 30,
-      ),
+      child: const Icon(Icons.person, color: Color(0xFF075E4D), size: 30),
     );
   }
 }

@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MaliExplorer - Visite Immersive Complète 360° de la Grande Mosquée de Djenné</title>
+    <!-- Pannellum Local Standalone Assets (0 Network Dependency) -->
+    <link rel="stylesheet" href="pannellum.css"/>
+    <script type="text/javascript" src="pannellum.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0d1e1a;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Plus Jakarta Sans", sans-serif;
+            color: #ffffff;
+        }
+        #panorama {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* Top Bar Overlay */
+        .top-bar {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            right: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 100;
+            pointer-events: none;
+        }
+        .btn-action {
+            pointer-events: auto;
+            background: rgba(7, 94, 77, 0.90);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(214, 162, 58, 0.45);
+            color: #ffffff;
+            padding: 9px 15px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        .btn-action:hover {
+            background: #0E8F76;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+        .badge-title {
+            pointer-events: auto;
+            background: rgba(13, 30, 26, 0.90);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(214, 162, 58, 0.5);
+            pkadding: 7px 18px;
+            border-radius: 30px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .badge-title h1 {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .badge-title span {
+            color: #D6A23A;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+
+        /* Hotspot Styling - Golden Badges */
+        .custom-hotspot {
+            width: 36px;
+            height: 36px;
+            background: radial-gradient(circle, #D6A23A 0%, #b88320 100%);
+            border: 2.5px solid #ffffff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 16px rgba(214, 162, 58, 0.9), 0 4px 8px rgba(0,0,0,0.5);
+            animation: pulse-hotspot 2.2s infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        .custom-hotspot:hover {
+            transform: scale(1.2);
+        }
+        .custom-hotspot svg {
+            width: 17px;
+            height: 17px;
+            fill: #ffffff;
+        }
+        @keyframes pulse-hotspot {
+            0% { box-shadow: 0 0 0 0 rgba(214, 162, 58, 0.75); }
+            70% { box-shadow: 0 0 0 16px rgba(214, 162, 58, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(214, 162, 58, 0); }
+        }
+
+        /* Hotspot de navigation entre scènes */
+        .teleport-hotspot {
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, #0E8F76 0%, #075E4D 100%);
+            border: 2.5px solid #D6A23A;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 16px rgba(14, 143, 118, 0.9), 0 4px 8px rgba(0,0,0,0.5);
+            animation: pulse-teleport 2s infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        .teleport-hotspot:hover {
+            transform: scale(1.22);
+        }
+        .teleport-hotspot svg {
+            width: 20px;
+            height: 20px;
+            fill: #ffffff;
+        }
+        @keyframes pulse-teleport {
+            0% { box-shadow: 0 0 0 0 rgba(14, 143, 118, 0.8); }
+            70% { box-shadow: 0 0 0 18px rgba(14, 143, 118, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(14, 143, 118, 0); }
+        }
+
+        /* Modal Info */
+        .info-modal {
+            display: none;
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            max-width: 90%;
+            width: 460px;
+            background: rgba(13, 30, 26, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1.5px solid #D6A23A;
+            border-radius: 18px;
+            padding: 20px;
+            box-shadow: 0 12px 35px rgba(0,0,0,0.7);
+            z-index: 200;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translate(-50%, 40px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .info-modal h3 {
+            color: #D6A23A;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .info-modal p {
+            color: #e0e8e5;
+            font-size: 13px;
+            line-height: 1.55;
+            margin-bottom: 14px;
+        }
+        .modal-close {
+            background: rgba(214, 162, 58, 0.2);
+            color: #D6A23A;
+            border: 1px solid #D6A23A;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            float: right;
+            transition: all 0.2s;
+        }
+        .modal-close:hover {
+            background: #D6A23A;
+            color: #16332D;
+        }
+
+        /* Barre inférieure - Sélection des 5 angles immersifs */
+        .bottom-controls-bar {
+            position: absolute;
+            bottom: 14px;
+            left: 14px;
+            right: 14px;
+            display: flex;
+            justify-content: center;
+            z-index: 100;
+            pointer-events: none;
+        }
+        .bottom-controls {
+            pointer-events: auto;
+            background: rgba(13, 30, 26, 0.92);
+            backdrop-filter: blur(10px);
+            padding: 6px 10px;
+            border-radius: 30px;
+            border: 1px solid rgba(214, 162, 58, 0.4);
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            max-width: 100%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .btn-scene {
+            background: rgba(7, 94, 77, 0.85);
+            border: 1px solid rgba(214, 162, 58, 0.3);
+            color: #ffffff;
+            padding: 7px 12px;
+            border-radius: 20px;
+            font-size: 11.5px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .btn-scene:hover {
+            background: #0E8F76;
+        }
+        .btn-scene.active {
+            background: #D6A23A;
+            color: #16332D;
+            border-color: #ffffff;
+            box-shadow: 0 0 12px rgba(214, 162, 58, 0.85);
+            font-weight: 700;
+        }
+
+        /* Pannellum overrides */
+        .pnlm-load-button {
+            background-color: #075E4D !important;
+            border: 2px solid #D6A23A !important;
+        }
+        .pnlm-load-box {
+            background-color: rgba(13, 30, 26, 0.8) !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="panorama"></div>
+
+    <!-- Barre supérieure -->
+    <div class="top-bar">
+        <button class="btn-action" onclick="goBack()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Retour
+        </button>
+        <div class="badge-title">
+            <span>Patrimoine Mondial UNESCO</span>
+            <h1 id="header-scene-title">Grande Mosquée de Djenné • Vue Panoramique</h1>
+        </div>
+        <button class="btn-action" onclick="toggleFullscreen()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+            Plein écran
+        </button>
+    </div>
+
+    <!-- Barre inférieure : 5 Scènes Immersives (Extérieur, Intérieur, Cour, Ruelle) -->
+    <div class="bottom-controls-bar">
+        <div class="bottom-controls">
+            <button id="btn-scene-aerienne" class="btn-scene active" onclick="loadScene('aerienne')">
+                Vue Panoramique
+            </button>
+            <button id="btn-scene-facade" class="btn-scene" onclick="loadScene('facade')">
+                Façade & Torons
+            </button>
+            <button id="btn-scene-cour_centrale" class="btn-scene" onclick="loadScene('cour_centrale')">
+                Cour Intérieure
+            </button>
+            <button id="btn-scene-nef_hypostyle" class="btn-scene" onclick="loadScene('nef_hypostyle')">
+                 Nef Hypostyle
+            </button>
+            <button id="btn-scene-ruelle" class="btn-scene" onclick="loadScene('ruelle')">
+                Ruelle & Contreforts
+            </button>
+        </div>
+    </div>
+
+    <!-- Modale d'information Hotspot -->
+    <div id="info-modal" class="info-modal">
+        <h3 id="modal-title">Détail Historique</h3>
+        <p id="modal-desc">Description</p>
+        <button class="modal-close" onclick="closeModal()">Fermer</button>
+    </div>
+
+    <script>
+        function goBack() {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = '/#/carte';
+            }
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        function openModal(title, desc) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-desc').innerText = desc;
+            document.getElementById('info-modal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('info-modal').style.display = 'none';
+        }
+
+        function makeHotspot(title, desc) {
+            return function(hotSpotDiv, args) {
+                hotSpotDiv.classList.add('custom-hotspot');
+                hotSpotDiv.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>';
+                hotSpotDiv.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    openModal(title, desc);
+                });
+            };
+        }
+
+        function makeTeleportHotspot(targetSceneId, tooltipText) {
+            return function(hotSpotDiv, args) {
+                hotSpotDiv.classList.add('teleport-hotspot');
+                hotSpotDiv.innerHTML = '<svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>';
+                hotSpotDiv.title = tooltipText;
+                hotSpotDiv.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    loadScene(targetSceneId);
+                });
+            };
+        }
+
+        let viewer = pannellum.viewer('panorama', {
+            default: {
+                firstScene: 'aerienne',
+                author: 'MaliExplorer 3D Immersive',
+                sceneFadeDuration: 800,
+                autoLoad: true,
+                autoRotate: -1.0,
+                autoRotateInactivityDelay: 3000,
+                compass: false,
+                hfov: 100,
+                minHfov: 60,
+                maxHfov: 115,
+                minPitch: -40,
+                maxPitch: 40,
+                friction: 0.15
+            },
+            scenes: {
+                // SCÈNE 1 : VUE PANORAMIQUE D'ENSEMBLE
+                aerienne: {
+                    title: 'Grande Mosquée de Djenné • Vue Panoramique',
+                    type: 'equirectangular',
+                    panorama: 'djenne_vue_aerienne_360.jpg',
+                    hfov: 100,
+                    pitch: 0,
+                    yaw: 0,
+                    hotSpots: [
+                        {
+                            pitch: 4.0,
+                            yaw: 0.0,
+                            createTooltipFunc: makeHotspot(
+                                'Les Trois Grands Minarets et Torons de Palmier',
+                                'Les minarets monumentaux culminent au-dessus de la ville. Leurs façades sont pourvues de pièces de bois de palmier rônier (« torons »), qui restent en permanence scellées dans la terre crue afin de servir d\'échafaudages lors de la fête annuelle du Crépissage de Djenné.'
+                            )
+                        },
+                        {
+                            pitch: -14.0,
+                            yaw: -22.0,
+                            createTooltipFunc: makeHotspot(
+                                'L\'Enceinte Fortifiée et l\'Esplanade de Prière',
+                                'L\'enceinte extérieure protège le sanctuaire. Bâtie entièrement en briques de banco confectionnées à la main, elle s\'intègre harmonieusement à l\'urbanisme millénaire de la cité classée UNESCO.'
+                            )
+                        },
+                        {
+                            pitch: -8.0,
+                            yaw: 28.0,
+                            createTooltipFunc: makeTeleportHotspot(
+                                'cour_centrale',
+                                'Entrer dans la Cour Intérieure'
+                            )
+                        },
+                        {
+                            pitch: -4.0,
+                            yaw: -48.0,
+                            createTooltipFunc: makeTeleportHotspot(
+                                'nef_hypostyle',
+                                'Pénétrer dans la Nef Hypostyle'
+                            )
+                        }
+                    ]
+                },
+
+                // SCÈNE 2 : FAÇADE PRINCIPALE RAPPROCHÉE
+                facade: {
+                    title: 'Façade Orientale & Minarets • Vue Rapprochée',
+                    type: 'equirectangular',
+                    panorama: 'djenne_minarets_zoom_360.jpg',
+                    hfov: 100,
+                    pitch: 2,
+                    yaw: 0,
+                    hotSpots: [
+                        {
+                            pitch: 16.0,
+                            yaw: -15.0,
+                            createTooltipFunc: makeHotspot(
+                                'Oeufs d\'Autruche Sommitaux',
+                                'Chaque flèche des minarets et des contreforts coniques est coiffée d\'un œuf d\'autruche, symbole ancestral d\'immortalité, de pureté spirituelle et de fécondité dans la tradition soudano-sahélienne.'
+                            )
+                        },
+                        {
+                            pitch: -8.0,
+                            yaw: -30.0,
+                            createTooltipFunc: makeHotspot(
+                                'Porte Monumentale en Bois Sculpté',
+                                'Les portes massives en bois de vène sont gravées de motifs géométriques et munies de ferrures artisanales forgées à la main par les maîtres forgerons de Djenné.'
+                            )
+                        },
+                        {
+                            pitch: 0.0,
+                            yaw: 40.0,
+                            createTooltipFunc: makeTeleportHotspot(
+                                'ruelle',
+                                'Explorer la Ruelle des Contreforts'
+                            )
+                        }
+                    ]
+                },
+
+                // SCÈNE 3 : COUR INTÉRIEURE & BAIES
+                cour_centrale: {
+                    title: 'Cour Intérieure & Galerie Ombragée',
+                    type: 'equirectangular',
+                    panorama: 'djenne_cour_centrale_360.jpg',
+                    hfov: 100,
+                    pitch: -2,
+                    yaw: 0,
+                    hotSpots: [
+                        {
+                            pitch: 8.0,
+                            yaw: -18.0,
+                            createTooltipFunc: makeHotspot(
+                                'Mur Intérieur et Contreforts Rythmés',
+                                'Les contreforts intérieurs rythment la cour à ciel ouvert, offrant de l\'ombre aux fidèles pendant les chaleurs sahéliennes et assurant la solidité mécanique des hautes parois en banco.'
+                            )
+                        },
+                        {
+                            pitch: -12.0,
+                            yaw: 22.0,
+                            createTooltipFunc: makeHotspot(
+                                'Arbre de Sérénité & Espace d\'Ablutions',
+                                'La cour intérieure comprend des espaces de méditation et d\'ablutions avant la prière collective, sous la protection du minaret central.'
+                            )
+                        },
+                        {
+                            pitch: -4.0,
+                            yaw: -45.0,
+                            createTooltipFunc: makeTeleportHotspot(
+                                'nef_hypostyle',
+                                'Entrer dans la Salle Hypostyle'
+                            )
+                        }
+                    ]
+                },
+
+                // SCÈNE 4 : NEF HYPOSTYLE & 90 PILIERS
+                nef_hypostyle: {
+                    title: 'Nef Hypostyle Intérieure • Forêt de Piliers',
+                    type: 'equirectangular',
+                    panorama: 'djenne_nef_hypostyle_360.jpg',
+                    hfov: 95,
+                    pitch: 0,
+                    yaw: 0,
+                    hotSpots: [
+                        {
+                            pitch: 4.0,
+                            yaw: 0.0,
+                            createTooltipFunc: makeHotspot(
+                                'Les 90 Piliers Porteurs en Banco',
+                                'La salle de prière principale forme une forêt impressionnante de 90 piliers massifs en terre crue reliés par des arcades en plein cintre, supportant le lourd toit de poutres de palmier rônier.'
+                            )
+                        },
+                        {
+                            pitch: 18.0,
+                            yaw: 15.0,
+                            createTooltipFunc: makeHotspot(
+                                'Plafond à Poutres Apparentes et Aération Naturelle',
+                                'Des ouvertures circulaires au plafond (« clapets » fermés par des poteries en terre cuite) permettent une évacuation naturelle de l\'air chaud et garantissent une fraîcheur constante à l\'intérieur.'
+                            )
+                        },
+                        {
+                            pitch: -6.0,
+                            yaw: -30.0,
+                            createTooltipFunc: makeTeleportHotspot(
+                                'cour_centrale',
+                                'Sortir vers la Cour Intérieure'
+                            )
+                        }
+                    ]
+                },
+
+                // SCÈNE 5 : RUELLE EXTÉRIEURE & CONTREFORTS
+                ruelle: {
+                    title: 'Ruelle Extérieure & Contreforts Coniques',
+                    type: 'equirectangular',
+                    panorama: 'djenne_ruelle_contreforts_360.jpg',
+                    hfov: 100,
+                    pitch: 0,
+                    yaw: 0,
+                    hotSpots: [
+                        {
+                            pitch: 10.0,
+                            yaw: -20.0,
+                            createTooltipFunc: makeHotspot(
+                                'Les Murailles Latérales et Torons de Rônier',
+                                'Vue plongeante sur les torons latéraux et les piliers d\'angle renforçant la structure face aux pluies torrentielles de la saison humide.'
+                            )
+                        },
+                        {
+                            pitch: -15.0,
+                            yaw: 35.0,
+                            createTooltipFunc: makeHotspot(
+                                'Habitats Traditionnels de Djenné',
+                                'Tout autour de la mosquée, les maisons traditionnelles à étages (architecture « Toucouleur » et « marocaine ») témoignent de l\'art architectural des maçons « maçons baris » de Djenné.'
+                            )
+                        },
+                        {
+                            pitch: -5.0,
+                            yaw: -50.0,
+                            createTooltipFunc: makeTeleportHotspot(
+                                'aerienne',
+                                'Revenir à la Vue Panoramique'
+                            )
+                        }
+                    ]
+                }
+            }
+        });
+
+        const sceneTitles = {
+            'aerienne': 'Grande Mosquée de Djenné • Vue Panoramique',
+            'facade': 'Façade Orientale & Minarets • Vue Rapprochée',
+            'cour_centrale': 'Cour Intérieure & Galerie Ombragée',
+            'nef_hypostyle': 'Nef Hypostyle Intérieure • Forêt de Piliers',
+            'ruelle': 'Ruelle Extérieure & Contreforts Coniques'
+        };
+
+        function loadScene(sceneId) {
+            viewer.loadScene(sceneId);
+            document.getElementById('header-scene-title').innerText = sceneTitles[sceneId] || 'Grande Mosquée de Djenné';
+            
+            const buttons = ['aerienne', 'facade', 'cour_centrale', 'nef_hypostyle', 'ruelle'];
+            buttons.forEach(function(id) {
+                const el = document.getElementById('btn-scene-' + id);
+                if (el) el.classList.toggle('active', id === sceneId);
+            });
+            closeModal();
+        }
+    </script>
+</body>
+</html>

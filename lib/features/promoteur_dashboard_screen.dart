@@ -1,6 +1,11 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import '../core/services/api_service.dart';
+import '../core/services/storage_service.dart';
 import '../router/app_router.dart';
 
 class PromoteurDashboardScreen extends ConsumerStatefulWidget {
@@ -17,7 +22,7 @@ class _PromoteurDashboardScreenState
   final String _nomOrganisation = 'Agence Sahel Roots Événements';
   final String _siegeOrganisation = 'Bamako, ACI 2000';
   final String _nifRccm = '0841234567-RCCM';
-  final String _statutModeration = 'VALIDE'; // 'VALIDE', 'EN_ATTENTE', 'REJETE'
+  String _statutModeration = 'VALIDE'; // 'VALIDE', 'EN_ATTENTE', 'REJETE'
 
   // Projet en cours
   String _titreProjet = 'Festival des Masques et Traditions du Mali 2027';
@@ -26,6 +31,58 @@ class _PromoteurDashboardScreenState
   String _besoinPartenariat =
       'Recherche de sponsors hôteliers, d\'investisseurs B2B et d\'un co-financement de 10 000 000 FCFA pour la logistique scénique, la promotion internationale et l\'accueil des délégations.';
   bool _recherchePartenariat = true;
+
+  int _vues = 0;
+  int _commentaires = 0;
+  int _publications = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchBackendData();
+  }
+
+  Future<void> _fetchBackendData() async {
+    try {
+      final resStats = await ApiService().get('/partenaires/statistiques');
+      if (resStats.statusCode == 200) {
+        final data = jsonDecode(resStats.body);
+        if (mounted) {
+          setState(() {
+            _vues = (data['vues'] as num?)?.toInt() ?? _vues;
+            _commentaires = (data['commentaires'] as num?)?.toInt() ?? _commentaires;
+            _publications = (data['publications'] as num?)?.toInt() ?? _publications;
+            if (data['statutModeration'] != null) {
+              _statutModeration = data['statutModeration'].toString();
+            }
+          });
+        }
+      }
+
+      final resProjet = await ApiService().get('/partenaires/mon-projet');
+      if (resProjet.statusCode == 200) {
+        final data = jsonDecode(resProjet.body);
+        if (mounted) {
+          setState(() {
+            if (data['titreProjet'] != null && data['titreProjet'].toString().isNotEmpty) {
+              _titreProjet = data['titreProjet'].toString();
+            }
+            if (data['besoinPartenariat'] != null && data['besoinPartenariat'].toString().isNotEmpty) {
+              _besoinPartenariat = data['besoinPartenariat'].toString();
+            }
+            if (data['recherchePartenariat'] != null) {
+              _recherchePartenariat = data['recherchePartenariat'] == true;
+            }
+            if (data['statutModeration'] != null) {
+              _statutModeration = data['statutModeration'].toString();
+            }
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('[PromoteurDashboard] Note synchronisation stats: $e');
+    }
+  }
 
   void _showEditProjectDialog() {
     final titreController = TextEditingController(text: _titreProjet);
@@ -155,20 +212,37 @@ class _PromoteurDashboardScreenState
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
+                      final t = titreController.text.trim();
+                      final d = descController.text.trim();
+                      final b = besoinController.text.trim();
                       setState(() {
-                        _titreProjet = titreController.text.trim();
-                        _descriptionProjet = descController.text.trim();
-                        _besoinPartenariat = besoinController.text.trim();
+                        _titreProjet = t;
+                        _descriptionProjet = d;
+                        _besoinPartenariat = b;
                         _recherchePartenariat = rechercheActive;
                       });
                       Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Projet culturel mis à jour avec succès !'),
-                          backgroundColor: Color(0xFF075E4D),
-                        ),
-                      );
+                      try {
+                        await ApiService().put(
+                          '/partenaires/mon-projet',
+                          body: {
+                            'titreProjet': t,
+                            'besoinPartenariat': b.isNotEmpty ? b : d,
+                            'recherchePartenariat': rechercheActive,
+                          },
+                        );
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Projet culturel synchronisé avec succès !'),
+                              backgroundColor: Color(0xFF075E4D),
+                            ),
+                          );
+                        }
+                      } catch (err) {
+                        debugPrint('[PromoteurDashboard] Erreur synchronisation: $err');
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF075E4D),
@@ -181,6 +255,292 @@ class _PromoteurDashboardScreenState
                       'Enregistrer les modifications',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                     ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAddEventDialog() {
+    final titleController = TextEditingController();
+    final descController = TextEditingController();
+    final dateController = TextEditingController();
+    final lieuController = TextEditingController();
+    final villeController = TextEditingController(text: 'Bamako');
+    final prixController = TextEditingController(text: 'Gratuit');
+    Uint8List? selectedImageBytes;
+    String? selectedImageName;
+    bool isSubmitting = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            top: 20,
+            left: 20,
+            right: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Row(
+                  children: [
+                    Icon(Icons.festival_rounded, color: Color(0xFF075E4D), size: 24),
+                    SizedBox(width: 8),
+                    Text(
+                      'Créer un nouvel événement',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF075E4D),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Text('Titre de l\'événement *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF075E4D))),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: titleController,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    hintText: 'Ex: Nuit du Mandé, Biennale de Bamako...',
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Date *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF075E4D))),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: dateController,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              hintText: 'Ex: 15 Mars 2026',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Tarif *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF075E4D))),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: prixController,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              hintText: 'Ex: Gratuit ou 2000 FCFA',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Lieu *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF075E4D))),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: lieuController,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              hintText: 'Ex: Palais de la Culture',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Ville *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF075E4D))),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: villeController,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              hintText: 'Ex: Bamako',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                const Text('Description', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF075E4D))),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: descController,
+                  maxLines: 2,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    hintText: 'Programme, artistes invités...',
+                  ),
+                ),
+                const SizedBox(height: 14),
+                InkWell(
+                  onTap: () async {
+                    try {
+                      final picker = ImagePicker();
+                      final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+                      if (picked != null) {
+                        final bytes = await picked.readAsBytes();
+                        setSheetState(() {
+                          selectedImageBytes = bytes;
+                          selectedImageName = picked.name;
+                        });
+                      }
+                    } catch (e) {
+                      debugPrint('Erreur image: $e');
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FDF4),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF075E4D).withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.add_photo_alternate_rounded, color: Color(0xFF075E4D)),
+                        const SizedBox(width: 8),
+                        Text(
+                          selectedImageName != null
+                              ? 'Affiche sélectionnée : $selectedImageName'
+                              : 'Sélectionner l\'affiche de l\'événement',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF075E4D),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: isSubmitting
+                        ? null
+                        : () async {
+                            final titre = titleController.text.trim();
+                            final date = dateController.text.trim();
+                            if (titre.isEmpty || date.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Veuillez renseigner au moins le titre et la date.'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+                            setSheetState(() => isSubmitting = true);
+                            String imageUrl = '';
+                            if (selectedImageBytes != null && selectedImageName != null) {
+                              try {
+                                imageUrl = await StorageService.uploadFile(
+                                  folder: 'evenements',
+                                  fileName: selectedImageName!,
+                                  bytes: selectedImageBytes!,
+                                );
+                              } catch (e) {
+                                debugPrint('Erreur upload affiche: $e');
+                              }
+                            }
+                            try {
+                              final body = {
+                                'titre': titre,
+                                'description': descController.text.trim(),
+                                'dateDebut': date,
+                                'lieu': lieuController.text.trim().isNotEmpty ? lieuController.text.trim() : 'Mali',
+                                'ville': villeController.text.trim().isNotEmpty ? villeController.text.trim() : 'Bamako',
+                                'prix': prixController.text.trim().isNotEmpty ? prixController.text.trim() : 'Gratuit',
+                                'imageUrl': imageUrl.isNotEmpty ? imageUrl : null,
+                                'statut': 'EN_ATTENTE',
+                              };
+                              final res = await ApiService().post('/evenements', body: body);
+                              if (ctx.mounted) Navigator.pop(ctx);
+                              if (res.statusCode == 200 || res.statusCode == 201) {
+                                setState(() {
+                                  _publications++;
+                                });
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Événement soumis à l\'administration avec succès !'),
+                                      backgroundColor: Color(0xFF075E4D),
+                                    ),
+                                  );
+                                }
+                              }
+                            } catch (e) {
+                              setSheetState(() => isSubmitting = false);
+                              debugPrint('Erreur création événement: $e');
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF075E4D),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: isSubmitting
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          )
+                        : const Text(
+                            'Soumettre l\'événement à validation',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
                   ),
                 ),
               ],
@@ -214,7 +574,7 @@ class _PromoteurDashboardScreenState
                               if (context.canPop()) {
                                 context.pop();
                               } else {
-                                context.go(AppRouter.home);
+                                context.go(AppRouter.profil);
                               }
                             },
                             icon: const Icon(
@@ -290,13 +650,25 @@ class _PromoteurDashboardScreenState
                                 color: Color(0xFF16332D),
                               ),
                             ),
-                            TextButton.icon(
-                              onPressed: _showEditProjectDialog,
-                              icon: const Icon(Icons.edit_outlined, size: 16),
-                              label: const Text('Modifier'),
-                              style: TextButton.styleFrom(
-                                foregroundColor: const Color(0xFF075E4D),
-                              ),
+                            Row(
+                              children: [
+                                TextButton.icon(
+                                  onPressed: _showAddEventDialog,
+                                  icon: const Icon(Icons.add_circle_outline_rounded, size: 16),
+                                  label: const Text('Événement'),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: const Color(0xFFD6A23A),
+                                  ),
+                                ),
+                                TextButton.icon(
+                                  onPressed: _showEditProjectDialog,
+                                  icon: const Icon(Icons.edit_outlined, size: 16),
+                                  label: const Text('Modifier'),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: const Color(0xFF075E4D),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -483,28 +855,37 @@ class _PromoteurDashboardScreenState
       children: [
         Expanded(
           child: _buildStatItem(
-            label: 'Projet actif',
-            value: '1',
+            label: 'Publications',
+            value: '$_publications',
             icon: Icons.festival_rounded,
             color: const Color(0xFF075E4D),
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Expanded(
           child: _buildStatItem(
-            label: 'Partenariats',
-            value: _recherchePartenariat ? 'Activé' : 'Inactif',
+            label: 'Partenariat',
+            value: _recherchePartenariat ? 'Actif' : 'Inactif',
             icon: Icons.handshake_rounded,
             color: const Color(0xFFD6A23A),
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Expanded(
           child: _buildStatItem(
-            label: 'Visibilité',
-            value: 'Nationale',
+            label: 'Vues',
+            value: '$_vues',
             icon: Icons.visibility_rounded,
             color: const Color(0xFF0E8F76),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildStatItem(
+            label: 'Commentaires',
+            value: '$_commentaires',
+            icon: Icons.chat_bubble_outline_rounded,
+            color: const Color(0xFF2E7D32),
           ),
         ),
       ],

@@ -67,9 +67,19 @@ ThemeData get darkTheme {
       color: AppColors.darkBorder,
       thickness: 1,
     ),
+    textSelectionTheme: const TextSelectionThemeData(
+      cursorColor: AppColors.primaryInteractive,
+      selectionColor: Color(0x664DB6AC),
+      selectionHandleColor: AppColors.primaryInteractive,
+    ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: AppColors.darkSurfaceElevated,
+      hintStyle: const TextStyle(color: AppColors.darkTextDisabled, fontSize: 13.5),
+      labelStyle: const TextStyle(color: AppColors.darkTextSecondary, fontSize: 14),
+      prefixIconColor: AppColors.primaryInteractive,
+      suffixIconColor: AppColors.darkTextSecondary,
+      errorStyle: const TextStyle(color: AppColors.error, fontSize: 12),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
         borderSide: const BorderSide(color: AppColors.darkBorder),
@@ -81,6 +91,14 @@ ThemeData get darkTheme {
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
         borderSide: const BorderSide(color: AppColors.primaryInteractive, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+        borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+        borderSide: const BorderSide(color: AppColors.error, width: 2),
       ),
     ),
   );

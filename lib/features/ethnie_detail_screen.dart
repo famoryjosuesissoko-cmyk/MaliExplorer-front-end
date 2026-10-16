@@ -393,6 +393,8 @@ class _EthnicityDetailScreenState extends ConsumerState<EthnicityDetailScreen> {
             Text(
               title,
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
@@ -405,6 +407,8 @@ class _EthnicityDetailScreenState extends ConsumerState<EthnicityDetailScreen> {
             Text(
               subtitle,
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w500,
@@ -449,22 +453,24 @@ class _EthnicityDetailScreenState extends ConsumerState<EthnicityDetailScreen> {
             child: photoPath.startsWith('assets/')
                 ? Image.asset(
                     photoPath,
-                    height: 210,
+                    height: 250,
                     width: double.infinity,
                     fit: BoxFit.cover,
+                    alignment: Alignment.topCenter,
                     errorBuilder: (context, error, stackTrace) => Container(
-                      height: 210,
+                      height: 250,
                       color: badgeColor.withValues(alpha: 0.15),
                       child: Icon(icon, size: 48, color: badgeColor),
                     ),
                   )
                 : Image.network(
                     photoPath,
-                    height: 210,
+                    height: 250,
                     width: double.infinity,
                     fit: BoxFit.cover,
+                    alignment: Alignment.topCenter,
                     errorBuilder: (context, error, stackTrace) => Container(
-                      height: 210,
+                      height: 250,
                       color: badgeColor.withValues(alpha: 0.15),
                       child: Icon(icon, size: 48, color: badgeColor),
                     ),
@@ -532,6 +538,7 @@ class _EthnicityDetailScreenState extends ConsumerState<EthnicityDetailScreen> {
     required Color color,
   }) {
     return Container(
+      constraints: const BoxConstraints(maxWidth: 260),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
@@ -543,12 +550,16 @@ class _EthnicityDetailScreenState extends ConsumerState<EthnicityDetailScreen> {
         children: [
           Icon(icon, size: 13, color: color),
           const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              color: color,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
             ),
           ),
         ],
@@ -572,6 +583,7 @@ class _EthnicityDetailScreenState extends ConsumerState<EthnicityDetailScreen> {
               ? Image.asset(
                   photoPath,
                   fit: BoxFit.cover,
+                  alignment: Alignment.topCenter,
                   errorBuilder: (context, error, stackTrace) => Container(
                     color: const Color(0xFF2C3E38),
                     child: const Center(
@@ -582,6 +594,7 @@ class _EthnicityDetailScreenState extends ConsumerState<EthnicityDetailScreen> {
               : Image.network(
                   photoPath,
                   fit: BoxFit.cover,
+                  alignment: Alignment.topCenter,
                   errorBuilder: (context, error, stackTrace) => Container(
                     color: const Color(0xFF2C3E38),
                     child: const Center(
@@ -616,7 +629,13 @@ class _EthnicityDetailScreenState extends ConsumerState<EthnicityDetailScreen> {
               children: [
                 // Bouton retour
                 InkWell(
-                  onTap: () => context.pop(),
+                  onTap: () {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go(AppRouter.ethniesList);
+                    }
+                  },
                   borderRadius: BorderRadius.circular(30),
                   child: Container(
                     width: 38,

@@ -70,7 +70,7 @@ class PlatModel {
   }
 
   String get displayPhoto {
-    if (imageUrl.startsWith('assets/')) {
+    if (imageUrl.isNotEmpty) {
       return imageUrl;
     }
     return getLocalPhoto(nom);
@@ -78,6 +78,10 @@ class PlatModel {
 
   factory PlatModel.fromJson(Map<String, dynamic> json) {
     final nomPlat = json['nom'] ?? json['nomPlat'] ?? '';
+    final rawImg = json['imageUrl'] ?? json['photoUrl'];
+    final resolvedImg = (rawImg != null && rawImg.toString().trim().isNotEmpty)
+        ? rawImg.toString().trim()
+        : getLocalPhoto(nomPlat);
 
     List<String> regionNames = [];
     if (json['regions'] is List) {
@@ -130,7 +134,7 @@ class PlatModel {
       nbrePersonnes: json['nbrePersonnes'] as int? ?? 5,
       tempsCuisson: json['tempsCuisson'] ?? '1h 15 min',
       difficulte: json['difficulte'] ?? 'Traditionnelle',
-      imageUrl: getLocalPhoto(nomPlat),
+      imageUrl: resolvedImg,
       regions: regionNames,
       ethnies: ethnieNames,
       ingredients: dishIngredients,

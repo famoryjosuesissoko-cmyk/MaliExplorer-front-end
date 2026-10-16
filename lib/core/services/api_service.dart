@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import '../constants/api_constants.dart';
 
 /// Provider Riverpod global pour ApiService (Singleton partagé)
@@ -97,17 +98,21 @@ class ApiService {
 
   /// Requête PUT
   Future<http.Response> put(String endpoint, {dynamic body, Map<String, String>? headers}) async {
-    final url = _buildUri(endpoint);
-    final encodedBody = body != null ? (body is String ? body : jsonEncode(body)) : null;
-    return await _client
-        .put(url, headers: _buildHeaders(headers), body: encodedBody)
-        .timeout(ApiConstants.timeout);
+    return _executeWithFallback((baseUrl) async {
+      final url = _buildUri(endpoint, null, baseUrl);
+      final encodedBody = body != null ? (body is String ? body : jsonEncode(body)) : null;
+      return await _client
+          .put(url, headers: _buildHeaders(headers), body: encodedBody)
+          .timeout(ApiConstants.timeout);
+    });
   }
 
   /// Requête DELETE
   Future<http.Response> delete(String endpoint, {Map<String, String>? headers}) async {
-    final url = _buildUri(endpoint);
-    return await _client.delete(url, headers: _buildHeaders(headers)).timeout(ApiConstants.timeout);
+    return _executeWithFallback((baseUrl) async {
+      final url = _buildUri(endpoint, null, baseUrl);
+      return await _client.delete(url, headers: _buildHeaders(headers)).timeout(ApiConstants.timeout);
+    });
   }
 
   /// Requête Multipart POST pour l'envoi de fichiers vers Spring Boot / Supabase
@@ -119,27 +124,45 @@ class ApiService {
     Map<String, String>? fields,
     Map<String, String>? headers,
   }) async {
-    final url = _buildUri(endpoint);
-    final request = http.MultipartRequest('POST', url);
+    return _executeWithFallback((baseUrl) async {
+      final url = _buildUri(endpoint, null, baseUrl);
+      final request = http.MultipartRequest('POST', url);
 
-    if (_authToken != null && _authToken!.isNotEmpty) {
-      request.headers['Authorization'] = 'Bearer $_authToken';
-    }
-    if (headers != null) {
-      request.headers.addAll(headers);
-    }
-    if (fields != null) {
-      request.fields.addAll(fields);
-    }
+      if (_authToken != null && _authToken!.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $_authToken';
+      }
+      if (headers != null) {
+        request.headers.addAll(headers);
+      }
+      if (fields != null) {
+        request.fields.addAll(fields);
+      }
 
-    final multipartFile = http.MultipartFile.fromBytes(
-      fileFieldName,
-      fileBytes,
-      filename: filename,
-    );
-    request.files.add(multipartFile);
+      final cleanExt = filename.contains('.') ? filename.split('.').last.toLowerCase() : 'jpg';
+      final mediaType = cleanExt == 'png'
+          ? MediaType('image', 'png')
+          : cleanExt == 'webp'
+              ? MediaType('image', 'webp')
+              : cleanExt == 'gif'
+                  ? MediaType('image', 'gif')
+                  : cleanExt == 'svg'
+                      ? MediaType('image', 'svg+xml')
+                      : cleanExt == 'pdf'
+                          ? MediaType('application', 'pdf')
+                          : cleanExt == 'mp4'
+                              ? MediaType('video', 'mp4')
+                              : MediaType('image', 'jpeg');
 
-    final streamedResponse = await request.send().timeout(const Duration(seconds: 45));
-    return await http.Response.fromStream(streamedResponse);
+      final multipartFile = http.MultipartFile.fromBytes(
+        fileFieldName,
+        fileBytes,
+        filename: filename,
+        contentType: mediaType,
+      );
+      request.files.add(multipartFile);
+
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 15));
+      return await http.Response.fromStream(streamedResponse);
+    });
   }
 }

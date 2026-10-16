@@ -77,7 +77,13 @@ class _GastronomieListScreenState extends ConsumerState<GastronomieListScreen> {
                       Row(
                         children: [
                           IconButton(
-                            onPressed: () => context.go('/home'),
+                            onPressed: () {
+                              if (context.canPop()) {
+                                context.pop();
+                              } else {
+                                context.go(AppRouter.explorer);
+                              }
+                            },
                             icon: const Icon(
                               Icons.arrow_back_ios_new_rounded,
                               color: Colors.white,
@@ -289,7 +295,8 @@ class _GastronomieListScreenState extends ConsumerState<GastronomieListScreen> {
                               ),
                             ),
                           ),
-                          if (plat.tempsCuisson != null)
+                          if (plat.tempsCuisson != null) ...[
+                            const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 7, vertical: 2),
@@ -307,6 +314,7 @@ class _GastronomieListScreenState extends ConsumerState<GastronomieListScreen> {
                                 ),
                               ),
                             ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -380,8 +388,23 @@ class _GastronomieListScreenState extends ConsumerState<GastronomieListScreen> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            // Navigation vers la page détail du plat (Sakasaka)
-            context.push(AppRouter.dishDetail);
+            final lowerTitle = dish.title.toLowerCase();
+            final matchedPlat = PlatModel.defaultPlats.firstWhere(
+              (p) {
+                final pLower = p.nom.toLowerCase();
+                return pLower.contains(lowerTitle) ||
+                    lowerTitle.contains(pLower) ||
+                    ((lowerTitle.contains('saka') || lowerTitle.contains('saga')) &&
+                        (pLower.contains('saka') || pLower.contains('saga')));
+              },
+              orElse: () => PlatModel(
+                id: 0,
+                nom: dish.title,
+                description: dish.description,
+                imageUrl: dish.imageUrl,
+              ),
+            );
+            context.push(AppRouter.dishDetail, extra: matchedPlat);
           },
           borderRadius: BorderRadius.circular(16),
           child: Padding(
@@ -417,6 +440,8 @@ class _GastronomieListScreenState extends ConsumerState<GastronomieListScreen> {
                     children: [
                       Text(
                         dish.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 15.5,
                           fontWeight: FontWeight.w800,

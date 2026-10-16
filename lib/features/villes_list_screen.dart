@@ -52,6 +52,48 @@ class _VillesListScreenState extends ConsumerState<VillesListScreen> {
       description: 'Capitale du Kénédougou, grenier verdoyant et verger du Mali.',
       imageUrl: 'assets/images/sikasso_cover.jpeg',
     ),
+    CityListItem(
+      name: 'Kayes',
+      region: 'Région de Kayes',
+      description: 'Première région administrative, carrefour frontalier réputé pour ses chutes majestueuses et le Fort de Médine.',
+      imageUrl: 'assets/images/explorer_artisans.jpeg',
+    ),
+    CityListItem(
+      name: 'Koulikoro',
+      region: 'Région de Koulikoro',
+      description: 'Terminus fluvial sur le Niger et terre de la légende du roi sorcier Soumaoro Kanté.',
+      imageUrl: 'assets/images/explorer_guides.jpeg',
+    ),
+    CityListItem(
+      name: 'Koutiala',
+      region: 'Région de Koutiala',
+      description: 'Capitale de l’or blanc (coton), pôle agro-industriel majeur et carrefour de la culture Minianka.',
+      imageUrl: 'assets/images/explorer_artisans.jpeg',
+    ),
+    CityListItem(
+      name: 'San',
+      region: 'Région de San',
+      description: 'Carrefour du Bani célèbre pour sa pêche rituelle séculaire du Sanké Mô (UNESCO) et son église en banco.',
+      imageUrl: 'assets/images/segou_cover.jpg',
+    ),
+    CityListItem(
+      name: 'Kéniéba',
+      region: 'Cercle de Kéniéba',
+      description: 'Cité aurifère historique du Bambouk, lovée au pied des falaises spectaculaires du Tambaoura.',
+      imageUrl: 'assets/images/explorer_guides.jpeg',
+    ),
+    CityListItem(
+      name: 'Kita',
+      region: 'Région de Kita',
+      description: 'Capitale de l’arachide, sanctuaire marial et berceau légendaire des griots du Mandé.',
+      imageUrl: 'assets/images/explorer_ethnies_traditions.jpeg',
+    ),
+    CityListItem(
+      name: 'Bandiagara',
+      region: 'Région de Bandiagara',
+      description: 'Cœur spirituel du Pays Dogon, porte d’accès aux célèbres falaises et villages classés par l’UNESCO.',
+      imageUrl: 'assets/images/mopti_gallery_2.jpeg',
+    ),
   ];
 
   @override
@@ -80,7 +122,13 @@ class _VillesListScreenState extends ConsumerState<VillesListScreen> {
                       Row(
                         children: [
                           IconButton(
-                            onPressed: () => context.go('/home'),
+                            onPressed: () {
+                              if (context.canPop()) {
+                                context.pop();
+                              } else {
+                                context.go(AppRouter.explorer);
+                              }
+                            },
                             icon: const Icon(
                               Icons.arrow_back_ios_new_rounded,
                               color: Colors.white,
@@ -323,6 +371,8 @@ class _VillesListScreenState extends ConsumerState<VillesListScreen> {
                   children: [
                     Text(
                       city.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w800,
@@ -426,6 +476,8 @@ class _VillesListScreenState extends ConsumerState<VillesListScreen> {
                   children: [
                     Text(
                       ville.nom,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w800,
