@@ -12,6 +12,7 @@ import '../models/search_result_item.dart';
 import '../models/ville_model.dart';
 import '../providers/home_extended_providers.dart';
 import '../router/app_router.dart';
+import 'auth/auth_controller.dart';
 
 /// Page d'Accueil 100% Responsive et adaptative avec Diaporama Hero 5s, Carrousel continu des Villes et Recherche Dynamique.
 class HomeScreen extends ConsumerStatefulWidget {
@@ -402,7 +403,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
     if (trimmed.startsWith('/')) {
       return Image.network(
-        '${ApiConstants.baseUrl}$trimmed',
+        ApiConstants.resolveImageUrl(trimmed),
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
@@ -558,7 +559,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             onPressed: () async {
               Navigator.pop(ctx);
-              await FirebaseAuth.instance.signOut();
+              await ref.read(authControllerProvider.notifier).logout();
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -861,80 +862,86 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           final CategoryItem cat = entry.value;
 
           return Expanded(
-            child: InkWell(
-              onTap: () {
-                if (index == 0) {
-                  context.push(AppRouter.villesList);
-                } else if (index == 1) {
-                  context.push(AppRouter.ethniesList);
-                } else if (index == 2) {
-                  context.push(AppRouter.gastronomieList);
-                } else {
-                  // Clic sur "Villes & Religions" -> ouvre le nouveau module Religions
-                  context.push(AppRouter.religionsList);
-                }
-              },
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 3.5),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 12,
-                  horizontal: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(
-                        alpha: isDark ? 0.2 : 0.04,
-                      ),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 3.5),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurface : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(
+                      alpha: isDark ? 0.2 : 0.04,
                     ),
-                  ],
-                  border: Border.all(
-                    color: isDark
-                        ? AppColors.darkBorder
-                        : Colors.black.withValues(alpha: 0.05),
-                    width: 1,
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
+                ],
+                border: Border.all(
+                  color: isDark
+                      ? AppColors.darkBorder
+                      : Colors.black.withValues(alpha: 0.05),
+                  width: 1,
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? AppColors.darkSurfaceElevated
-                            : cat.bgColor,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(cat.icon, color: cat.iconColor, size: 25),
+              ),
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+                child: InkWell(
+                  onTap: () {
+                    if (index == 0) {
+                      context.push(AppRouter.villesList);
+                    } else if (index == 1) {
+                      context.push(AppRouter.ethniesList);
+                    } else if (index == 2) {
+                      context.push(AppRouter.gastronomieList);
+                    } else {
+                      // Clic sur "Villes & Religions" -> ouvre le nouveau module Religions
+                      context.push(AppRouter.religionsList);
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 4,
                     ),
-                    const SizedBox(height: 7),
-                    SizedBox(
-                      height: 28,
-                      child: Center(
-                        child: Text(
-                          cat.title,
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w600,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
                             color: isDark
-                                ? AppColors.darkTextPrimary
-                                : const Color(0xFF2C3E38),
-                            height: 1.15,
+                                ? AppColors.darkSurfaceElevated
+                                : cat.bgColor,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(cat.icon, color: cat.iconColor, size: 25),
+                        ),
+                        const SizedBox(height: 7),
+                        SizedBox(
+                          height: 28,
+                          child: Center(
+                            child: Text(
+                              cat.title,
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w600,
+                                color: isDark
+                                    ? AppColors.darkTextPrimary
+                                    : const Color(0xFF2C3E38),
+                                height: 1.15,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -1164,7 +1171,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
     if (trimmed.startsWith('/')) {
       return Image.network(
-        '${ApiConstants.baseUrl}$trimmed',
+        ApiConstants.resolveImageUrl(trimmed),
         fit: BoxFit.cover,
         errorBuilder: (_, _, _) => Image.asset(
           'assets/images/home_tombouctou.jpeg',

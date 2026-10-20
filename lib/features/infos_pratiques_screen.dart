@@ -1,14 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/constants/app_colors.dart';
+import '../models/info_pratique_model.dart';
+import '../providers/infos_pratiques_provider.dart';
 import '../router/app_router.dart';
 
-class InfosPratiquesScreen extends StatelessWidget {
+/// Écran des informations pratiques pour les voyageurs au Mali.
+/// Consomme dynamiquement infosPratiquesProvider avec navigation par onglets fixes.
+class InfosPratiquesScreen extends ConsumerStatefulWidget {
   const InfosPratiquesScreen({super.key});
+
+  @override
+  ConsumerState<InfosPratiquesScreen> createState() => _InfosPratiquesScreenState();
+}
+
+class _InfosPratiquesScreenState extends ConsumerState<InfosPratiquesScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _selectedCategory = 'TOUS';
+
+  /// Onglets thématiques officiels fixes
+  final List<Map<String, String>> _categoriesTabs = const [
+    {'key': 'TOUS', 'label': 'Tous'},
+    {'key': 'VISAS', 'label': 'Visas'},
+    {'key': 'SANTE', 'label': 'Santé'},
+    {'key': 'DEVISES', 'label': 'Devises'},
+    {'key': 'CLIMAT', 'label': 'Climat'},
+    {'key': 'URGENCES', 'label': 'Urgences'},
+  ];
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final infosAsync = ref.watch(infosPratiquesProvider);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackgroundSecondary : const Color(0xFFF7F9F8),
@@ -20,48 +51,88 @@ class InfosPratiquesScreen extends StatelessWidget {
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
-                child: Row(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                child: Column(
                   children: [
-                    IconButton(
-                      onPressed: () {
-                        if (context.canPop()) {
-                          context.pop();
-                        } else {
-                          context.go(AppRouter.explorer);
-                        }
-                      },
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                    const SizedBox(width: 14),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'INFORMATIONS PRATIQUES',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              letterSpacing: 0.5,
-                            ),
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            if (context.canPop()) {
+                              context.pop();
+                            } else {
+                              context.go(AppRouter.explorer);
+                            }
+                          },
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: Colors.white,
+                            size: 20,
                           ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Guide essentiel du voyageur au Mali',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFFD1E7DD),
-                            ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 14),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'INFORMATIONS PRATIQUES',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Guide essentiel du voyageur au Mali',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFFD1E7DD),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Barre de recherche textuelle
+                    Container(
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
                           ),
                         ],
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                        decoration: InputDecoration(
+                          hintText: 'Rechercher un conseil, visa, urgence...',
+                          hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF8C9B96)),
+                          prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF075E4D), size: 20),
+                          suffixIcon: _searchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear_rounded, size: 18),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() => _searchQuery = '');
+                                  },
+                                )
+                              : null,
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 11),
+                        ),
                       ),
                     ),
                   ],
@@ -70,123 +141,74 @@ class InfosPratiquesScreen extends StatelessWidget {
             ),
           ),
 
-          // Contenu avec onglets / cartes thématiques
+          // Barre horizontale d'onglets fixes thématiques
+          Container(
+            height: 48,
+            color: isDark ? const Color(0xFF1E2825) : Colors.white,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              itemCount: _categoriesTabs.length,
+              itemBuilder: (context, index) {
+                final tab = _categoriesTabs[index];
+                final isSelected = _selectedCategory == tab['key'];
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    label: Text(
+                      tab['label']!,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                        color: isSelected ? Colors.white : const Color(0xFF4A5568),
+                      ),
+                    ),
+                    selected: isSelected,
+                    selectedColor: const Color(0xFF075E4D),
+                    backgroundColor: isDark ? const Color(0xFF2C3935) : const Color(0xFFF0F4F2),
+                    showCheckmark: false,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                    onSelected: (val) {
+                      if (val) setState(() => _selectedCategory = tab['key']!);
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // Contenu principal avec RefreshIndicator et gestion des 4 états
           Expanded(
-            child: ListView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              children: [
-                // 1. Visas et formalités d'entrée
-                _buildInfoSection(
-                  context,
-                  icon: Icons.badge_rounded,
-                  titre: '1. Visas & Formalités d\'Entrée',
-                  badge: 'Obligatoire',
-                  badgeColor: const Color(0xFFC53030),
-                  items: const [
-                    'Passeport : Valide au moins 6 mois après la date de retour prévue.',
-                    'Visa d\'entrée : Requis pour la plupart des ressortissants hors CEDEAO. Disponible auprès des consulats et ambassades du Mali ou via le portail officiel de visa biométrique.',
-                    'Ressortissants CEDEAO : Entrée sans visa sur présentation d\'un passeport ou d\'une carte d\'identité biométrique CEDEAO en cours de validité.',
-                    'Enregistrement : Déclaration auprès des services de police/gendarmerie ou de l\'hôtel à l\'arrivée en province.',
-                  ],
-                ),
-
-                const SizedBox(height: 14),
-
-                // 2. Santé & Vaccinations
-                _buildInfoSection(
-                  context,
-                  icon: Icons.medical_services_rounded,
-                  titre: '2. Santé & Vaccinations',
-                  badge: 'Exigé à l\'arrivée',
-                  badgeColor: const Color(0xFFDD6B20),
-                  items: const [
-                    'Fièvre Jaune : Vaccination strictement obligatoire. Le carnet international de vaccination (jaune) est systématiquement contrôlé à l\'aéroport international Président Modibo Keïta de Bamako-Sénou.',
-                    'Paludisme : Traitement préventif fortement recommandé (chimioprophylaxie) toute l\'année, particulièrement durant et après la saison des pluies. Prévoir répulsifs cutanés et moustiquaires.',
-                    'Vaccins recommandés : Hépatites A et B, Méningite A+C+Y+W135, Fièvre typhoïde, Tétanos.',
-                    'Eau & Alimentation : Boire de l\'eau minérale capsulée ou préalablement filtrée/bouillie. Éviter les glaçons non sécurisés.',
-                  ],
-                ),
-
-                const SizedBox(height: 14),
-
-                // 3. Monnaie, Banques & Moyens de paiement
-                _buildInfoSection(
-                  context,
-                  icon: Icons.payments_rounded,
-                  titre: '3. Devises, Monnaie & Paiements',
-                  badge: 'FCFA (XOF)',
-                  badgeColor: const Color(0xFF2E7D32),
-                  items: const [
-                    'Monnaie officielle : Franc CFA d\'Afrique de l\'Ouest (XOF). Parité fixe avec l\'Euro (1 EUR = 655,957 XOF).',
-                    'Mobile Money : Orange Money et Moov Money sont omniprésents et acceptés par la quasi-totalité des commerces, taxis et artisans.',
-                    'Cartes bancaires : Les cartes Visa et Mastercard sont acceptées dans les grands hôtels, supermarchés et aux distributeurs automatiques (GAB) à Bamako et grandes villes.',
-                    'Espèces : Indispensables pour les marchés artisanaux, transports fluviaux et zones rurales.',
-                  ],
-                ),
-
-                const SizedBox(height: 14),
-
-                // 4. Climat & Saisons touristiques
-                _buildInfoSection(
-                  context,
-                  icon: Icons.wb_sunny_rounded,
-                  titre: '4. Climat & Meilleure Période',
-                  badge: 'Saison fraîche : Nov - Fév',
-                  badgeColor: const Color(0xFF3182CE),
-                  items: const [
-                    'Saison fraîche et sèche (Novembre à Février) : Températures idéales (25°C - 32°C le jour, 15°C - 18°C la nuit). Période reine pour visiter les villes historiques, les festivals et naviguer sur le fleuve Niger.',
-                    'Saison chaude (Mars à Mai) : Chaleur intense (38°C à 44°C). Vent sec d\'Harmattan.',
-                    'Saison des pluies / Hivernage (Juin à Octobre) : Végétation luxuriante, averses tropicales régulières, fleuve à son niveau maximal.',
-                  ],
-                ),
-
-                const SizedBox(height: 14),
-
-                // 5. Numéros d'urgence utiles
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E2825) : Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFF075E4D).withValues(alpha: 0.15)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.02),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
+            child: RefreshIndicator(
+              color: const Color(0xFF075E4D),
+              onRefresh: () async {
+                ref.invalidate(infosPratiquesProvider);
+                try {
+                  await ref.read(infosPratiquesProvider.future);
+                } catch (_) {
+                  // L'erreur sera gérée par le provider Riverpod.
+                }
+              },
+              child: infosAsync.when(
+                loading: () => ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: const [
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: 80),
+                      child: Center(
+                        child: CircularProgressIndicator(color: Color(0xFF075E4D)),
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.contact_phone_rounded, color: Color(0xFF075E4D), size: 22),
-                          SizedBox(width: 10),
-                          Text(
-                            'Numéros d\'Urgence au Mali',
-                            style: TextStyle(
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF075E4D),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      _buildEmergencyRow('Police Secours', '17 / 80 00 11 15'),
-                      const Divider(height: 14),
-                      _buildEmergencyRow('Sapeurs-Pompiers (Incendie & Secours)', '18 / 80 00 12 01'),
-                      const Divider(height: 14),
-                      _buildEmergencyRow('Gendarmerie Nationale', '80 00 11 14'),
-                      const Divider(height: 14),
-                      _buildEmergencyRow('SAMU / Urgences Médicales Bamako', '15 / 20 22 27 77'),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
+                error: (error, stack) => _buildErrorState(context, ref, isDark),
+                data: (infos) {
+                  if (infos.isEmpty) {
+                    return _buildEmptyState(context, isDark);
+                  }
+                  return _buildDataContent(context, isDark, infos);
+                },
+              ),
             ),
           ),
         ],
@@ -194,43 +216,199 @@ class InfosPratiquesScreen extends StatelessWidget {
     );
   }
 
-  static Widget _buildEmergencyRow(String label, String number) {
+  /// Construit la liste dynamique des sections d'informations pratiques.
+  Widget _buildDataContent(BuildContext context, bool isDark, List<InfoPratiqueModel> infos) {
+    // Filtrage par catégorie sélectionnée et texte de recherche
+    final filteredInfos = infos.where((item) {
+      final matchesCategory = _selectedCategory == 'TOUS' ||
+          item.categorie.toUpperCase() == _selectedCategory.toUpperCase();
+      final query = _searchQuery.toLowerCase();
+      final matchesQuery = query.isEmpty ||
+          item.titre.toLowerCase().contains(query) ||
+          item.description.toLowerCase().contains(query) ||
+          (item.conseils != null && item.conseils!.toLowerCase().contains(query)) ||
+          (item.coordonnees != null && item.coordonnees!.toLowerCase().contains(query));
+      return matchesCategory && matchesQuery;
+    }).toList();
+
+    if (filteredInfos.isEmpty) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          const SizedBox(height: 60),
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.search_off_rounded,
+                    size: 48,
+                    color: Colors.grey.withValues(alpha: 0.5),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Aucun résultat pour cette catégorie ou recherche.',
+                    style: TextStyle(fontSize: 13, color: Color(0xFF6C7C77)),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      itemCount: filteredInfos.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 14),
+      itemBuilder: (context, index) {
+        final item = filteredInfos[index];
+        if (item.categorie.toUpperCase() == 'URGENCES') {
+          return _buildEmergencySection(context, isDark, item);
+        }
+        return _buildInfoSection(context, isDark, item);
+      },
+    );
+  }
+
+  /// Construit la section dédiée aux numéros et consignes d'urgence.
+  Widget _buildEmergencySection(BuildContext context, bool isDark, InfoPratiqueModel item) {
+    final rows = item.emergencyRows;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E2825) : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF075E4D).withValues(alpha: 0.15)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.contact_phone_rounded, color: Color(0xFF075E4D), size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  item.titre.isNotEmpty ? item.titre : "Numéros d'Urgence au Mali",
+                  style: const TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF075E4D),
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: item.defaultBadgeColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  item.displayBadge,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    color: item.defaultBadgeColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (item.imageUrl != null && item.imageUrl!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.network(
+                item.imageUrl!,
+                height: 120,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          if (rows.isNotEmpty) ...[
+            for (int i = 0; i < rows.length; i++) ...[
+              if (i > 0) const Divider(height: 14),
+              _buildEmergencyRow(rows[i].key, rows[i].value, isDark),
+            ],
+          ] else if (item.itemsList.isNotEmpty) ...[
+            for (final line in item.itemsList)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  line,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: isDark ? Colors.grey[300] : const Color(0xFF2D3748),
+                  ),
+                ),
+              ),
+          ] else if (item.description.isNotEmpty) ...[
+            Text(
+              item.description,
+              style: TextStyle(
+                fontSize: 12.5,
+                color: isDark ? Colors.grey[300] : const Color(0xFF2D3748),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Construit une ligne d'urgence (libellé + numéro de téléphone).
+  Widget _buildEmergencyRow(String label, String number, bool isDark) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF2D3748)),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE6FFFA),
-            borderRadius: BorderRadius.circular(6),
-          ),
+        Expanded(
           child: Text(
-            number,
-            style: const TextStyle(
+            label,
+            style: TextStyle(
               fontSize: 12.5,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF075E4D),
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.grey[200] : const Color(0xFF2D3748),
             ),
           ),
         ),
+        if (number.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE6FFFA),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              number,
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF075E4D),
+              ),
+            ),
+          ),
       ],
     );
   }
 
-  static Widget _buildInfoSection(
-    BuildContext context, {
-    required IconData icon,
-    required String titre,
-    required String badge,
-    required Color badgeColor,
-    required List<String> items,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
+  /// Construit une carte thématique classique (Visas, Santé, Devises, Climat, etc.).
+  Widget _buildInfoSection(BuildContext context, bool isDark, InfoPratiqueModel item) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -256,12 +434,12 @@ class InfosPratiquesScreen extends StatelessWidget {
                   color: const Color(0xFF075E4D).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: const Color(0xFF075E4D), size: 20),
+                child: Icon(item.defaultIcon, color: const Color(0xFF075E4D), size: 20),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  titre,
+                  item.titre,
                   style: const TextStyle(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w800,
@@ -272,45 +450,182 @@ class InfosPratiquesScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: badgeColor.withValues(alpha: 0.1),
+                  color: item.defaultBadgeColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  badge,
-                  style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: badgeColor),
+                  item.displayBadge,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    color: item.defaultBadgeColor,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          ...items.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.only(top: 6),
-                    child: Icon(Icons.circle, size: 6, color: Color(0xFF075E4D)),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      item,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: isDark ? Colors.grey[300] : const Color(0xFF4A5568),
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ],
+          if (item.imageUrl != null && item.imageUrl!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.network(
+                item.imageUrl!,
+                height: 120,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
               ),
             ),
-          ),
+          ],
+          const SizedBox(height: 12),
+          if (item.itemsList.isNotEmpty)
+            ...item.itemsList.map(
+              (point) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 6),
+                      child: Icon(Icons.circle, size: 6, color: Color(0xFF075E4D)),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        point,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: isDark ? Colors.grey[300] : const Color(0xFF4A5568),
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else if (item.description.isNotEmpty)
+            Text(
+              item.description,
+              style: TextStyle(
+                fontSize: 12.5,
+                color: isDark ? Colors.grey[300] : const Color(0xFF4A5568),
+                height: 1.4,
+              ),
+            ),
         ],
       ),
     );
   }
-}
 
+  /// Construit la vue de l'état vide officiel lorsque la base de données ne contient aucune information pratique.
+  Widget _buildEmptyState(BuildContext context, bool isDark) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        const SizedBox(height: 60),
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF075E4D).withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.info_outline_rounded,
+                    size: 48,
+                    color: Color(0xFF075E4D),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Informations Pratiques Voyageurs',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF075E4D),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Aucune information pratique répertoriée pour le moment. Les guides essentiels apparaîtront dès qu\'ils seront renseignés et publiés par l\'administration.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF6C7C77),
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Construit la vue en cas d'erreur de chargement avec bouton de réessai.
+  Widget _buildErrorState(BuildContext context, WidgetRef ref, bool isDark) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        const SizedBox(height: 60),
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.cloud_off_rounded,
+                    size: 48,
+                    color: Colors.red,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Erreur de chargement',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF075E4D),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Impossible de charger les informations pratiques. Veuillez vérifier votre connexion.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: Color(0xFF6C7C77)),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: () => ref.refresh(infosPratiquesProvider),
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Réessayer'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF075E4D),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}

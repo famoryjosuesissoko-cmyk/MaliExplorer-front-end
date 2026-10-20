@@ -5,6 +5,8 @@ class VilleModel {
   final String? nbreHbt;
   final String description;
   final String? cordonnees;
+  final double? latitude;
+  final double? longitude;
   final String imageUrl;
   final List<String> images;
   final bool misEnAvantHome;
@@ -18,6 +20,8 @@ class VilleModel {
     this.nbreHbt,
     required this.description,
     this.cordonnees,
+    this.latitude,
+    this.longitude,
     required this.imageUrl,
     this.images = const [],
     this.misEnAvantHome = false,
@@ -70,13 +74,27 @@ class VilleModel {
       parsedImages.add(mainImg);
     }
 
+    // Extraction robuste des coordonnées géographiques GPS
+    double? lat = (json['latitude'] as num?)?.toDouble();
+    double? lng = (json['longitude'] as num?)?.toDouble();
+    final rawCoords = json['cordonnees']?.toString();
+    if ((lat == null || lng == null) && rawCoords != null && rawCoords.contains(',')) {
+      final parts = rawCoords.split(',');
+      if (parts.length >= 2) {
+        lat ??= double.tryParse(parts[0].trim());
+        lng ??= double.tryParse(parts[1].trim());
+      }
+    }
+
     return VilleModel(
       id: json['id'] ?? json['idVille'] ?? 0,
       nom: nomVille,
       region: json['region'] ?? '',
       nbreHbt: json['nbreHbt']?.toString(),
       description: json['description'] ?? '',
-      cordonnees: json['cordonnees'] ?? '',
+      cordonnees: rawCoords ?? (lat != null && lng != null ? '$lat, $lng' : null),
+      latitude: lat,
+      longitude: lng,
       imageUrl: mainImg,
       images: parsedImages,
       misEnAvantHome: json['misEnAvantHome'] ?? false,
@@ -93,6 +111,8 @@ class VilleModel {
       'nbreHbt': nbreHbt,
       'description': description,
       'cordonnees': cordonnees,
+      'latitude': latitude,
+      'longitude': longitude,
       'imageUrl': imageUrl,
       'images': images,
       'lieuxHistoriques': lieuxHistoriques,
@@ -135,6 +155,9 @@ class VilleModel {
       description: 'Cité des 333 saints et carrefour historique des caravanes transsahariennes.',
       imageUrl: 'assets/images/tombouctou_hero.jpeg',
       images: ['assets/images/tombouctou_hero.jpeg', 'assets/images/tombouctou_gallery_1.jpeg', 'assets/images/tombouctou_gallery_2.jpeg'],
+      cordonnees: '16.7666, -3.0026',
+      latitude: 16.7666,
+      longitude: -3.0026,
     ),
     VilleModel(
       id: 2,
@@ -144,6 +167,9 @@ class VilleModel {
       description: 'Joyau de terre crue classé au patrimoine mondial avec sa majestueuse Grande Mosquée.',
       imageUrl: 'assets/images/djenne_cover.jpeg',
       images: ['assets/images/djenne_cover.jpeg', 'assets/images/djenne_gallery_1.jpeg', 'assets/images/djenne_gallery_2.jpeg'],
+      cordonnees: '13.9056, -4.5533',
+      latitude: 13.9056,
+      longitude: -4.5533,
     ),
     VilleModel(
       id: 3,
@@ -153,6 +179,9 @@ class VilleModel {
       description: 'Ancienne capitale du puissant royaume bambara le long des rives paisibles du Niger.',
       imageUrl: 'assets/images/segou_cover.jpg',
       images: ['assets/images/segou_cover.jpg', 'assets/images/segou_gallery_1.jpg', 'assets/images/segou_gallery_2.jpeg'],
+      cordonnees: '13.4317, -6.2157',
+      latitude: 13.4317,
+      longitude: -6.2157,
     ),
     VilleModel(
       id: 4,
@@ -162,6 +191,9 @@ class VilleModel {
       description: 'La Venise malienne, confluent bouillonnant du fleuve Niger et du fleuve Bani.',
       imageUrl: 'assets/images/mopti_cover.jpg',
       images: ['assets/images/mopti_cover.jpg', 'assets/images/mopti_gallery_1.jpg', 'assets/images/mopti_gallery_2.jpeg'],
+      cordonnees: '14.4958, -4.1873',
+      latitude: 14.4958,
+      longitude: -4.1873,
     ),
     VilleModel(
       id: 5,
@@ -171,6 +203,9 @@ class VilleModel {
       description: 'Capitale du Kénédougou, terre verdoyante d\'abondance agricole et bastion du Tata.',
       imageUrl: 'assets/images/sikasso_cover.jpeg',
       images: ['assets/images/sikasso_cover.jpeg', 'assets/images/sikasso_gallery_1.jpg', 'assets/images/sikasso_gallery_2.jpg'],
+      cordonnees: '11.3176, -5.6665',
+      latitude: 11.3176,
+      longitude: -5.6665,
     ),
     VilleModel(
       id: 6,
@@ -180,6 +215,9 @@ class VilleModel {
       description: 'Capitale vibrante et dynamique au pied des monts Mandingues, traversée par le Djoliba.',
       imageUrl: 'assets/images/bamako_cover.jpeg',
       images: ['assets/images/bamako_cover.jpeg', 'assets/images/bamako_gallery_1.jpeg', 'assets/images/bamako_gallery_2.jpeg'],
+      cordonnees: '12.6392, -8.0029',
+      latitude: 12.6392,
+      longitude: -8.0029,
     ),
   ];
 }

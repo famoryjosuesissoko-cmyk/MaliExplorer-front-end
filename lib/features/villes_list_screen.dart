@@ -429,7 +429,7 @@ class _VillesListScreenState extends ConsumerState<VillesListScreen> {
                     }
                     if (trimmed.startsWith('/')) {
                       return Image.network(
-                        '${ApiConstants.baseUrl}$trimmed',
+                        ApiConstants.resolveImageUrl(trimmed),
                         height: 98,
                         width: double.infinity,
                         fit: BoxFit.cover,

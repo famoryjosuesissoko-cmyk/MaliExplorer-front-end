@@ -226,6 +226,20 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
                           ],
                         ),
 
+                        // Badge Coordonnées GPS (si disponibles)
+                        if ((widget.ville?.cordonnees != null && widget.ville!.cordonnees!.isNotEmpty) ||
+                            (widget.ville?.latitude != null && widget.ville?.longitude != null)) ...[
+                          const SizedBox(height: 10),
+                          _buildInfoCard(
+                            icon: Icons.my_location_rounded,
+                            title: 'Coordonnées GPS',
+                            value: widget.ville?.latitude != null && widget.ville?.longitude != null
+                                ? '${widget.ville!.latitude!.toStringAsFixed(4)}° N, ${widget.ville!.longitude!.abs().toStringAsFixed(4)}° O'
+                                : widget.ville!.cordonnees!,
+                            iconColor: const Color(0xFF075E4D),
+                          ),
+                        ],
+
                         // Section Spéciale : Grande Mosquée de Djenné & Visite Virtuelle 360°
                         if (nomVille.toLowerCase().contains('djenne') ||
                             nomVille.toLowerCase().contains('djenné')) ...[
@@ -487,7 +501,7 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
       }
       if (rawUrl.startsWith('/')) {
         return Image.network(
-          '${ApiConstants.baseUrl}$rawUrl',
+          ApiConstants.resolveImageUrl(rawUrl),
           height: height,
           width: double.infinity,
           fit: BoxFit.cover,

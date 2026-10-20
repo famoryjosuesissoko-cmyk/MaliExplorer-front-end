@@ -14,7 +14,22 @@ class ReligionDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final Size screenSize = MediaQuery.of(context).size;
     final double heroHeight = (screenSize.height * 0.36).clamp(240.0, 320.0);
-    final current = religion ?? ReligionModel.defaultReligions.first;
+    final current = religion ??
+        (ReligionModel.defaultReligions.isNotEmpty
+            ? ReligionModel.defaultReligions.first
+            : null);
+
+    if (current == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Détail'),
+          backgroundColor: const Color(0xFF075E4D),
+        ),
+        body: const Center(
+          child: Text('Aucune religion sélectionnée.'),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8F5),
@@ -133,7 +148,7 @@ class ReligionDetailScreen extends ConsumerWidget {
                         // Section 7 : Lieux emblématiques de culte
                         if (current.lieuxDeCulte.trim().isNotEmpty) ...[
                           _buildSectionCard(
-                            icon: Icons.mosque_rounded,
+                            icon: _getFaithIcon(current.nom),
                             title: 'Édifices & Lieux de culte majeurs',
                             content: current.lieuxDeCulte,
                           ),
@@ -435,5 +450,25 @@ class ReligionDetailScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// Détermine l'icône de culte appropriée selon la dénomination religieuse
+  IconData _getFaithIcon(String nom) {
+    final lower = nom.toLowerCase();
+    if (lower.contains('islam') || lower.contains('musulm')) {
+      return Icons.mosque_rounded;
+    } else if (lower.contains('christ') ||
+        lower.contains('cathol') ||
+        lower.contains('protest') ||
+        lower.contains('église')) {
+      return Icons.church_rounded;
+    } else if (lower.contains('animis') ||
+        lower.contains('tradition') ||
+        lower.contains('ancêtre') ||
+        lower.contains('mandé') ||
+        lower.contains('dogon')) {
+      return Icons.nature_people_rounded;
+    }
+    return Icons.account_balance_rounded;
   }
 }

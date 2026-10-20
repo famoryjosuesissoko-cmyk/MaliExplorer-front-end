@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../features/splash_screen.dart';
@@ -42,6 +44,22 @@ import '../models/religion_model.dart';
 import '../models/search_result_item.dart';
 import '../models/favori_model.dart';
 import '../widgets/main_shell.dart';
+
+/// Écouteur réactif transformant un flux Stream en Listenable pour GoRouter
+class GoRouterRefreshStream extends ChangeNotifier {
+  GoRouterRefreshStream(Stream<dynamic> stream) {
+    notifyListeners();
+    _subscription = stream.asBroadcastStream().listen((_) => notifyListeners());
+  }
+
+  late final StreamSubscription<dynamic> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}
 
 String _normalizeText(String input) {
   return input
@@ -112,9 +130,46 @@ class AppRouter {
   static const String settings = '/settings';
   static const String helpSupport = '/help-support';
 
+  /// Liste des routes strictement réservées aux utilisateurs authentifiés
+  static const Set<String> _authRequiredRoutes = {
+    personalInfo,
+    monParcours,
+    promoteurDashboard,
+  };
+
+  /// Écoute le flux d'authentification en gérant l'absence d'initialisation Firebase (ex: tests headless)
+  static Stream<dynamic> _safeAuthStateChanges() {
+    try {
+      return FirebaseAuth.instance.authStateChanges();
+    } catch (_) {
+      return const Stream.empty();
+    }
+  }
+
+  /// Récupère l'utilisateur actuel sans lever d'exception si Firebase n'est pas initialisé
+  static User? _safeCurrentUser() {
+    try {
+      return FirebaseAuth.instance.currentUser;
+    } catch (_) {
+      return null;
+    }
+  }
+
   static final GoRouter router = GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: splash,
+    refreshListenable: GoRouterRefreshStream(_safeAuthStateChanges()),
+    redirect: (BuildContext context, GoRouterState state) {
+      final bool isLoggedIn = _safeCurrentUser() != null;
+      final String location = state.matchedLocation;
+
+      // Protection des routes privées : redirection automatique vers login
+      if (_authRequiredRoutes.contains(location) && !isLoggedIn) {
+        return login;
+      }
+
+      return null;
+    },
     routes: <RouteBase>[
       // 1. Splash Screen (Au-dessus du shell, plein écran)
       GoRoute(
@@ -826,6 +881,12 @@ class AppRouter {
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
         path: monParcours,
+        redirect: (BuildContext context, GoRouterState state) {
+          if (_safeCurrentUser() == null) {
+            return AppRouter.login;
+          }
+          return null;
+        },
         builder: (BuildContext context, GoRouterState state) {
           return const MonParcoursScreen();
         },
@@ -847,6 +908,12 @@ class AppRouter {
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
         path: promoteurDashboard,
+        redirect: (BuildContext context, GoRouterState state) {
+          if (_safeCurrentUser() == null) {
+            return AppRouter.login;
+          }
+          return null;
+        },
         builder: (BuildContext context, GoRouterState state) {
           return const PromoteurDashboardScreen();
         },
@@ -861,6 +928,12 @@ class AppRouter {
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
         path: personalInfo,
+        redirect: (BuildContext context, GoRouterState state) {
+          if (_safeCurrentUser() == null) {
+            return AppRouter.login;
+          }
+          return null;
+        },
         builder: (BuildContext context, GoRouterState state) {
           return const PersonalInfoScreen();
         },
