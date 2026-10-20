@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,193 +17,117 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _resetEmailController = TextEditingController();
 
-  bool _obscurePassword = true;
+  late final AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSubscription;
+
   bool _showEmailForm = false; // Bascule entre vue choix et formulaire email
+  bool _emailLinkSent = false; // Indique si le lien magique a été expédié
+
+  @override
+  void initState() {
+    super.initState();
+    _initDeepLinks();
+  }
+
+  void _initDeepLinks() async {
+    _appLinks = AppLinks();
+    try {
+      final initialUri = await _appLinks.getInitialLink();
+      if (initialUri != null) {
+        _processIncomingLink(initialUri.toString());
+      }
+    } catch (_) {}
+
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      _processIncomingLink(uri.toString());
+    });
+  }
+
+  void _processIncomingLink(String link) async {
+    if (link.contains('apiKey') || link.contains('finishSignUp') || link.contains('mode=signIn')) {
+      final success = await ref
+          .read(authControllerProvider.notifier)
+          .handleEmailLink(link, _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : null);
+      if (!mounted) return;
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Connexion par lien e-mail réussie ! Bienvenue sur MaliExplorer.'),
+            backgroundColor: AppColors.primaryForest,
+          ),
+        );
+        context.go(AppRouter.home);
+      } else {
+        final err = ref.read(authControllerProvider).errorMessage ?? 'Lien de connexion invalide';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(err), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {
+    _linkSubscription?.cancel();
     _emailController.dispose();
-    _passwordController.dispose();
-    _resetEmailController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleEmailLogin() async {
+  /// Envoi du lien de connexion sécurisé sans mot de passe vers l'email saisi
+  Future<void> _handleSendEmailLink() async {
     if (!_formKey.currentState!.validate()) return;
+    final email = _emailController.text.trim();
 
     final success = await ref
         .read(authControllerProvider.notifier)
-        .login(_emailController.text, _passwordController.text);
+        .sendMagicLink(email);
 
     if (!mounted) return;
 
     if (success) {
+      setState(() => _emailLinkSent = true);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Connexion réussie ! Bienvenue sur MaliExplorer.'),
-          backgroundColor: AppColors.primaryForest,
+        SnackBar(
+          content: Text('Lien de connexion envoyé à $email !'),
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF4DB6AC)
+              : AppColors.primaryForest,
+          duration: const Duration(seconds: 5),
         ),
       );
-      context.go(AppRouter.home);
     } else {
-      final error =
-          ref.read(authControllerProvider).errorMessage ??
-          'Erreur de connexion';
+      final error = ref.read(authControllerProvider).errorMessage ??
+          'Impossible d\'envoyer le lien de connexion.';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error), backgroundColor: AppColors.error),
       );
     }
   }
 
-  void _handleGoogleLogin() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Connexion Google : service en cours d\'initialisation. Veuillez utiliser la connexion par Email.',
+  Future<void> _handleGoogleLogin() async {
+    final success = await ref
+        .read(authControllerProvider.notifier)
+        .signInWithGoogle();
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Connexion Google réussie ! Bienvenue sur MaliExplorer.'),
+          backgroundColor: AppColors.primaryForest,
         ),
-        backgroundColor: AppColors.sahelGold,
-      ),
-    );
-  }
-
-  void _showPasswordResetDialog() {
-    _resetEmailController.text = _emailController.text.trim();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
-        title: Row(
-          children: [
-            Icon(
-              Icons.lock_reset_rounded,
-              color: isDark ? const Color(0xFF4DB6AC) : AppColors.primaryForest,
-            ),
-            const SizedBox(width: 10),
-            Text(
-              'Mot de passe oublié',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.primaryForest,
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Saisissez votre adresse email pour recevoir un lien sécurisé de réinitialisation :',
-              style: TextStyle(
-                fontSize: 13,
-                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _resetEmailController,
-              keyboardType: TextInputType.emailAddress,
-              style: TextStyle(
-                color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1F2937),
-              ),
-              decoration: InputDecoration(
-                hintText: 'exemple@domaine.com',
-                hintStyle: TextStyle(
-                  color: isDark ? AppColors.darkTextDisabled : const Color(0xFF9CA3AF),
-                ),
-                prefixIcon: Icon(
-                  Icons.email_outlined,
-                  color: isDark ? const Color(0xFF4DB6AC) : AppColors.primaryForest,
-                ),
-                filled: true,
-                fillColor: isDark ? AppColors.darkSurfaceElevated : AppColors.mistIvory,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(
-                    color: isDark ? AppColors.darkBorder : AppColors.borderLight,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(
-                    color: isDark ? AppColors.darkBorder : AppColors.borderLight,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(
-                    color: isDark ? const Color(0xFF4DB6AC) : AppColors.primaryForest,
-                    width: 1.5,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(
-              'Annuler',
-              style: TextStyle(
-                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isDark ? AppColors.primaryInteractive : AppColors.primaryForest,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            onPressed: () async {
-              final email = _resetEmailController.text.trim();
-              if (email.isEmpty || !email.contains('@')) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Veuillez saisir une adresse email valide.'),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-                return;
-              }
-
-              Navigator.of(ctx).pop();
-              final success = await ref
-                  .read(authControllerProvider.notifier)
-                  .sendPasswordReset(email);
-
-              if (mounted) {
-                if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Un lien de réinitialisation a été envoyé à $email.'),
-                      backgroundColor: isDark ? const Color(0xFF4DB6AC) : AppColors.primaryForest,
-                    ),
-                  );
-                } else {
-                  final err = ref.read(authControllerProvider).errorMessage ??
-                      'Impossible d\'envoyer le lien.';
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(err), backgroundColor: AppColors.error),
-                  );
-                }
-              }
-            },
-            child: const Text('Envoyer le lien'),
-          ),
-        ],
-      ),
-    );
+      );
+      context.go(AppRouter.home);
+    } else {
+      final error = ref.read(authControllerProvider).errorMessage;
+      if (error != null && error.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error), backgroundColor: AppColors.error),
+        );
+      }
+    }
   }
 
   @override
@@ -341,7 +267,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           onPressed: () {
                             if (_showEmailForm) {
-                              setState(() => _showEmailForm = false);
+                              setState(() {
+                                _showEmailForm = false;
+                                _emailLinkSent = false;
+                              });
                             } else if (context.canPop()) {
                               context.pop();
                             } else {
@@ -425,9 +354,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
         const SizedBox(height: 16),
 
-        // Bouton Email
+        // Bouton Email -> Déclenche le formulaire pour recevoir le lien direct sans mot de passe
         InkWell(
-          onTap: () => setState(() => _showEmailForm = true),
+          onTap: () => setState(() {
+            _showEmailForm = true;
+            _emailLinkSent = false;
+          }),
           borderRadius: BorderRadius.circular(30),
           child: Container(
             height: 52,
@@ -465,15 +397,126 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  /// Écran Figma 2 : Interface connexionEmail (Champs Email & Password)
+  /// Écran Figma 2 : Interface connexion par Email (Lien sécurisé sans mot de passe)
   Widget _buildFigmaEmailFormView(AuthState authState, bool isDark) {
+    if (_emailLinkSent) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface : Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: (isDark ? const Color(0xFF4DB6AC) : const Color(0xFF064E3B)).withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.mark_email_read_rounded,
+                    color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF064E3B),
+                    size: 40,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Lien de connexion envoyé !',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: isDark ? AppColors.darkTextPrimary : const Color(0xFF064E3B),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Un lien direct a été envoyé à :\n${_emailController.text.trim()}',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1F2937),
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Ouvrez votre application de messagerie sur ce téléphone et touchez le lien reçu pour vous connecter automatiquement.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 22),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: authState.isLoading ? null : _handleSendEmailLink,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isDark ? AppColors.primaryInteractive : const Color(0xFF064E3B),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      elevation: 0,
+                    ),
+                    child: authState.isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          )
+                        : const Text(
+                            'Renvoyer le lien',
+                            style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.bold),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed: () => setState(() => _emailLinkSent = false),
+                  child: Text(
+                    'Modifier l\'adresse email',
+                    style: TextStyle(
+                      color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF064E3B),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Center(child: _buildFooterRegister(isDark)),
+        ],
+      );
+    }
+
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Connexion',
+            'Connexion par Email',
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w900,
@@ -483,10 +526,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            'Donnez votre email & mot de passe',
+            'Entrez votre adresse email pour recevoir votre lien de connexion sécurisé sans mot de passe.',
             style: TextStyle(
               fontSize: 14,
               color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
+              height: 1.4,
             ),
           ),
           const SizedBox(height: 28),
@@ -539,97 +583,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             },
           ),
 
-          const SizedBox(height: 16),
-
-          // Champ Mot de passe
-          TextFormField(
-            controller: _passwordController,
-            obscureText: _obscurePassword,
-            style: TextStyle(
-              color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1F2937),
-            ),
-            decoration: InputDecoration(
-              hintText: 'Mot de passe',
-              hintStyle: TextStyle(
-                color: isDark ? AppColors.darkTextDisabled : const Color(0xFF9CA3AF),
-                fontSize: 14,
-              ),
-              prefixIcon: Icon(
-                Icons.lock_outline_rounded,
-                color: isDark ? AppColors.darkTextSecondary : const Color(0xFF374151),
-                size: 22,
-              ),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscurePassword
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                  color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
-                  size: 22,
-                ),
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-              ),
-              filled: true,
-              fillColor: isDark ? AppColors.darkSurface : Colors.white,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
-                borderSide: BorderSide(
-                  color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB),
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
-                borderSide: BorderSide(
-                  color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB),
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
-                borderSide: BorderSide(
-                  color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF064E3B),
-                  width: 1.6,
-                ),
-              ),
-            ),
-            validator: (v) {
-              if (v == null || v.isEmpty) return 'Veuillez saisir votre mot de passe';
-              if (v.length < 6) return 'Au moins 6 caractères requis';
-              return null;
-            },
-          ),
-
-          const SizedBox(height: 8),
-
-          // Mot de passe oublié
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: _showPasswordResetDialog,
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Text(
-                'Mot de passe oublié ?',
-                style: TextStyle(
-                  color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF1F2937),
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-
           const SizedBox(height: 24),
 
-          // Bouton Se connecter
+          // Bouton Recevoir le lien
           SizedBox(
             width: double.infinity,
             height: 52,
             child: ElevatedButton(
-              onPressed: authState.isLoading ? null : _handleEmailLogin,
+              onPressed: authState.isLoading ? null : _handleSendEmailLink,
               style: ElevatedButton.styleFrom(
                 backgroundColor: isDark ? AppColors.primaryInteractive : const Color(0xFF064E3B),
                 foregroundColor: Colors.white,
@@ -642,9 +603,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       height: 22,
                       child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.2),
                     )
-                  : const Text(
-                      'Se connecter',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.send_rounded, size: 18),
+                        SizedBox(width: 8),
+                        Text(
+                          'Recevoir mon lien de connexion',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                        ),
+                      ],
                     ),
             ),
           ),

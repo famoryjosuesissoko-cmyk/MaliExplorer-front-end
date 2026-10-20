@@ -12,7 +12,20 @@
           "package_name": "com.maliexplorer.mali_explorer_frontend"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "258002604598-m3l22it77encmv21rjm1n2nk6fitk1lh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.maliexplorer.mali_explorer_frontend",
+            "certificate_hash": "455eef3ae5771c7e6bc30043e948b2047eb61af2"
+          }
+        },
+        {
+          "client_id": "258002604598-oudpvulcb2u6cv5tiq1o96l1tmik2127.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAz3UR_7kxYthRN8M3_uEGbx_k72lhAfpQ"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "258002604598-oudpvulcb2u6cv5tiq1o96l1tmik2127.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

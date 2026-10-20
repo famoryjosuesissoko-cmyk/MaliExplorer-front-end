@@ -172,7 +172,7 @@ class RegionData {
       longitude: -0.0447,
       description:
           'L’illustre capitale de l’Empire Songhaï au XVe et XVIe siècle sous l’Askia Mohammed. Traversée par le fleuve Niger, Gao fascine par le Tombeau des Askia inscrit au patrimoine mondial de l’UNESCO et la colline légendaire des dunes rouges de Koïma.',
-      imageCover: 'assets/images/explorer_villes_regions.jpeg',
+      imageCover: 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/slides/93c7822b-966e-446c-aab2-04396325e942_deuxieme_imagehome.jpeg',
       population: '544 000 hab.',
       superficie: '170 572 km²',
       isPrioritaire: true,
@@ -198,7 +198,7 @@ class RegionData {
       longitude: -11.4445,
       description:
           'Première région du Mali, bordée par le Sénégal et la Mauritanie. Réputée pour ses chutes majestueuses de Félou et Gouina, ses gisements d’or historiques et le Fort de Médine sur les rives du fleuve Sénégal.',
-      imageCover: 'assets/images/explorer_artisans.jpeg',
+      imageCover: 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/villes/a74e7a57-4181-4298-b98a-bf3c59702646_Fleuve_S_n_gal_Kayes_Mali.jpeg',
       population: '1 996 000 hab.',
       superficie: '119 743 km²',
       isPrioritaire: false,
@@ -223,7 +223,7 @@ class RegionData {
       longitude: -7.5599,
       description:
           'Bordant le fleuve Niger et entourant le district de Bamako, Koulikoro est le terminus de la ligne ferroviaire Dakar-Niger et la terre du roi sorcier Soumaoro Kanté et des monts Mandingues.',
-      imageCover: 'assets/images/explorer_guides.jpeg',
+      imageCover: 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/villes/910921e0-844f-4af7-b5dd-5aab12fcbaef_vestibule-koulikoro.jpg',
       population: '2 418 000 hab.',
       superficie: '90 120 km²',
       isPrioritaire: false,
@@ -248,7 +248,7 @@ class RegionData {
       longitude: 1.4078,
       description:
           'Région montagnarde et désertique de l’Adrar des Ifoghas dans le nord-est malien. Fief de la culture nomade touarègue, réputée pour ses poésies, ses gravures rupestres préhistoriques et ses paysages sahariens grandioses.',
-      imageCover: 'assets/images/explorer_ethnies_traditions.jpeg',
+      imageCover: 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/slides/0fbffaa1-70b6-47aa-8120-0e4f44226820_Africa_-_Mali_-_Banani.jpeg',
       population: '67 000 hab.',
       superficie: '151 450 km²',
       isPrioritaire: false,
@@ -273,7 +273,7 @@ class RegionData {
       longitude: -3.9842,
       description:
           'Vaste étendue désertique du grand nord malien au cœur du désert du Tanezrouft. Historiquement réputée pour ses mines de sel gemme pluriséculaires et le passage des caravanes d’azalaï reliant Tombouctou.',
-      imageCover: 'assets/images/home_hero.jpeg',
+      imageCover: 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/slides/93c7822b-966e-446c-aab2-04396325e942_deuxieme_imagehome.jpeg',
       population: '18 000 hab.',
       superficie: '323 326 km²',
       isPrioritaire: false,
@@ -298,7 +298,7 @@ class RegionData {
       longitude: 2.4022,
       description:
           'Région pastorale de l’extrême est du Mali frontalière du Niger, traversée par la vallée fossile de l’Azawagh. Connue pour ses traditions d’élevage et son artisanat d’art.',
-      imageCover: 'assets/images/explorer_gastronomie.jpeg',
+      imageCover: 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/slides/0fbffaa1-70b6-47aa-8120-0e4f44226820_Africa_-_Mali_-_Banani.jpeg',
       population: '54 000 hab.',
       superficie: '81 040 km²',
       isPrioritaire: false,
@@ -323,7 +323,7 @@ class RegionData {
       longitude: -5.4642,
       description:
           'Capitale de l’or blanc (coton) et carrefour agro-industriel majeur du sud malien. Koutiala est un creuset culturel vibrant du peuple Minianka et un carrefour économique dynamique entre Sikasso, San et Ségou.',
-      imageCover: 'assets/images/explorer_artisans.jpeg',
+      imageCover: 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/villes/2e0e6bf5-0023-494b-9157-f24aa881512b_koutiala.jpeg',
       population: '575 000 hab.',
       superficie: '18 000 km²',
       isPrioritaire: false,
@@ -349,7 +349,7 @@ class RegionData {
       longitude: -4.8956,
       description:
           'Carrefour historique et culturel au bord de la rivière Bani. Célèbre pour sa majestueuse église sanctuaire en banco néo-soudanaise et le Sanké Mô, rite de pêche collective séculaire inscrit au patrimoine immatériel de l’UNESCO.',
-      imageCover: 'assets/images/segou_cover.jpg',
+      imageCover: 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/villes/4aac1e77-f062-4bf8-8d8f-9b8ec39e1df0_san_sanke-mon.jpg',
       population: '330 000 hab.',
       superficie: '7 262 km²',
       isPrioritaire: false,
@@ -375,7 +375,7 @@ class RegionData {
       longitude: -11.2260,
       description:
           'Cœur historique du Bambouk et capitale aurifère du Mali, nichée dans un écrin de collines verdoyantes de la falaise du Tambaoura. Terre de traditions mandingues et de cascades préservées.',
-      imageCover: 'assets/images/explorer_guides.jpeg',
+      imageCover: 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/villes/20c147b6-b759-4b58-b974-3c4611f2b1cb_kenieba.jpeg',
       population: '215 000 hab.',
       superficie: '16 800 km²',
       isPrioritaire: false,
@@ -401,7 +401,7 @@ class RegionData {
       longitude: -9.4895,
       description:
           'Capitale légendaire de l’arachide et berceau vénéré des griots et de la musique mandingue. Dominée par le mont Kita (Kita Kourou), la cité est célèbre pour son grand pèlerinage marial et ses contes épiques.',
-      imageCover: 'assets/images/explorer_ethnies_traditions.jpeg',
+      imageCover: 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/villes/8a2b87e9-7ef4-4298-8698-ac341176f1ce_kita.jpeg',
       population: '438 000 hab.',
       superficie: '35 250 km²',
       isPrioritaire: false,
@@ -427,7 +427,7 @@ class RegionData {
       longitude: -3.6104,
       description:
           'Capitale spirituelle et culturelle du Pays Dogon, perchée sur le plateau gréseux. Ville de mémoire de l’écrivain sage Amadou Hampâté Bâ et d’El Hadj Oumar Tall, porte d’entrée vers les spectaculaires falaises classées par l’UNESCO.',
-      imageCover: 'assets/images/mopti_gallery_2.jpeg',
+      imageCover: 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/villes/092d8b10-62e7-4254-9e2e-3b97571beb46_badiangara.jpeg',
       population: '320 000 hab.',
       superficie: '10 520 km²',
       isPrioritaire: false,

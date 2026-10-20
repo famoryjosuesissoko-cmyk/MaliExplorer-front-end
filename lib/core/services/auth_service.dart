@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'api_service.dart';
 import 'firebase_service.dart';
 
@@ -13,6 +14,10 @@ final authServiceProvider = Provider<AuthService>((ref) {
 class AuthService {
   final FirebaseAuth _auth = FirebaseService.auth;
   final ApiService _apiService;
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    serverClientId: '258002604598-oudpvulcb2u6cv5tiq1o96l1tmik2127.apps.googleusercontent.com',
+    scopes: ['email', 'profile'],
+  );
 
   AuthService([ApiService? apiService])
     : _apiService = apiService ?? ApiService();
@@ -118,8 +123,11 @@ class AuthService {
       'nom': nom.trim(),
       'email': email.trim(),
       'adresse': adresse?.trim() ?? '',
+      'telephone': telephone?.trim() ?? '',
       'photoUrl': photoUrl ?? '',
       'role': role.toLowerCase(),
+      'nomOrganisation': nomOrganisation?.trim() ?? '',
+      'pieceIdentite': pieceIdentite ?? '',
     };
 
     Map<String, dynamic>? springProfile;
@@ -139,7 +147,10 @@ class AuthService {
           'nom': nom,
           'prenom': prenom,
           'role': role,
+          'adresse': adresse,
           'photoUrl': photoUrl,
+          'nomOrganisation': nomOrganisation,
+          'pieceIdentite': pieceIdentite,
         };
   }
 
@@ -174,6 +185,118 @@ class AuthService {
     return null;
   }
 
+  /// Connexion avec Google (Google Sign-In)
+  Future<Map<String, dynamic>?> signInWithGoogle() async {
+    // 1. Déclencher le flux d'authentification Google natif
+    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+    if (googleUser == null) {
+      // L'utilisateur a fermé ou annulé la boîte de dialogue Google
+      return null;
+    }
+
+    // 2. Obtenir les jetons d'authentification Google
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    final AuthCredential credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    // 3. Authentifier sur Firebase avec le credential Google
+    final UserCredential userCredential = await _auth.signInWithCredential(credential);
+    final idToken = await userCredential.user?.getIdToken();
+    if (idToken != null) {
+      _apiService.setAuthToken(idToken);
+    }
+
+    // 4. Synchroniser avec Spring Boot & MySQL
+    Map<String, dynamic>? springProfile;
+    if (idToken != null) {
+      try {
+        final response = await _apiService.post(
+          '/auth/login',
+          body: {'idToken': idToken},
+        );
+        if (response.statusCode == 200) {
+          springProfile = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        }
+      } catch (e) {
+        debugPrint('[AuthService] Info sync Spring Boot Google login: $e');
+      }
+    }
+
+    final displayName = userCredential.user?.displayName ?? googleUser.displayName ?? '';
+    final nameParts = displayName.isNotEmpty ? displayName.split(' ') : ['Utilisateur', 'Google'];
+    final prenom = nameParts.first;
+    final nom = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : 'Google';
+
+    return springProfile ??
+        {
+          'email': userCredential.user?.email ?? googleUser.email,
+          'displayName': displayName,
+          'prenom': prenom,
+          'nom': nom,
+          'photoUrl': userCredential.user?.photoURL ?? googleUser.photoUrl,
+          'idToken': idToken,
+        };
+  }
+
+  /// Envoie un lien de connexion sans mot de passe (Magic Link) par e-mail
+  Future<void> sendSignInLinkToEmail(String email) async {
+    final cleanEmail = email.trim();
+    final actionCodeSettings = ActionCodeSettings(
+      url: 'https://maliexplorer.firebaseapp.com/finishSignUp?email=$cleanEmail',
+      handleCodeInApp: true,
+      androidPackageName: 'com.maliexplorer.mali_explorer_frontend',
+      androidInstallApp: true,
+      androidMinimumVersion: '12',
+    );
+
+    await _auth.sendSignInLinkToEmail(
+      email: cleanEmail,
+      actionCodeSettings: actionCodeSettings,
+    );
+  }
+
+  /// Valide le lien de connexion reçu par e-mail et connecte l'utilisateur
+  Future<Map<String, dynamic>?> signInWithEmailLink(String email, String emailLink) async {
+    if (!_auth.isSignInWithEmailLink(emailLink)) {
+      throw Exception('Le lien fourni n\'est pas un lien de connexion Firebase valide.');
+    }
+
+    final userCredential = await _auth.signInWithEmailLink(
+      email: email.trim(),
+      emailLink: emailLink.trim(),
+    );
+
+    final idToken = await userCredential.user?.getIdToken();
+    if (idToken != null) {
+      _apiService.setAuthToken(idToken);
+    }
+
+    // Synchronisation avec Spring Boot
+    Map<String, dynamic>? springProfile;
+    if (idToken != null) {
+      try {
+        final response = await _apiService.post(
+          '/auth/login',
+          body: {'idToken': idToken},
+        );
+        if (response.statusCode == 200) {
+          springProfile = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        }
+      } catch (e) {
+        debugPrint('[AuthService] Info sync Spring Boot Email Link: $e');
+      }
+    }
+
+    return springProfile ??
+        {
+          'email': userCredential.user?.email ?? email,
+          'displayName': userCredential.user?.displayName,
+          'idToken': idToken,
+        };
+  }
+
   /// Réinitialisation de mot de passe via Firebase Auth
   Future<void> sendPasswordResetEmail(String email) async {
     await _auth.sendPasswordResetEmail(email: email.trim());
@@ -181,6 +304,9 @@ class AuthService {
 
   /// Déconnexion
   Future<void> logout() async {
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {}
     await _auth.signOut();
     _apiService.setAuthToken(null);
   }

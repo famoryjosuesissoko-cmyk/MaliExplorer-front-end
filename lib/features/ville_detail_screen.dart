@@ -122,20 +122,32 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
       backgroundColor: const Color(0xFFF7F8F5),
       body: Stack(
         children: [
-          // Contenu principal déroulant
-          SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.only(bottom: 110),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 1. Image Hero avec boutons Retour & Favoris
-                _buildHeroImage(context, heroHeight),
+          // 1. Image Hero FIXE en haut de l'écran
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: heroHeight,
+            child: SizedBox(
+              height: heroHeight,
+              width: double.infinity,
+              child: _buildHeroImageContent(heroHeight),
+            ),
+          ),
 
-                // 2. Fiche descriptive blanche
-                Transform.translate(
-                  offset: const Offset(0, -26),
-                  child: Container(
+          // 2. Contenu principal déroulant passant par-dessus
+          Positioned.fill(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 110),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Espace transparent laissant visible l'image hero du haut
+                  SizedBox(height: heroHeight - 26),
+
+                  // Fiche descriptive blanche
+                  Container(
                     width: double.infinity,
                     decoration: const BoxDecoration(
                       color: Colors.white,
@@ -225,6 +237,20 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
                             ),
                           ],
                         ),
+
+                        // Badge Coordonnées GPS (si disponibles)
+                        if ((widget.ville?.cordonnees != null && widget.ville!.cordonnees!.isNotEmpty) ||
+                            (widget.ville?.latitude != null && widget.ville?.longitude != null)) ...[
+                          const SizedBox(height: 10),
+                          _buildInfoCard(
+                            icon: Icons.my_location_rounded,
+                            title: 'Coordonnées GPS',
+                            value: widget.ville?.latitude != null && widget.ville?.longitude != null
+                                ? '${widget.ville!.latitude!.toStringAsFixed(4)}° N, ${widget.ville!.longitude!.abs().toStringAsFixed(4)}° O'
+                                : widget.ville!.cordonnees!,
+                            iconColor: const Color(0xFF075E4D),
+                          ),
+                        ],
 
                         // Section Spéciale : Grande Mosquée de Djenné & Visite Virtuelle 360°
                         if (nomVille.toLowerCase().contains('djenne') ||
@@ -391,8 +417,106 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
                       ],
                     ),
                   ),
+                ],
+              ),
+            ),
+          ),
+
+          // 3. Boutons Retour & Favoris FIXES en haut de l'écran
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
                 ),
-              ],
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go(AppRouter.villesList);
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(30),
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 6,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.arrow_back_rounded,
+                          color: AppColors.textPrimary,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                    // Bouton Favoris (Cœur rouge réactif)
+                    Builder(
+                      builder: (context) {
+                        ref.watch(favorisNotifierProvider);
+                        final nomVille = widget.ville?.nom ?? 'Djenné';
+                        final isFav = ref.read(favorisNotifierProvider.notifier).isFavorite(nomVille);
+
+                        final photo = widget.ville?.displayPhoto ?? VilleModel.getLocalPhoto(nomVille);
+
+                        return InkWell(
+                          onTap: () async {
+                            await ref.read(favorisNotifierProvider.notifier).toggleFavori(
+                              titre: nomVille,
+                              categorie: widget.ville?.region != null ? 'Région : ${widget.ville!.region}' : 'Lieu historique',
+                              imageUrl: photo,
+                              route: AppRouter.cityDetail,
+                              referenceId: widget.ville?.id,
+                              isLieu: true,
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(30),
+                          child: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 6,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              isFav
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              color: isFav
+                                  ? const Color(0xFFE53935)
+                                  : AppColors.textPrimary,
+                              size: 20,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -473,6 +597,12 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
           height: height,
           width: double.infinity,
           fit: BoxFit.cover,
+          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+            if (wasSynchronouslyLoaded || frame != null) {
+              return child;
+            }
+            return fallbackWidget();
+          },
           errorBuilder: (context, error, stackTrace) => fallbackWidget(),
         );
       }
@@ -487,120 +617,20 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
       }
       if (rawUrl.startsWith('/')) {
         return Image.network(
-          '${ApiConstants.baseUrl}$rawUrl',
+          ApiConstants.resolveImageUrl(rawUrl),
           height: height,
           width: double.infinity,
           fit: BoxFit.cover,
+          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+            if (wasSynchronouslyLoaded || frame != null) {
+              return child;
+            }
+            return fallbackWidget();
+          },
           errorBuilder: (context, error, stackTrace) => fallbackWidget(),
         );
       }
     }
     return fallbackWidget();
-  }
-
-  Widget _buildHeroImage(BuildContext context, double height) {
-    return Stack(
-      children: [
-        // Image de la ville sécurisée avec fallback local
-        SizedBox(
-          height: height,
-          width: double.infinity,
-          child: _buildHeroImageContent(height),
-        ),
-
-        // Boutons Retour & Favoris
-        SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 8.0,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                InkWell(
-                  onTap: () {
-                    if (context.canPop()) {
-                      context.pop();
-                    } else {
-                      context.go(AppRouter.villesList);
-                    }
-                  },
-                  borderRadius: BorderRadius.circular(30),
-                  child: Container(
-                    width: 38,
-                    height: 38,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 6,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.arrow_back_rounded,
-                      color: AppColors.textPrimary,
-                      size: 20,
-                    ),
-                  ),
-                ),
-                // Bouton Favoris (Cœur rouge réactif)
-                Builder(
-                  builder: (context) {
-                    ref.watch(favorisNotifierProvider);
-                    final nomVille = widget.ville?.nom ?? 'Djenné';
-                    final isFav = ref.read(favorisNotifierProvider.notifier).isFavorite(nomVille);
-
-                    final photo = widget.ville?.displayPhoto ?? VilleModel.getLocalPhoto(nomVille);
-
-                    return InkWell(
-                      onTap: () async {
-                        await ref.read(favorisNotifierProvider.notifier).toggleFavori(
-                          titre: nomVille,
-                          categorie: widget.ville?.region != null ? 'Région : ${widget.ville!.region}' : 'Lieu historique',
-                          imageUrl: photo,
-                          route: AppRouter.cityDetail,
-                          referenceId: widget.ville?.id,
-                          isLieu: true,
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(30),
-                      child: Container(
-                        width: 38,
-                        height: 38,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 6,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          isFav
-                              ? Icons.favorite_rounded
-                              : Icons.favorite_border_rounded,
-                          color: isFav
-                              ? const Color(0xFFE53935)
-                              : const Color(0xFF6C7C77),
-                          size: 20,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
   }
 }

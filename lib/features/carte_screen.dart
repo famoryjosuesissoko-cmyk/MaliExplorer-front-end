@@ -324,12 +324,12 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
                                 maxZoom: 16.0,
                               ),
                               children: [
-                                // Tuiles OpenStreetMap légales et sécurisées
+                                // Tuiles cartographiques OpenStreetMap France (100% libres, sans clé API ni filigrane)
                                 TileLayer(
                                   urlTemplate:
-                                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                      'https://a.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png',
                                   userAgentPackageName:
-                                      'com.maliexplorer.mobile',
+                                      'com.maliexplorer.mali_explorer_frontend',
                                 ),
 
                                 // Marqueurs des régions du Mali

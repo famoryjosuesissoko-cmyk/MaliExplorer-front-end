@@ -37,20 +37,32 @@ class _EthnicityDetailScreenState extends ConsumerState<EthnicityDetailScreen> {
       backgroundColor: const Color(0xFFF7F8F5),
       body: Stack(
         children: [
-          // Contenu principal déroulant
-          SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.only(bottom: 110),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 1. Bannière Hero dynamique (Homme / Femme)
-                _buildHeroImage(context, currentEthnie, activePhoto, heroHeight),
+          // 1. Bannière Hero FIXE en haut de l'écran
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: heroHeight,
+            child: SizedBox(
+              height: heroHeight,
+              width: double.infinity,
+              child: _buildHeroImageContent(currentEthnie, activePhoto, heroHeight),
+            ),
+          ),
 
-                // 2. Fiche descriptive blanche
-                Transform.translate(
-                  offset: const Offset(0, -26),
-                  child: Container(
+          // 2. Contenu principal déroulant passant par-dessus
+          Positioned.fill(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 110),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Espace transparent laissant visible l'image hero du haut
+                  SizedBox(height: heroHeight - 26),
+
+                  // Fiche descriptive blanche
+                  Container(
                     width: double.infinity,
                     decoration: const BoxDecoration(
                       color: Colors.white,
@@ -343,8 +355,106 @@ class _EthnicityDetailScreenState extends ConsumerState<EthnicityDetailScreen> {
                       ],
                     ),
                   ),
+                ],
+              ),
+            ),
+          ),
+
+          // 3. Boutons Retour & Favoris FIXES en haut de l'écran
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Bouton retour
+                    InkWell(
+                      onTap: () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go(AppRouter.ethniesList);
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(30),
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 6,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.arrow_back_rounded,
+                          color: Color(0xFF16332D),
+                          size: 20,
+                        ),
+                      ),
+                    ),
+
+                    // Bouton Favoris (Cœur rouge réactif)
+                    Builder(
+                      builder: (context) {
+                        ref.watch(favorisNotifierProvider);
+                        final String nomEthnie = currentEthnie.nom;
+                        final isFav = ref
+                            .read(favorisNotifierProvider.notifier)
+                            .isFavorite(nomEthnie);
+
+                        return InkWell(
+                          onTap: () async {
+                            await ref
+                                .read(favorisNotifierProvider.notifier)
+                                .toggleFavori(
+                                  titre: nomEthnie,
+                                  categorie: 'Peuple traditionnel',
+                                  imageUrl: currentEthnie.displayPhoto,
+                                  route: AppRouter.ethnicityDetail,
+                                  referenceId: currentEthnie.id,
+                                );
+                          },
+                          borderRadius: BorderRadius.circular(30),
+                          child: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 6,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              isFav
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              color: isFav
+                                  ? const Color(0xFFE53935)
+                                  : const Color(0xFF16332D),
+                              size: 20,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ],
@@ -567,46 +677,53 @@ class _EthnicityDetailScreenState extends ConsumerState<EthnicityDetailScreen> {
     );
   }
 
-  Widget _buildHeroImage(
-    BuildContext context,
+  Widget _buildHeroImageContent(
     EthnieModel ethnie,
     String photoPath,
     double height,
   ) {
+    final fallbackAsset = _selectedGenderIndex == 0
+        ? EthnieModel.getLocalPhotoHomme(ethnie.nom)
+        : EthnieModel.getLocalPhotoFemme(ethnie.nom);
+
+    Widget fallbackWidget() => Image.asset(
+          fallbackAsset,
+          fit: BoxFit.cover,
+          alignment: Alignment.topCenter,
+          errorBuilder: (context, error, stackTrace) => Container(
+            color: const Color(0xFF2C3E38),
+            child: const Center(
+              child: Icon(Icons.people, color: Colors.white54, size: 48),
+            ),
+          ),
+        );
+
     return Stack(
+      fit: StackFit.expand,
       children: [
         // Image Hero
-        SizedBox(
-          height: height,
-          width: double.infinity,
-          child: photoPath.startsWith('assets/')
-              ? Image.asset(
-                  photoPath,
-                  fit: BoxFit.cover,
-                  alignment: Alignment.topCenter,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: const Color(0xFF2C3E38),
-                    child: const Center(
-                      child: Icon(Icons.people, color: Colors.white54, size: 48),
-                    ),
-                  ),
-                )
-              : Image.network(
-                  photoPath,
-                  fit: BoxFit.cover,
-                  alignment: Alignment.topCenter,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: const Color(0xFF2C3E38),
-                    child: const Center(
-                      child: Icon(Icons.people, color: Colors.white54, size: 48),
-                    ),
-                  ),
-                ),
-        ),
+        photoPath.startsWith('assets/')
+            ? Image.asset(
+                photoPath,
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+                errorBuilder: (context, error, stackTrace) => fallbackWidget(),
+              )
+            : Image.network(
+                photoPath,
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+                frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                  if (wasSynchronouslyLoaded || frame != null) {
+                    return child;
+                  }
+                  return fallbackWidget();
+                },
+                errorBuilder: (context, error, stackTrace) => fallbackWidget(),
+              ),
 
         // Gradient
         Container(
-          height: height,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
@@ -615,99 +732,6 @@ class _EthnicityDetailScreenState extends ConsumerState<EthnicityDetailScreen> {
                 Colors.black.withValues(alpha: 0.5),
                 Colors.transparent,
                 Colors.black.withValues(alpha: 0.3),
-              ],
-            ),
-          ),
-        ),
-
-        // Boutons Retour & Favoris en haut
-        SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Bouton retour
-                InkWell(
-                  onTap: () {
-                    if (context.canPop()) {
-                      context.pop();
-                    } else {
-                      context.go(AppRouter.ethniesList);
-                    }
-                  },
-                  borderRadius: BorderRadius.circular(30),
-                  child: Container(
-                    width: 38,
-                    height: 38,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 6,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.arrow_back_rounded,
-                      color: Color(0xFF16332D),
-                      size: 20,
-                    ),
-                  ),
-                ),
-
-                // Bouton Favoris
-                Builder(
-                  builder: (context) {
-                    ref.watch(favorisNotifierProvider);
-                    final String nomEthnie = ethnie.nom;
-                    final isFav = ref
-                        .read(favorisNotifierProvider.notifier)
-                        .isFavorite(nomEthnie);
-
-                    return InkWell(
-                      onTap: () async {
-                        await ref
-                            .read(favorisNotifierProvider.notifier)
-                            .toggleFavori(
-                              titre: nomEthnie,
-                              categorie: 'Peuple traditionnel',
-                              imageUrl: ethnie.displayPhoto,
-                              route: AppRouter.ethnicityDetail,
-                              referenceId: ethnie.id,
-                            );
-                      },
-                      borderRadius: BorderRadius.circular(30),
-                      child: Container(
-                        width: 38,
-                        height: 38,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 6,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          isFav
-                              ? Icons.favorite_rounded
-                              : Icons.favorite_border_rounded,
-                          color: isFav
-                              ? const Color(0xFFE53935)
-                              : const Color(0xFF6C7C77),
-                          size: 20,
-                        ),
-                      ),
-                    );
-                  },
-                ),
               ],
             ),
           ),

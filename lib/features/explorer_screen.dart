@@ -62,7 +62,7 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
       'titre': 'Langues Nationales & Lexique',
       'sousTitre': 'Bamanankan, Fulfulde, Songhaï, Soninké, Tamasheq',
       'route': AppRouter.languesNationales,
-      'image': 'assets/images/explorer_ethnies_traditions.jpeg',
+      'image': 'assets/images/languages_cover.jpeg',
       'badge': 'Lexique',
       'icon': Icons.record_voice_over_rounded,
     },
@@ -70,7 +70,7 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
       'titre': 'Infos Pratiques Voyageurs',
       'sousTitre': 'Visas, santé, devises, saisons & urgences',
       'route': AppRouter.infosPratiques,
-      'image': 'assets/images/explorer_villes_regions.jpeg',
+      'image': 'assets/images/passport couverture.jpeg',
       'badge': 'Guide Voyage',
       'icon': Icons.info_outline_rounded,
     },
@@ -78,7 +78,7 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
       'titre': 'Religions & Spiritualités',
       'sousTitre': 'Islam, Christianisme, Animisme & Concorde',
       'route': AppRouter.religionsList,
-      'image': 'assets/images/explorer_360.jpeg',
+      'image': 'assets/images/religion_cover.jpeg',
       'badge': 'Religions',
       'icon': Icons.mosque_rounded,
     },
@@ -110,7 +110,9 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
     }).toList();
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackgroundSecondary : const Color(0xFF075E4D),
+      backgroundColor: isDark
+          ? AppColors.darkBackgroundSecondary
+          : const Color(0xFF075E4D),
       body: Column(
         children: [
           // En-tête vert avec barre de recherche et filtres thématiques
@@ -134,18 +136,29 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.verified_rounded, color: Color(0xFFF2B544), size: 16),
+                            Icon(
+                              Icons.verified_rounded,
+                              color: Color(0xFFF2B544),
+                              size: 16,
+                            ),
                             SizedBox(width: 6),
                             Text(
                               'Validé & Certifié',
-                              style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
                         ),
@@ -160,10 +173,14 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                     decoration: BoxDecoration(
                       color: isDark ? AppColors.darkSurface : Colors.white,
                       borderRadius: BorderRadius.circular(24),
-                      border: isDark ? Border.all(color: AppColors.darkBorder) : null,
+                      border: isDark
+                          ? Border.all(color: AppColors.darkBorder)
+                          : null,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.08),
+                          color: Colors.black.withValues(
+                            alpha: isDark ? 0.20 : 0.08,
+                          ),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -172,22 +189,33 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                     child: TextField(
                       controller: _searchController,
                       onChanged: _onSearchChanged,
-                      style: TextStyle(color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D)),
+                      style: TextStyle(
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : const Color(0xFF16332D),
+                      ),
                       decoration: InputDecoration(
-                        hintText: 'Rechercher villes, plats, créations, festivals...',
+                        hintText:
+                            'Rechercher villes, plats, créations, festivals...',
                         hintStyle: TextStyle(
-                          color: isDark ? AppColors.darkTextDisabled : const Color(0xFF8B9B95),
+                          color: isDark
+                              ? AppColors.darkTextDisabled
+                              : const Color(0xFF8B9B95),
                           fontSize: 13,
                         ),
                         prefixIcon: Icon(
                           Icons.search_rounded,
-                          color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
+                          color: isDark
+                              ? const Color(0xFF4DB6AC)
+                              : const Color(0xFF075E4D),
                         ),
                         suffixIcon: _searchQuery.isNotEmpty
                             ? IconButton(
                                 icon: Icon(
                                   Icons.clear,
-                                  color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                                  color: isDark
+                                      ? AppColors.darkTextSecondary
+                                      : const Color(0xFF6C7C77),
                                   size: 18,
                                 ),
                                 onPressed: () {
@@ -197,7 +225,10 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                               )
                             : null,
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                       ),
                     ),
                   ),
@@ -210,11 +241,26 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                     physics: const BouncingScrollPhysics(),
                     child: Row(
                       children: [
-                        _buildFilterChip('tous', 'Tout', Icons.dashboard_rounded, currentFilter),
+                        _buildFilterChip(
+                          'tous',
+                          'Tout',
+                          Icons.dashboard_rounded,
+                          currentFilter,
+                        ),
                         const SizedBox(width: 8),
-                        _buildFilterChip('festivals', 'Festivals & Événements', Icons.festival_rounded, currentFilter),
+                        _buildFilterChip(
+                          'festivals',
+                          'Festivals & Événements',
+                          Icons.festival_rounded,
+                          currentFilter,
+                        ),
                         const SizedBox(width: 8),
-                        _buildFilterChip('patrimoine', 'Patrimoine Culturel', Icons.account_balance_rounded, currentFilter),
+                        _buildFilterChip(
+                          'patrimoine',
+                          'Patrimoine Culturel',
+                          Icons.account_balance_rounded,
+                          currentFilter,
+                        ),
                       ],
                     ),
                   ),
@@ -228,29 +274,94 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkBackground : const Color(0xFFF7F8F5),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                color: isDark
+                    ? AppColors.darkBackground
+                    : const Color(0xFFF7F8F5),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
+                ),
               ),
               child: RefreshIndicator(
                 color: const Color(0xFF075E4D),
-                onRefresh: () => ref.read(explorerPublicationsProvider.notifier).chargerPublications(),
+                onRefresh: () => ref
+                    .read(explorerPublicationsProvider.notifier)
+                    .chargerPublications(),
                 child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
                   padding: const EdgeInsets.fromLTRB(16, 20, 16, 110),
                   children: [
                     // Si 'patrimoine' ou 'tous', afficher le patrimoine
-                    if (currentFilter == 'patrimoine' || currentFilter == 'tous') ...[
-                      if (currentFilter == 'tous')
-                        _buildSectionHeader('Patrimoine & Histoire', 'Découvrez les trésors du Mali', isDark),
-                      ...filteredCategories.map((cat) => Padding(
-                            padding: const EdgeInsets.only(bottom: 14),
-                            child: _buildCategoryCard(cat, isDark),
-                          )),
+                    if (currentFilter == 'patrimoine' ||
+                        currentFilter == 'tous') ...[
+                      if (currentFilter == 'tous' &&
+                          filteredCategories.isNotEmpty)
+                        _buildSectionHeader(
+                          'Patrimoine & Histoire',
+                          'Découvrez les trésors du Mali',
+                          isDark,
+                        ),
+                      ...filteredCategories.map(
+                        (cat) => Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: _buildCategoryCard(cat, isDark),
+                        ),
+                      ),
                     ],
+
+                    // Si recherche active et aucun résultat dans les catégories ni les publications
+                    if (_searchQuery.isNotEmpty &&
+                        filteredCategories.isEmpty &&
+                        publications.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 40),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.search_off_rounded,
+                                size: 54,
+                                color: Colors.grey.shade400,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Aucun résultat pour "$_searchQuery"',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark
+                                      ? Colors.white70
+                                      : Colors.black54,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              OutlinedButton.icon(
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _onSearchChanged('');
+                                },
+                                icon: const Icon(Icons.clear_rounded, size: 16),
+                                label: const Text('Effacer la recherche'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xFF075E4D),
+                                  side: const BorderSide(
+                                    color: Color(0xFF075E4D),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
 
                     // Si 'tous' ou 'festivals', afficher les publications validées
                     if (currentFilter != 'patrimoine') ...[
-                      if (currentFilter == 'tous' && publications.isNotEmpty) ...[
+                      if (currentFilter == 'tous' &&
+                          publications.isNotEmpty) ...[
                         const SizedBox(height: 12),
                         _buildSectionHeader(
                           'Événements Culturels Validés',
@@ -265,14 +376,20 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                           child: Center(
                             child: Column(
                               children: [
-                                Icon(Icons.inventory_2_outlined, size: 54, color: Colors.grey.shade400),
+                                Icon(
+                                  Icons.inventory_2_outlined,
+                                  size: 54,
+                                  color: Colors.grey.shade400,
+                                ),
                                 const SizedBox(height: 12),
                                 Text(
                                   'Aucun contenu validé pour le moment',
                                   style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
-                                    color: isDark ? Colors.white70 : Colors.black54,
+                                    color: isDark
+                                        ? Colors.white70
+                                        : Colors.black54,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -280,7 +397,9 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                                   'Seules les publications approuvées sont visibles.',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: isDark ? Colors.white38 : Colors.black38,
+                                    color: isDark
+                                        ? Colors.white38
+                                        : Colors.black38,
                                   ),
                                 ),
                               ],
@@ -288,10 +407,12 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                           ),
                         )
                       else
-                        ...publications.map((pub) => Padding(
-                              padding: const EdgeInsets.only(bottom: 14),
-                              child: _buildPublicationCard(pub, isDark),
-                            )),
+                        ...publications.map(
+                          (pub) => Padding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: _buildPublicationCard(pub, isDark),
+                          ),
+                        ),
                     ],
                   ],
                 ),
@@ -303,9 +424,15 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
     );
   }
 
-  Widget _buildFilterChip(String filterKey, String label, IconData icon, String activeFilter) {
+  Widget _buildFilterChip(
+    String filterKey,
+    String label,
+    IconData icon,
+    String activeFilter,
+  ) {
     final isSelected = activeFilter == filterKey;
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
         ref.read(explorerFilterTypeProvider.notifier).state = filterKey;
       },
@@ -313,10 +440,14 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.18),
+          color: isSelected
+              ? Colors.white
+              : Colors.white.withValues(alpha: 0.18),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.25),
+            color: isSelected
+                ? Colors.white
+                : Colors.white.withValues(alpha: 0.25),
           ),
         ),
         child: Row(
@@ -353,7 +484,9 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w800,
-              color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
+              color: isDark
+                  ? AppColors.darkTextPrimary
+                  : const Color(0xFF16332D),
             ),
           ),
           const SizedBox(height: 2),
@@ -361,7 +494,9 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
             subtitle,
             style: TextStyle(
               fontSize: 12,
-              color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : const Color(0xFF6C7C77),
             ),
           ),
         ],
@@ -371,115 +506,152 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
 
   /// Carte pour les catégories statiques (Villes, Plats, Ethnies, Présidents, etc.)
   Widget _buildCategoryCard(Map<String, dynamic> cat, bool isDark) {
-    return InkWell(
-      onTap: () => context.push(cat['route'] as String),
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        height: 110,
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
+    final String targetRoute = cat['route'] as String;
+    return Container(
+      height: 110,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
         ),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
-              child: Stack(
-                children: [
-                  (cat['image'] as String).startsWith('assets/')
-                      ? Image.asset(
-                          cat['image'] as String,
-                          width: 115,
-                          height: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (ctx, error, stackTrace) => Container(
-                            width: 115,
-                            color: const Color(0xFF075E4D),
-                            child: Icon(cat['icon'] as IconData, color: Colors.white70, size: 36),
-                          ),
-                        )
-                      : Image.network(
-                          cat['image'] as String,
-                          width: 115,
-                          height: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (ctx, error, stackTrace) => Container(
-                            width: 115,
-                            color: const Color(0xFF075E4D),
-                            child: Icon(cat['icon'] as IconData, color: Colors.white70, size: 36),
-                          ),
-                        ),
-                  Container(
-                    width: 115,
-                    color: Colors.black.withValues(alpha: 0.15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: () => context.push(targetRoute),
+          borderRadius: BorderRadius.circular(20),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: const BorderRadius.horizontal(
+                  left: Radius.circular(20),
+                ),
+                child: SizedBox(
+                  width: 115,
+                  height: 110,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      (cat['image'] as String).startsWith('assets/')
+                          ? Image.asset(
+                              cat['image'] as String,
+                              width: 115,
+                              height: 110,
+                              fit: BoxFit.cover,
+                              errorBuilder: (ctx, error, stackTrace) =>
+                                  Container(
+                                    width: 115,
+                                    height: 110,
+                                    color: const Color(0xFF075E4D),
+                                    child: Icon(
+                                      cat['icon'] as IconData,
+                                      color: Colors.white70,
+                                      size: 36,
+                                    ),
+                                  ),
+                            )
+                          : Image.network(
+                              cat['image'] as String,
+                              width: 115,
+                              height: 110,
+                              fit: BoxFit.cover,
+                              errorBuilder: (ctx, error, stackTrace) =>
+                                  Container(
+                                    width: 115,
+                                    height: 110,
+                                    color: const Color(0xFF075E4D),
+                                    child: Icon(
+                                      cat['icon'] as IconData,
+                                      color: Colors.white70,
+                                      size: 36,
+                                    ),
+                                  ),
+                            ),
+                      Container(color: Colors.black.withValues(alpha: 0.15)),
+                    ],
                   ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? AppColors.darkSurfaceElevated
-                            : const Color(0xFF075E4D).withValues(alpha: 0.10),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        cat['badge'] as String,
-                        style: TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      cat['titre'] as String,
-                      style: TextStyle(
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w800,
-                        color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      cat['sousTitre'] as String,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
-                      ),
-                    ),
-                  ],
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(right: 14.0),
-              child: Icon(
-                Icons.arrow_forward_ios_rounded,
-                color: isDark ? AppColors.darkTextSecondary : const Color(0xFF8B9B95),
-                size: 16,
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? AppColors.darkSurfaceElevated
+                              : const Color(0xFF075E4D).withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          cat['badge'] as String,
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.bold,
+                            color: isDark
+                                ? const Color(0xFF4DB6AC)
+                                : const Color(0xFF075E4D),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        cat['titre'] as String,
+                        style: TextStyle(
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w800,
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : const Color(0xFF16332D),
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        cat['sousTitre'] as String,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark
+                              ? AppColors.darkTextSecondary
+                              : const Color(0xFF6C7C77),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.only(right: 14.0),
+                child: Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : const Color(0xFF8B9B95),
+                  size: 16,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -489,154 +661,197 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
   Widget _buildPublicationCard(ExplorerPublicationModel pub, bool isDark) {
     final isFestival = pub.type == PublicationType.festivalEvenement;
 
-    return InkWell(
-      onTap: () {
-        // Incrémentation idempotente de vue
-        ref.read(explorerPublicationsProvider.notifier).incrementerView(pub.id);
-        _showPublicationDetailsModal(context, pub, isDark);
-      },
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        height: 125,
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
+    return Container(
+      height: 125,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
         ),
-        child: Row(
-          children: [
-            // Image de la publication
-            ClipRRect(
-              borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
-              child: SizedBox(
-                width: 120,
-                height: double.infinity,
-                child: _buildSafePublicationImage(pub.imageUrl),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: () {
+            // Incrémentation idempotente de vue
+            ref
+                .read(explorerPublicationsProvider.notifier)
+                .incrementerView(pub.id);
+            _showPublicationDetailsModal(context, pub, isDark);
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Row(
+            children: [
+              // Image de la publication
+              ClipRRect(
+                borderRadius: const BorderRadius.horizontal(
+                  left: Radius.circular(20),
+                ),
+                child: SizedBox(
+                  width: 120,
+                  height: 125,
+                  child: _buildSafePublicationImage(pub.imageUrl),
+                ),
               ),
-            ),
 
-            // Contenu
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Badges (Type & Prix / Date)
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE65100).withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            isFestival ? 'Festival' : 'Patrimoine',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFFE65100),
-                            ),
-                          ),
-                        ),
-                        const Spacer(),
-                        if (pub.prix != null)
+              // Contenu
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Badges (Type & Prix / Date)
+                      Row(
+                        children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2.5,
+                            ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF2E7D32).withValues(alpha: 0.15),
+                              color: const Color(
+                                0xFFE65100,
+                              ).withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              pub.prix!,
+                              isFestival ? 'Festival' : 'Patrimoine',
                               style: const TextStyle(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF2E7D32),
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFE65100),
                               ),
                             ),
-                          )
-                        else if (pub.date != null)
-                          Text(
-                            pub.date!,
-                            style: TextStyle(
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w600,
-                              color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                          ),
+                          const Spacer(),
+                          if (pub.prix != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 2.5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(
+                                  0xFF2E7D32,
+                                ).withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                pub.prix!,
+                                style: const TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF2E7D32),
+                                ),
+                              ),
+                            )
+                          else if (pub.date != null)
+                            Text(
+                              pub.date!,
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w600,
+                                color: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : const Color(0xFF6C7C77),
+                              ),
+                            ),
+                        ],
+                      ),
+
+                      // Titre
+                      Text(
+                        pub.titre,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : const Color(0xFF16332D),
+                        ),
+                      ),
+
+                      // Auteur & Localisation
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.person_outline_rounded,
+                            size: 13,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : const Color(0xFF6C7C77),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              '${pub.auteur} • ${pub.localisation}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : const Color(0xFF6C7C77),
+                              ),
                             ),
                           ),
-                      ],
-                    ),
-
-                    // Titre
-                    Text(
-                      pub.titre,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
+                        ],
                       ),
-                    ),
 
-                    // Auteur & Localisation
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.person_outline_rounded,
-                          size: 13,
-                          color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            '${pub.auteur} • ${pub.localisation}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                      // Statistiques vues & commentaires
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.visibility_outlined,
+                            size: 13,
+                            color: Colors.blueGrey.shade400,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${pub.vues} vues',
                             style: TextStyle(
                               fontSize: 11,
-                              color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                              color: Colors.blueGrey.shade400,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-
-                    // Statistiques vues & commentaires
-                    Row(
-                      children: [
-                        Icon(Icons.visibility_outlined, size: 13, color: Colors.blueGrey.shade400),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${pub.vues} vues',
-                          style: TextStyle(fontSize: 11, color: Colors.blueGrey.shade400),
-                        ),
-                        const SizedBox(width: 12),
-                        Icon(Icons.chat_bubble_outline_rounded, size: 12, color: Colors.blueGrey.shade400),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${pub.commentaires} avis',
-                          style: TextStyle(fontSize: 11, color: Colors.blueGrey.shade400),
-                        ),
-                      ],
-                    ),
-                  ],
+                          const SizedBox(width: 12),
+                          Icon(
+                            Icons.chat_bubble_outline_rounded,
+                            size: 12,
+                            color: Colors.blueGrey.shade400,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${pub.commentaires} avis',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.blueGrey.shade400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -646,11 +861,7 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
     return Container(
       color: const Color(0xFF075E4D).withValues(alpha: 0.1),
       child: const Center(
-        child: Icon(
-          Icons.festival_rounded,
-          color: Color(0xFF075E4D),
-          size: 32,
-        ),
+        child: Icon(Icons.festival_rounded, color: Color(0xFF075E4D), size: 32),
       ),
     );
   }
@@ -677,7 +888,11 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
     return _buildImageFallback();
   }
 
-  void _showPublicationDetailsModal(BuildContext context, ExplorerPublicationModel pub, bool isDark) {
+  void _showPublicationDetailsModal(
+    BuildContext context,
+    ExplorerPublicationModel pub,
+    bool isDark,
+  ) {
     final isFestival = pub.type == PublicationType.festivalEvenement;
 
     showModalBottomSheet(
@@ -730,9 +945,14 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE65100).withValues(alpha: 0.12),
+                              color: const Color(
+                                0xFFE65100,
+                              ).withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
@@ -770,7 +990,9 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
-                          color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : const Color(0xFF16332D),
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -779,7 +1001,9 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                          color: isDark
+                              ? AppColors.darkTextSecondary
+                              : const Color(0xFF6C7C77),
                         ),
                       ),
                       const SizedBox(height: 14),
@@ -788,24 +1012,40 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                         style: TextStyle(
                           fontSize: 14,
                           height: 1.5,
-                          color: isDark ? AppColors.darkTextPrimary : const Color(0xFF2A3D36),
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : const Color(0xFF2A3D36),
                         ),
                       ),
                       const SizedBox(height: 14),
                       Row(
                         children: [
-                          Icon(Icons.visibility_rounded, size: 15, color: Colors.blueGrey.shade400),
+                          Icon(
+                            Icons.visibility_rounded,
+                            size: 15,
+                            color: Colors.blueGrey.shade400,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             '${pub.vues} vues',
-                            style: TextStyle(fontSize: 12, color: Colors.blueGrey.shade400),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blueGrey.shade400,
+                            ),
                           ),
                           const SizedBox(width: 16),
-                          Icon(Icons.chat_bubble_rounded, size: 14, color: Colors.blueGrey.shade400),
+                          Icon(
+                            Icons.chat_bubble_rounded,
+                            size: 14,
+                            color: Colors.blueGrey.shade400,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             '${pub.commentaires} commentaires',
-                            style: TextStyle(fontSize: 12, color: Colors.blueGrey.shade400),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blueGrey.shade400,
+                            ),
                           ),
                         ],
                       ),
@@ -826,7 +1066,9 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                     backgroundColor: const Color(0xFF075E4D),
                     foregroundColor: Colors.white,
                     elevation: 2,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                   icon: const Icon(Icons.confirmation_number_outlined),
                   label: const Text(
@@ -858,7 +1100,11 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                 color: Color(0xFFFFF3E0),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.confirmation_number_rounded, color: Color(0xFFE65100), size: 36),
+              child: const Icon(
+                Icons.confirmation_number_rounded,
+                color: Color(0xFFE65100),
+                size: 36,
+              ),
             ),
             const SizedBox(height: 12),
             Text(
@@ -866,7 +1112,9 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
-                color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : const Color(0xFF16332D),
               ),
             ),
           ],
@@ -879,7 +1127,9 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
               'Voulez-vous réserver votre accès à :',
               style: TextStyle(
                 fontSize: 13,
-                color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : const Color(0xFF6C7C77),
               ),
             ),
             const SizedBox(height: 6),
@@ -888,20 +1138,34 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
-                color: isDark ? AppColors.darkTextPrimary : const Color(0xFF075E4D),
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : const Color(0xFF075E4D),
               ),
             ),
             const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(Icons.event_rounded, size: 14, color: Color(0xFFE65100)),
+                const Icon(
+                  Icons.event_rounded,
+                  size: 14,
+                  color: Color(0xFFE65100),
+                ),
                 const SizedBox(width: 4),
                 Text(
                   pub.date ?? 'Date à venir',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFE65100)),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFE65100),
+                  ),
                 ),
                 const SizedBox(width: 10),
-                const Icon(Icons.location_on_rounded, size: 14, color: Color(0xFF6C7C77)),
+                const Icon(
+                  Icons.location_on_rounded,
+                  size: 14,
+                  color: Color(0xFF6C7C77),
+                ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
@@ -910,7 +1174,9 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : const Color(0xFF6C7C77),
                     ),
                   ),
                 ),
@@ -925,11 +1191,19 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle_outline, color: Color(0xFF2E7D32), size: 18),
+                  const Icon(
+                    Icons.check_circle_outline,
+                    color: Color(0xFF2E7D32),
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     'Tarif : ${pub.prix ?? "Accès Libre"}',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2E7D32),
+                    ),
                   ),
                 ],
               ),
@@ -941,7 +1215,9 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
             onPressed: () => Navigator.pop(dlgCtx),
             child: Text(
               'Annuler',
-              style: TextStyle(color: isDark ? AppColors.darkTextSecondary : Colors.grey),
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextSecondary : Colors.grey,
+              ),
             ),
           ),
           ElevatedButton(
@@ -949,7 +1225,9 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
               Navigator.pop(dlgCtx);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Votre réservation pour "${pub.titre}" est confirmée !'),
+                  content: Text(
+                    'Votre réservation pour "${pub.titre}" est confirmée !',
+                  ),
                   backgroundColor: const Color(0xFF075E4D),
                   behavior: SnackBarBehavior.floating,
                 ),
@@ -958,9 +1236,14 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF075E4D),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            child: const Text('Confirmer', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Confirmer',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),

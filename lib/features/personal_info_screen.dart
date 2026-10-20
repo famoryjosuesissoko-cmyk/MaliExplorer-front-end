@@ -33,10 +33,18 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
   bool _isPickingImage = false;
   Uint8List? _previewBytes;
 
+  User? _safeCurrentUser() {
+    try {
+      return FirebaseAuth.instance.currentUser;
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _safeCurrentUser();
     final displayName = user?.displayName ?? '';
     final parts = displayName.split(' ');
     final prenom = parts.isNotEmpty ? parts.first : '';
@@ -63,7 +71,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
   }
 
   Future<void> _pickAndChangeAvatar() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _safeCurrentUser();
     if (user == null || _isPickingImage) return;
 
     _isPickingImage = true;
@@ -141,7 +149,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final user = _safeCurrentUser();
       final apiService = ref.read(apiServiceProvider);
       final prenom = _prenomController.text.trim();
       final nom = _nomController.text.trim();
@@ -162,6 +170,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
           'prenom': prenom,
           'nom': nom,
           'adresse': adresse,
+          'telephone': telephone,
         });
       } catch (e) {
         debugPrint('[PersonalInfo] Erreur sync MySQL: $e');
@@ -314,7 +323,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
                         if (!passFormKey.currentState!.validate()) return;
                         setDialogState(() => isChanging = true);
                         try {
-                          final user = FirebaseAuth.instance.currentUser;
+                          final user = _safeCurrentUser();
                           if (user != null) {
                             await user.updatePassword(newPasswordController.text.trim());
                             if (ctx.mounted) {
@@ -330,7 +339,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
                         } on FirebaseAuthException catch (e) {
                           setDialogState(() => isChanging = false);
                           if (e.code == 'requires-recent-login') {
-                            final email = FirebaseAuth.instance.currentUser?.email;
+                            final email = _safeCurrentUser()?.email;
                             if (email != null) {
                               await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
                               if (ctx.mounted) {
@@ -372,8 +381,83 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    final photoUrl = user?.photoURL;
+    final authState = ref.watch(authControllerProvider);
+    final user = _safeCurrentUser();
+    final bool isAuthenticated = user != null || authState.isAuthenticated;
+
+    // Protection défensive si l'écran est affiché hors session
+    if (!isAuthenticated) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF7F8F5),
+        appBar: AppBar(
+          title: const Text('Informations personnelles'),
+          backgroundColor: const Color(0xFF075E4D),
+          foregroundColor: Colors.white,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF075E4D).withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.lock_outline_rounded, size: 52, color: Color(0xFF075E4D)),
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  'Connexion requise',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF16332D)),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Veuillez vous connecter pour accéder à vos informations personnelles et modifier votre profil.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: Color(0xFF6C7C77), height: 1.4),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: () => context.go(AppRouter.login),
+                  icon: const Icon(Icons.login_rounded),
+                  label: const Text('Se connecter'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF075E4D),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Hydratation réactive dès réception des données de Spring Boot / MySQL
+    ref.listen<AuthState>(authControllerProvider, (prev, next) {
+      final map = next.user;
+      if (map != null) {
+        if (_telephoneController.text.isEmpty && map['telephone'] != null && map['telephone'].toString().isNotEmpty) {
+          _telephoneController.text = map['telephone'].toString();
+        }
+        if (_adresseController.text.isEmpty && map['adresse'] != null && map['adresse'].toString().isNotEmpty) {
+          _adresseController.text = map['adresse'].toString();
+        }
+        if (_prenomController.text.isEmpty && map['prenom'] != null && map['prenom'].toString().isNotEmpty) {
+          _prenomController.text = map['prenom'].toString();
+        }
+        if (_nomController.text.isEmpty && map['nom'] != null && map['nom'].toString().isNotEmpty) {
+          _nomController.text = map['nom'].toString();
+        }
+      }
+    });
+
+    final photoUrl = user?.photoURL ?? authState.user?['photoUrl'];
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8F5),

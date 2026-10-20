@@ -60,13 +60,16 @@ class ApiService {
     Future<http.Response> Function(String baseUrl) requestFn,
   ) async {
     try {
-      return await requestFn(_activeBaseUrl);
+      final res = await requestFn(_activeBaseUrl);
+      ApiConstants.setActiveBaseUrl(_activeBaseUrl);
+      return res;
     } catch (primaryError) {
       for (final candidate in ApiConstants.candidateUrls) {
         if (candidate != _activeBaseUrl) {
           try {
-            final res = await requestFn(candidate);
+            final res = await requestFn(candidate).timeout(ApiConstants.probeTimeout);
             _activeBaseUrl = candidate; // Sauvegarde de l'URL fonctionnelle
+            ApiConstants.setActiveBaseUrl(candidate);
             return res;
           } catch (_) {
             continue;

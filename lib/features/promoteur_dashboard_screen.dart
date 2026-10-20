@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../core/services/api_service.dart';
 import '../core/services/storage_service.dart';
+import '../providers/guides_provider.dart';
 import '../router/app_router.dart';
+import 'auth/auth_controller.dart';
 
 class PromoteurDashboardScreen extends ConsumerStatefulWidget {
   const PromoteurDashboardScreen({super.key});
@@ -18,35 +20,74 @@ class PromoteurDashboardScreen extends ConsumerStatefulWidget {
 
 class _PromoteurDashboardScreenState
     extends ConsumerState<PromoteurDashboardScreen> {
-  // Données du promoteur (modifiables localement et synchronisables)
-  final String _nomOrganisation = 'Agence Sahel Roots Événements';
-  final String _siegeOrganisation = 'Bamako, ACI 2000';
-  final String _nifRccm = '0841234567-RCCM';
-  String _statutModeration = 'VALIDE'; // 'VALIDE', 'EN_ATTENTE', 'REJETE'
+  // Données du partenaire (Guide ou Promoteur) synchronisées avec le backend
+  String _nomOrganisation = 'Espace Professionnel MaliExplorer';
+  String _siegeOrganisation = 'Mali';
+  String _nifRccm = 'Profil professionnel certifié';
+  String _typePartenaire = 'PROMOTEUR'; // 'PROMOTEUR' ou 'GUIDE'
+  String _statutModeration = 'EN_ATTENTE_VALIDATION'; // 'VALIDE', 'EN_ATTENTE_VALIDATION', 'REJETE'
+  String? _motifRejet;
 
-  // Projet en cours
-  String _titreProjet = 'Festival des Masques et Traditions du Mali 2027';
+  // Projet ou fiche guide en cours
+  String _titreProjet = 'Proposition de partenariat culturel et touristique';
   String _descriptionProjet =
-      'Grand rassemblement culturel panafricain célébrant les danses masquées Dogon, la poésie nomade Touareg et les tissages traditionnels de Ségou.';
+      'Présentation de nos activités culturelles, circuits guidés et initiatives de valorisation du patrimoine malien.';
   String _besoinPartenariat =
-      'Recherche de sponsors hôteliers, d\'investisseurs B2B et d\'un co-financement de 10 000 000 FCFA pour la logistique scénique, la promotion internationale et l\'accueil des délégations.';
+      'Mise en visibilité sur le réseau MaliExplorer et collaboration avec les visiteurs et acteurs touristiques.';
   bool _recherchePartenariat = true;
 
   int _vues = 0;
   int _commentaires = 0;
   int _publications = 1;
 
+  bool get _isGuide => _typePartenaire.toUpperCase() == 'GUIDE';
+
   @override
   void initState() {
     super.initState();
-    _fetchBackendData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initFromLocalAuth();
+      _fetchBackendData();
+    });
   }
 
+  /// Initialise les champs d'en-tête à partir de la session utilisateur connectée
+  void _initFromLocalAuth() {
+    final authState = ref.read(authControllerProvider);
+    final userMap = authState.user;
+    if (userMap != null) {
+      final rawRole = (userMap['role'] ?? userMap['roleName'] ?? '').toString().toLowerCase();
+      final isGuideRole = rawRole.contains('guide');
+      final fullName = '${userMap['prenom'] ?? ''} ${userMap['nom'] ?? ''}'.trim();
+      final org = (userMap['nomOrganisation'] ?? '').toString().trim();
+      final adr = (userMap['adresse'] ?? '').toString().trim();
+
+      setState(() {
+        _typePartenaire = isGuideRole ? 'GUIDE' : 'PROMOTEUR';
+        if (org.isNotEmpty) {
+          _nomOrganisation = org;
+        } else if (fullName.isNotEmpty) {
+          _nomOrganisation = isGuideRole ? 'Guide : $fullName' : fullName;
+        }
+        if (adr.isNotEmpty) {
+          _siegeOrganisation = adr;
+        }
+        if (isGuideRole) {
+          _nifRccm = 'Spécialité : Guide Touristique';
+          if (_titreProjet == 'Proposition de partenariat culturel et touristique') {
+            _titreProjet = 'Candidature Guide Touristique : ${fullName.isNotEmpty ? fullName : "MaliExplorer"}';
+          }
+        }
+      });
+    }
+  }
+
+  /// Synchronise les statistiques, le projet et le statut de modération depuis Spring Boot
   Future<void> _fetchBackendData() async {
     try {
       final resStats = await ApiService().get('/partenaires/statistiques');
       if (resStats.statusCode == 200) {
-        final data = jsonDecode(resStats.body);
+        final data = jsonDecode(utf8.decode(resStats.bodyBytes));
         if (mounted) {
           setState(() {
             _vues = (data['vues'] as num?)?.toInt() ?? _vues;
@@ -61,14 +102,34 @@ class _PromoteurDashboardScreenState
 
       final resProjet = await ApiService().get('/partenaires/mon-projet');
       if (resProjet.statusCode == 200) {
-        final data = jsonDecode(resProjet.body);
+        final data = jsonDecode(utf8.decode(resProjet.bodyBytes));
         if (mounted) {
           setState(() {
+            if (data['typePartenaire'] != null && data['typePartenaire'].toString().isNotEmpty) {
+              _typePartenaire = data['typePartenaire'].toString();
+            }
+            if (data['specialiteOuOrganisation'] != null &&
+                data['specialiteOuOrganisation'].toString().isNotEmpty) {
+              if (_isGuide) {
+                _nifRccm = data['specialiteOuOrganisation'].toString();
+                if (data['nomComplet'] != null && data['nomComplet'].toString().isNotEmpty) {
+                  _nomOrganisation = 'Guide : ${data['nomComplet']}';
+                }
+              } else {
+                _nomOrganisation = data['specialiteOuOrganisation'].toString();
+              }
+            } else if (data['nomComplet'] != null && data['nomComplet'].toString().isNotEmpty) {
+              _nomOrganisation = data['nomComplet'].toString();
+            }
+            if (data['adresse'] != null && data['adresse'].toString().isNotEmpty) {
+              _siegeOrganisation = data['adresse'].toString();
+            }
             if (data['titreProjet'] != null && data['titreProjet'].toString().isNotEmpty) {
               _titreProjet = data['titreProjet'].toString();
             }
             if (data['besoinPartenariat'] != null && data['besoinPartenariat'].toString().isNotEmpty) {
               _besoinPartenariat = data['besoinPartenariat'].toString();
+              _descriptionProjet = data['besoinPartenariat'].toString();
             }
             if (data['recherchePartenariat'] != null) {
               _recherchePartenariat = data['recherchePartenariat'] == true;
@@ -76,6 +137,7 @@ class _PromoteurDashboardScreenState
             if (data['statutModeration'] != null) {
               _statutModeration = data['statutModeration'].toString();
             }
+            _motifRejet = data['motifRejet']?.toString();
           });
         }
       }
@@ -121,18 +183,22 @@ class _PromoteurDashboardScreenState
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Modifier mon projet culturel',
-                  style: TextStyle(
+                Text(
+                  _isGuide
+                      ? 'Modifier ma fiche guide & demande'
+                      : 'Modifier mon projet culturel',
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF075E4D),
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Titre du projet / événement',
-                  style: TextStyle(
+                Text(
+                  _isGuide
+                      ? 'Titre de votre offre / spécialité guide'
+                      : 'Titre du projet / événement',
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF075E4D),
@@ -145,13 +211,17 @@ class _PromoteurDashboardScreenState
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    hintText: 'Ex : Festival International du Sahel',
+                    hintText: _isGuide
+                        ? 'Ex : Circuits historiques Djenné & Pays Dogon'
+                        : 'Ex : Festival International du Sahel',
                   ),
                 ),
                 const SizedBox(height: 14),
-                const Text(
-                  'Description du projet',
-                  style: TextStyle(
+                Text(
+                  _isGuide
+                      ? 'Présentation & expérience du guide'
+                      : 'Description du projet',
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF075E4D),
@@ -165,13 +235,17 @@ class _PromoteurDashboardScreenState
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    hintText: 'Présentez la portée culturelle de l\'événement...',
+                    hintText: _isGuide
+                        ? 'Décrivez vos circuits, langues parlées et années d\'expérience...'
+                        : 'Présentez la portée culturelle de l\'événement...',
                   ),
                 ),
                 const SizedBox(height: 14),
-                const Text(
-                  'Besoins de partenariat & Sponsoring',
-                  style: TextStyle(
+                Text(
+                  _isGuide
+                      ? 'Disponibilités & proposition de partenariat'
+                      : 'Besoins de partenariat & Sponsoring',
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF075E4D),
@@ -185,18 +259,20 @@ class _PromoteurDashboardScreenState
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    hintText: 'Montants, partenariats logistiques, médias...',
+                    hintText: _isGuide
+                        ? 'Zones couvertes, tarifs indicatifs, partenariats agences...'
+                        : 'Montants, partenariats logistiques, médias...',
                   ),
                 ),
                 const SizedBox(height: 14),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text(
-                    'Activer la recherche de partenariats',
+                    'Soumettre à validation & activer le partenariat',
                     style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold),
                   ),
                   subtitle: const Text(
-                    'Rendre la fiche visible aux investisseurs',
+                    'Envoyer le dossier dans Demandes de partenariat (Admin)',
                     style: TextStyle(fontSize: 11.5, color: Colors.grey),
                   ),
                   value: rechercheActive,
@@ -219,12 +295,14 @@ class _PromoteurDashboardScreenState
                       setState(() {
                         _titreProjet = t;
                         _descriptionProjet = d;
-                        _besoinPartenariat = b;
+                        _besoinPartenariat = b.isNotEmpty ? b : d;
                         _recherchePartenariat = rechercheActive;
+                        _statutModeration = rechercheActive ? 'EN_ATTENTE_VALIDATION' : 'VALIDE';
+                        _motifRejet = null;
                       });
                       Navigator.pop(ctx);
                       try {
-                        await ApiService().put(
+                        final res = await ApiService().put(
                           '/partenaires/mon-projet',
                           body: {
                             'titreProjet': t,
@@ -232,10 +310,14 @@ class _PromoteurDashboardScreenState
                             'recherchePartenariat': rechercheActive,
                           },
                         );
+                        if (res.statusCode == 200) {
+                          ref.invalidate(guidesProvider);
+                          await _fetchBackendData();
+                        }
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Projet culturel synchronisé avec succès !'),
+                              content: Text('Demande envoyée à l\'administration pour validation !'),
                               backgroundColor: Color(0xFF075E4D),
                             ),
                           );
@@ -252,7 +334,7 @@ class _PromoteurDashboardScreenState
                       ),
                     ),
                     child: const Text(
-                      'Enregistrer les modifications',
+                      'Soumettre la demande à validation',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -586,9 +668,9 @@ class _PromoteurDashboardScreenState
                             constraints: const BoxConstraints(),
                           ),
                           const SizedBox(width: 10),
-                          const Text(
-                            'Espace Promoteur',
-                            style: TextStyle(
+                          Text(
+                            _isGuide ? 'Espace Guide & Partenariat' : 'Espace Promoteur',
+                            style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
                               color: Colors.white,
@@ -598,11 +680,13 @@ class _PromoteurDashboardScreenState
                         ],
                       ),
                       const SizedBox(height: 6),
-                      const Padding(
-                        padding: EdgeInsets.only(left: 30.0),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 30.0),
                         child: Text(
-                          'Gestion de vos événements, projets culturels et partenariats',
-                          style: TextStyle(
+                          _isGuide
+                              ? 'Gestion de votre fiche guide certifié et demandes de partenariat'
+                              : 'Gestion de vos événements, projets culturels et partenariats',
+                          style: const TextStyle(
                             fontSize: 12.5,
                             color: Colors.white70,
                             fontWeight: FontWeight.w400,
@@ -638,28 +722,33 @@ class _PromoteurDashboardScreenState
 
                         const SizedBox(height: 24),
 
-                        // Section Projet Culturel en cours
+                        // Section Projet Culturel ou Fiche Guide en cours
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'Mon Projet Culturel',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF16332D),
+                            Expanded(
+                              child: Text(
+                                _isGuide
+                                    ? 'Ma Fiche Guide & Partenariat'
+                                    : 'Mon Projet Culturel',
+                                style: const TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF16332D),
+                                ),
                               ),
                             ),
                             Row(
                               children: [
-                                TextButton.icon(
-                                  onPressed: _showAddEventDialog,
-                                  icon: const Icon(Icons.add_circle_outline_rounded, size: 16),
-                                  label: const Text('Événement'),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: const Color(0xFFD6A23A),
+                                if (!_isGuide)
+                                  TextButton.icon(
+                                    onPressed: _showAddEventDialog,
+                                    icon: const Icon(Icons.add_circle_outline_rounded, size: 16),
+                                    label: const Text('Événement'),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: const Color(0xFFD6A23A),
+                                    ),
                                   ),
-                                ),
                                 TextButton.icon(
                                   onPressed: _showEditProjectDialog,
                                   icon: const Icon(Icons.edit_outlined, size: 16),
@@ -734,6 +823,33 @@ class _PromoteurDashboardScreenState
   }
 
   Widget _buildOrganisationCard() {
+    final bool isValide = _statutModeration == 'VALIDE';
+    final bool isRejete = _statutModeration == 'REJETE';
+
+    final Color badgeBg = isValide
+        ? const Color(0xFF10B981).withValues(alpha: 0.12)
+        : isRejete
+            ? const Color(0xFFDC2626).withValues(alpha: 0.12)
+            : const Color(0xFFF59E0B).withValues(alpha: 0.12);
+
+    final Color badgeColor = isValide
+        ? const Color(0xFF059669)
+        : isRejete
+            ? const Color(0xFFDC2626)
+            : const Color(0xFFD97706);
+
+    final IconData badgeIcon = isValide
+        ? Icons.verified_rounded
+        : isRejete
+            ? Icons.cancel_rounded
+            : Icons.hourglass_top_rounded;
+
+    final String badgeText = isValide
+        ? 'Compte Validé'
+        : isRejete
+            ? 'Demande Rejetée'
+            : 'En attente';
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -760,9 +876,9 @@ class _PromoteurDashboardScreenState
                   color: const Color(0xFF075E4D).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(
-                  Icons.business_center_rounded,
-                  color: Color(0xFF075E4D),
+                child: Icon(
+                  _isGuide ? Icons.person_pin_circle_rounded : Icons.business_center_rounded,
+                  color: const Color(0xFF075E4D),
                   size: 26,
                 ),
               ),
@@ -798,46 +914,41 @@ class _PromoteurDashboardScreenState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'NIF / RCCM : $_nifRccm',
-                style: const TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF6C7C77),
+              Expanded(
+                child: Text(
+                  _isGuide ? _nifRccm : 'Organisation : $_nifRccm',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF6C7C77),
+                  ),
                 ),
               ),
-              // Badge de modération
+              const SizedBox(width: 8),
+              // Badge de modération (Validé / En attente / Rejeté)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _statutModeration == 'VALIDE'
-                      ? const Color(0xFF10B981).withValues(alpha: 0.12)
-                      : const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                  color: badgeBg,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      _statutModeration == 'VALIDE'
-                          ? Icons.verified_rounded
-                          : Icons.hourglass_top_rounded,
+                      badgeIcon,
                       size: 13,
-                      color: _statutModeration == 'VALIDE'
-                          ? const Color(0xFF059669)
-                          : const Color(0xFFD97706),
+                      color: badgeColor,
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      _statutModeration == 'VALIDE'
-                          ? 'Compte Validé'
-                          : 'En attente',
+                      badgeText,
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: _statutModeration == 'VALIDE'
-                            ? const Color(0xFF059669)
-                            : const Color(0xFFD97706),
+                        color: badgeColor,
                       ),
                     ),
                   ],
@@ -845,6 +956,62 @@ class _PromoteurDashboardScreenState
               ),
             ],
           ),
+          // Affichage du motif de rejet lorsque l'administrateur a rejeté la demande
+          if (isRejete) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFECACA)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.info_outline_rounded, color: Color(0xFFDC2626), size: 16),
+                      SizedBox(width: 6),
+                      Text(
+                        'Motif du refus administratif :',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFFDC2626),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    (_motifRejet != null && _motifRejet!.trim().isNotEmpty)
+                        ? _motifRejet!
+                        : 'Veuillez compléter vos informations et resoumettre votre demande.',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF991B1B),
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 34,
+                    child: OutlinedButton.icon(
+                      onPressed: _showEditProjectDialog,
+                      icon: const Icon(Icons.edit_rounded, size: 14),
+                      label: const Text('Corriger et resoumettre ma demande', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFDC2626),
+                        side: const BorderSide(color: Color(0xFFDC2626)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -963,9 +1130,11 @@ class _PromoteurDashboardScreenState
                     color: const Color(0xFFD6A23A).withValues(alpha: 0.5),
                   ),
                 ),
-                child: const Text(
-                  'FESTIVAL & ÉVÉNEMENT CULTUREL',
-                  style: TextStyle(
+                child: Text(
+                  _isGuide
+                      ? 'CIRCUIT & GUIDE TOURISTIQUE CERTIFIÉ'
+                      : 'FESTIVAL & ÉVÉNEMENT CULTUREL',
+                  style: const TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF8B4513),
