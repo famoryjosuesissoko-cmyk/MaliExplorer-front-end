@@ -417,23 +417,42 @@ class _ReligionsListScreenState extends ConsumerState<ReligionsListScreen> {
   }
 
   Widget _buildThumbnail(String url, String religionNom) {
+    final fallbackAsset = ReligionModel.getLocalPhoto(religionNom);
     final fallbackIcon = _getFaithIcon(religionNom);
+
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return Image.network(
         url,
         fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => Icon(
-          fallbackIcon,
-          color: const Color(0xFF075E4D),
-          size: 30,
+        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+          if (wasSynchronouslyLoaded || frame != null) {
+            return child;
+          }
+          return Image.asset(
+            fallbackAsset,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => Icon(fallbackIcon, color: const Color(0xFF075E4D), size: 30),
+          );
+        },
+        errorBuilder: (_, _, _) => Image.asset(
+          fallbackAsset,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => Icon(
+            fallbackIcon,
+            color: const Color(0xFF075E4D),
+            size: 30,
+          ),
         ),
       );
     }
     return Image.asset(
-      url,
+      url.isNotEmpty ? url : fallbackAsset,
       fit: BoxFit.cover,
-      errorBuilder: (_, _, _) =>
-          Icon(fallbackIcon, color: const Color(0xFF075E4D), size: 30),
+      errorBuilder: (_, _, _) => Image.asset(
+        fallbackAsset,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => Icon(fallbackIcon, color: const Color(0xFF075E4D), size: 30),
+      ),
     );
   }
 

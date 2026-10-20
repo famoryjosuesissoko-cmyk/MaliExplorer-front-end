@@ -35,19 +35,46 @@ class ReligionDetailScreen extends ConsumerWidget {
       backgroundColor: const Color(0xFFF7F8F5),
       body: Stack(
         children: [
-          SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.only(bottom: 110),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // 1. Image Hero FIXE en haut de l'écran
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: heroHeight,
+            child: Stack(
+              fit: StackFit.expand,
               children: [
-                // 1. Bannière Hero d'en-tête
-                _buildHeroHeader(context, ref, current, heroHeight),
+                _buildHeroImage(current.imageUrl, current.nom),
+                // Gradient pour visibilité
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.60),
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.70),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
 
-                // 2. Fiche blanche détaillée avec coins arrondis
-                Transform.translate(
-                  offset: const Offset(0, -24),
-                  child: Container(
+          // 2. Fiche blanche détaillée avec coins arrondis qui défile par-dessus
+          Positioned.fill(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 110),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Espace transparent laissant visible l'image hero du haut
+                  SizedBox(height: heroHeight - 26),
+
+                  Container(
                     width: double.infinity,
                     decoration: const BoxDecoration(
                       color: Colors.white,
@@ -166,126 +193,100 @@ class ReligionDetailScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeroHeader(
-    BuildContext context,
-    WidgetRef ref,
-    ReligionModel current,
-    double height,
-  ) {
-    return SizedBox(
-      height: height,
-      width: double.infinity,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          _buildHeroImage(current.imageUrl),
-          // Gradient pour visibilité
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withValues(alpha: 0.65),
-                  Colors.transparent,
-                  Colors.black.withValues(alpha: 0.75),
                 ],
               ),
             ),
           ),
-          // Boutons navigation et favori
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  InkWell(
-                    onTap: () {
-                      if (context.canPop()) {
-                        context.pop();
-                      } else {
-                        context.go(AppRouter.religionsList);
-                      }
-                    },
-                    borderRadius: BorderRadius.circular(30),
-                    child: Container(
-                      width: 38,
-                      height: 38,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 6,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.arrow_back_rounded,
-                        color: Color(0xFF16332D),
-                        size: 20,
+
+          // 3. Boutons Navigation et Favori FIXES en haut de l'écran
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go(AppRouter.religionsList);
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(30),
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 6,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.arrow_back_rounded,
+                          color: Color(0xFF16332D),
+                          size: 20,
+                        ),
                       ),
                     ),
-                  ),
-                  Builder(
-                    builder: (ctx) {
-                      ref.watch(favorisNotifierProvider);
-                      final isFav = ref
-                          .read(favorisNotifierProvider.notifier)
-                          .isFavorite(current.nom);
-                      return InkWell(
-                        onTap: () async {
-                          await ref
-                              .read(favorisNotifierProvider.notifier)
-                              .toggleFavori(
-                                titre: current.nom,
-                                categorie: 'Religion & Spiritualité',
-                                imageUrl: current.imageUrl,
-                                route: AppRouter.religionDetail,
-                                referenceId: current.id,
-                              );
-                        },
-                        borderRadius: BorderRadius.circular(30),
-                        child: Container(
-                          width: 38,
-                          height: 38,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black26,
-                                blurRadius: 6,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
+                    Builder(
+                      builder: (ctx) {
+                        ref.watch(favorisNotifierProvider);
+                        final isFav = ref
+                            .read(favorisNotifierProvider.notifier)
+                            .isFavorite(current.nom);
+                        return InkWell(
+                          onTap: () async {
+                            await ref
+                                .read(favorisNotifierProvider.notifier)
+                                .toggleFavori(
+                                  titre: current.nom,
+                                  categorie: 'Religion & Spiritualité',
+                                  imageUrl: current.imageUrl,
+                                  route: AppRouter.religionDetail,
+                                  referenceId: current.id,
+                                );
+                          },
+                          borderRadius: BorderRadius.circular(30),
+                          child: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 6,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              isFav
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              color: isFav
+                                  ? const Color(0xFFE53935)
+                                  : const Color(0xFF16332D),
+                              size: 20,
+                            ),
                           ),
-                          child: Icon(
-                            isFav
-                                ? Icons.favorite_rounded
-                                : Icons.favorite_border_rounded,
-                            color: isFav
-                                ? const Color(0xFFE53935)
-                                : const Color(0xFF16332D),
-                            size: 20,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -294,18 +295,43 @@ class ReligionDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeroImage(String url) {
-    if (url.startsWith('http://') || url.startsWith('https://')) {
+  Widget _buildHeroImage(String url, String nom) {
+    final fallbackAsset = ReligionModel.getLocalPhoto(nom);
+    final trimmed = url.trim();
+
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
       return Image.network(
-        url,
+        trimmed,
         fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => Container(color: const Color(0xFF075E4D)),
+        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+          if (wasSynchronouslyLoaded || frame != null) {
+            return child;
+          }
+          // Pendant le chargement réseau, afficher IMMÉDIATEMENT la photo locale (0ms)
+          return Image.asset(
+            fallbackAsset,
+            fit: BoxFit.cover,
+          );
+        },
+        errorBuilder: (_, _, _) => Image.asset(
+          fallbackAsset,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+    if (trimmed.startsWith('assets/')) {
+      return Image.asset(
+        trimmed,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => Image.asset(
+          fallbackAsset,
+          fit: BoxFit.cover,
+        ),
       );
     }
     return Image.asset(
-      url,
+      fallbackAsset,
       fit: BoxFit.cover,
-      errorBuilder: (_, _, _) => Container(color: const Color(0xFF075E4D)),
     );
   }
 

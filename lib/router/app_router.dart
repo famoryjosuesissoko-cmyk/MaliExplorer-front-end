@@ -847,6 +847,30 @@ class AppRouter {
               (r) => r.nom.toLowerCase().contains(q) || q.contains(r.nom.toLowerCase()),
               orElse: () => ReligionModel.defaultReligions.first,
             );
+          } else if (extra is FavoriModel) {
+            final q = extra.titre.toLowerCase();
+            religion = ReligionModel.defaultReligions.firstWhere(
+              (r) =>
+                  (extra.referenceId != null && r.id == extra.referenceId) ||
+                  r.nom.toLowerCase().contains(q) ||
+                  q.contains(r.nom.toLowerCase()),
+              orElse: () => ReligionModel(
+                id: extra.referenceId ?? extra.id,
+                nom: extra.titre,
+                categorie: extra.categorie,
+                description: '',
+                histoire: '',
+                pratiques: '',
+                fetes: '',
+                lieuxDeCulte: '',
+                regionsConcernees: '',
+                imageUrl: extra.displayPhoto,
+              ),
+            );
+            if (extra.imageUrl.isNotEmpty &&
+                (extra.imageUrl.startsWith('http') || extra.imageUrl.startsWith('assets/'))) {
+              religion = religion.copyWith(imageUrl: extra.displayPhoto);
+            }
           }
           return ReligionDetailScreen(religion: religion);
         },
