@@ -10,6 +10,7 @@ import '../models/plat_model.dart';
 import '../models/ethnie_model.dart';
 import '../models/ville_model.dart';
 import '../models/region_model.dart';
+import '../models/religion_model.dart';
 import '../providers/favoris_provider.dart';
 
 class FavorisScreen extends ConsumerStatefulWidget {
@@ -328,14 +329,66 @@ class _FavorisScreenState extends ConsumerState<FavorisScreen> {
               context.push(AppRouter.regionDetail, extra: dynamicRegion);
             }
           } else if (route == AppRouter.cityDetail || route.contains('city')) {
-            final ville = VilleModel(
-              id: item.referenceId ?? item.id,
-              nom: item.titre,
-              region: item.categorie.replaceAll('Région : ', ''),
-              description: '',
-              imageUrl: item.displayPhoto,
-            );
-            context.push(AppRouter.cityDetail, extra: ville);
+            VilleModel? match;
+            try {
+              match = VilleModel.defaultVilles.firstWhere(
+                (v) =>
+                    v.nom.toLowerCase().contains(titre) ||
+                    titre.contains(v.nom.toLowerCase()) ||
+                    (item.referenceId != null && v.id == item.referenceId),
+              );
+            } catch (_) {
+              match = null;
+            }
+            if (match != null) {
+              final resolvedPhoto = (item.imageUrl.isNotEmpty &&
+                      (item.imageUrl.startsWith('http') || item.imageUrl.startsWith('/') || item.imageUrl.startsWith('assets/')))
+                  ? item.displayPhoto
+                  : match.imageUrl;
+              context.push(AppRouter.cityDetail, extra: match.copyWith(imageUrl: resolvedPhoto));
+            } else {
+              final ville = VilleModel(
+                id: item.referenceId ?? item.id,
+                nom: item.titre,
+                region: item.categorie.replaceAll('Région : ', ''),
+                description: '',
+                imageUrl: item.displayPhoto,
+              );
+              context.push(AppRouter.cityDetail, extra: ville);
+            }
+          } else if (route == AppRouter.religionDetail || route.contains('religion')) {
+            ReligionModel? match;
+            try {
+              match = ReligionModel.defaultReligions.firstWhere(
+                (r) =>
+                    r.nom.toLowerCase().contains(titre) ||
+                    titre.contains(r.nom.toLowerCase()) ||
+                    (item.referenceId != null && r.id == item.referenceId),
+              );
+            } catch (_) {
+              match = null;
+            }
+            if (match != null) {
+              final resolvedPhoto = (item.imageUrl.isNotEmpty &&
+                      (item.imageUrl.startsWith('http') || item.imageUrl.startsWith('/') || item.imageUrl.startsWith('assets/')))
+                  ? item.displayPhoto
+                  : match.imageUrl;
+              context.push(AppRouter.religionDetail, extra: match.copyWith(imageUrl: resolvedPhoto));
+            } else {
+              final dynamicRel = ReligionModel(
+                id: item.referenceId ?? item.id,
+                nom: item.titre,
+                categorie: item.categorie,
+                description: '',
+                histoire: '',
+                pratiques: '',
+                fetes: '',
+                lieuxDeCulte: '',
+                regionsConcernees: '',
+                imageUrl: item.displayPhoto,
+              );
+              context.push(AppRouter.religionDetail, extra: dynamicRel);
+            }
           } else if (route.isNotEmpty) {
             context.push(route, extra: item);
           }

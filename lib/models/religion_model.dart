@@ -26,18 +26,18 @@ class ReligionModel {
     required this.nom,
     this.categorie,
     required this.description,
-    required this.histoire,
-    required this.pratiques,
-    required this.fetes,
-    required this.lieuxDeCulte,
-    required this.regionsConcernees,
+    this.histoire = '',
+    this.pratiques = '',
+    this.fetes = '',
+    this.lieuxDeCulte = '',
+    this.regionsConcernees = '',
     this.branches,
-    required this.proportionPopulation,
-    required this.nombrePratiquantsEstime,
-    required this.sourceStatistiques,
-    required this.anneeStatistiques,
-    required this.methodologieStatistiques,
-    required this.imageUrl,
+    this.proportionPopulation = 'Données non disponibles',
+    this.nombrePratiquantsEstime = 'Données non disponibles',
+    this.sourceStatistiques = 'INSTAT Mali / Rapports démographiques officiels',
+    this.anneeStatistiques = '2022',
+    this.methodologieStatistiques = 'Recensement RGPH-5',
+    this.imageUrl = 'assets/images/home_hero.jpeg',
     this.ordre = 0,
     this.publie = true,
   });
@@ -130,6 +130,67 @@ class ReligionModel {
     };
   }
 
+  ReligionModel copyWith({
+    int? id,
+    String? nom,
+    String? categorie,
+    String? description,
+    String? histoire,
+    String? pratiques,
+    String? fetes,
+    String? lieuxDeCulte,
+    String? regionsConcernees,
+    String? branches,
+    String? proportionPopulation,
+    String? nombrePratiquantsEstime,
+    String? sourceStatistiques,
+    String? anneeStatistiques,
+    String? methodologieStatistiques,
+    String? imageUrl,
+    int? ordre,
+    bool? publie,
+  }) {
+    return ReligionModel(
+      id: id ?? this.id,
+      nom: nom ?? this.nom,
+      categorie: categorie ?? this.categorie,
+      description: description ?? this.description,
+      histoire: histoire ?? this.histoire,
+      pratiques: pratiques ?? this.pratiques,
+      fetes: fetes ?? this.fetes,
+      lieuxDeCulte: lieuxDeCulte ?? this.lieuxDeCulte,
+      regionsConcernees: regionsConcernees ?? this.regionsConcernees,
+      branches: branches ?? this.branches,
+      proportionPopulation: proportionPopulation ?? this.proportionPopulation,
+      nombrePratiquantsEstime:
+          nombrePratiquantsEstime ?? this.nombrePratiquantsEstime,
+      sourceStatistiques: sourceStatistiques ?? this.sourceStatistiques,
+      anneeStatistiques: anneeStatistiques ?? this.anneeStatistiques,
+      methodologieStatistiques:
+          methodologieStatistiques ?? this.methodologieStatistiques,
+      imageUrl: imageUrl ?? this.imageUrl,
+      ordre: ordre ?? this.ordre,
+      publie: publie ?? this.publie,
+    );
+  }
+
+  /// Photo locale optimisée et instantanée en fonction du nom de la religion
+  static String getLocalPhoto(String? nom) {
+    final lower = (nom ?? '').toLowerCase();
+    if (lower.contains('chré') || lower.contains('chre') || lower.contains('cath') || lower.contains('prot')) {
+      return 'assets/images/spirituality-religion-women-religious-concepts-hands-praying-god-while-holding-cross-symbol-nun-caught-cross-his-hand.jpg';
+    } else if (lower.contains('anim') ||
+        lower.contains('trad') ||
+        lower.contains('féti') ||
+        lower.contains('feti') ||
+        lower.contains('ancê') ||
+        lower.contains('ance') ||
+        lower.contains('dogon')) {
+      return 'assets/images/fetichisme.jpg';
+    }
+    return 'assets/images/Islam.jpg';
+  }
+
   /// Données de secours rigoureuses et vérifiées (RGPH-5 INSTAT 2022)
   static List<ReligionModel> get defaultReligions => const [
     ReligionModel(
@@ -148,7 +209,7 @@ class ReligionModel {
       sourceStatistiques: 'Recensement Général de la Population et de l\'Habitat (RGPH-5, INSTAT Mali 2022) ; US State Dept Report (2023).',
       anneeStatistiques: '2022-2023',
       methodologieStatistiques: 'Recensement national démographique exhaustif.',
-      imageUrl: 'https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?auto=format&fit=crop&w=1200&q=80',
+      imageUrl: 'assets/images/Islam.jpg',
       ordre: 1,
       publie: true,
     ),
@@ -168,7 +229,7 @@ class ReligionModel {
       sourceStatistiques: 'Recensement Général RGPH-5 (INSTAT Mali 2022) ; Conférence Épiscopale du Mali (CEM).',
       anneeStatistiques: '2022',
       methodologieStatistiques: 'Recensement officiel national et registres paroissiaux.',
-      imageUrl: 'https://images.unsplash.com/photo-1548625361-19597a7e28ea?auto=format&fit=crop&w=1200&q=80',
+      imageUrl: 'assets/images/spirituality-religion-women-religious-concepts-hands-praying-god-while-holding-cross-symbol-nun-caught-cross-his-hand.jpg',
       ordre: 2,
       publie: true,
     ),
@@ -188,7 +249,7 @@ class ReligionModel {
       sourceStatistiques: 'Recensement Général RGPH-5 (INSTAT Mali 2022) ; UNESCO.',
       anneeStatistiques: '2022',
       methodologieStatistiques: 'Recensement démographique officiel de la foi déclarée.',
-      imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80',
+      imageUrl: 'assets/images/fetichisme.jpg',
       ordre: 3,
       publie: true,
     ),
@@ -208,7 +269,7 @@ class ReligionModel {
       sourceStatistiques: 'Constitution de la IVe République du Mali (2023) ; Ministère des Affaires Religieuses et du Culte.',
       anneeStatistiques: '2023',
       methodologieStatistiques: 'Cadre républicain et charte de dialogue civil.',
-      imageUrl: 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&w=1200&q=80',
+      imageUrl: 'assets/images/religion_cover.jpeg',
       ordre: 4,
       publie: true,
     ),

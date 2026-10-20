@@ -564,6 +564,20 @@ class PresidentDetailScreen extends ConsumerWidget {
         width: double.infinity,
         height: double.infinity,
         fit: BoxFit.cover,
+        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+          if (wasSynchronouslyLoaded || frame != null) {
+            return child;
+          }
+          if (localAsset.isNotEmpty) {
+            return Image.asset(
+              localAsset,
+              width: double.infinity,
+              height: double.infinity,
+              fit: BoxFit.cover,
+            );
+          }
+          return buildFallback();
+        },
         errorBuilder: (context, error, stackTrace) {
           if (localAsset.isNotEmpty) {
             return Image.asset(

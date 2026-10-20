@@ -119,6 +119,38 @@ class VilleModel {
     };
   }
 
+  VilleModel copyWith({
+    int? id,
+    String? nom,
+    String? region,
+    String? nbreHbt,
+    String? description,
+    String? cordonnees,
+    double? latitude,
+    double? longitude,
+    String? imageUrl,
+    List<String>? images,
+    bool? misEnAvantHome,
+    int? ordreHome,
+    List<dynamic>? lieuxHistoriques,
+  }) {
+    return VilleModel(
+      id: id ?? this.id,
+      nom: nom ?? this.nom,
+      region: region ?? this.region,
+      nbreHbt: nbreHbt ?? this.nbreHbt,
+      description: description ?? this.description,
+      cordonnees: cordonnees ?? this.cordonnees,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      imageUrl: imageUrl ?? this.imageUrl,
+      images: images ?? this.images,
+      misEnAvantHome: misEnAvantHome ?? this.misEnAvantHome,
+      ordreHome: ordreHome ?? this.ordreHome,
+      lieuxHistoriques: lieuxHistoriques ?? this.lieuxHistoriques,
+    );
+  }
+
   static String getLocalPhoto(String cityName) {
     return _getImageForCity(cityName);
   }

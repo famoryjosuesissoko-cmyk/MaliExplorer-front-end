@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/constants/app_colors.dart';
 import '../models/region_model.dart';
 import '../models/ville_model.dart';
+import '../providers/favoris_provider.dart';
 import '../router/app_router.dart';
 
 /// Écran présentant une région administrative du Mali
@@ -32,22 +34,83 @@ class RegionDetailScreen extends StatelessWidget {
             expandedHeight: heroHeight,
             pinned: true,
             backgroundColor: const Color(0xFF075E4D),
-            leading: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: CircleAvatar(
-                backgroundColor: Colors.black.withValues(alpha: 0.45),
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-                  onPressed: () {
-                    if (context.canPop()) {
-                      context.pop();
-                    } else {
-                      context.go(AppRouter.carte);
-                    }
-                  },
+            leading: Center(
+              child: InkWell(
+                onTap: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go(AppRouter.carte);
+                  }
+                },
+                borderRadius: BorderRadius.circular(30),
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 6,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.arrow_back_rounded,
+                    color: Color(0xFF16332D),
+                    size: 20,
+                  ),
                 ),
               ),
             ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 16.0),
+                child: Center(
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      ref.watch(favorisNotifierProvider);
+                      final isFav = ref.read(favorisNotifierProvider.notifier).isFavorite(r.nom);
+                      return InkWell(
+                        onTap: () async {
+                          await ref.read(favorisNotifierProvider.notifier).toggleFavori(
+                            titre: r.nom,
+                            categorie: 'Région du Mali',
+                            imageUrl: r.imageCover,
+                            route: AppRouter.regionDetail,
+                            referenceId: int.tryParse(r.id),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(30),
+                        child: Container(
+                          width: 38,
+                          height: 38,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black26,
+                                blurRadius: 6,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                            color: isFav ? const Color(0xFFE53935) : const Color(0xFF16332D),
+                            size: 20,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
               title: Text(
