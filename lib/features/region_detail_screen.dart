@@ -68,15 +68,32 @@ class RegionDetailScreen extends StatelessWidget {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.asset(
-                    r.imageCover,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      color: const Color(0xFF075E4D),
-                      child: const Center(
-                        child: Icon(Icons.map, color: Colors.white54, size: 48),
-                      ),
-                    ),
+                  Builder(
+                    builder: (context) {
+                      final imgUrl = r.imageCover.trim();
+                      if (imgUrl.startsWith('http://') || imgUrl.startsWith('https://')) {
+                        return Image.network(
+                          imgUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            color: const Color(0xFF075E4D),
+                            child: const Center(
+                              child: Icon(Icons.map, color: Colors.white54, size: 48),
+                            ),
+                          ),
+                        );
+                      }
+                      return Image.asset(
+                        imgUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: const Color(0xFF075E4D),
+                          child: const Center(
+                            child: Icon(Icons.map, color: Colors.white54, size: 48),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                   DecoratedBox(
                     decoration: BoxDecoration(
@@ -857,18 +874,38 @@ class RegionDetailScreen extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.asset(
-                    site['image'] as String,
-                    width: 85,
-                    height: 85,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      width: 85,
-                      height: 85,
-                      color: const Color(0xFF075E4D),
-                      child: const Icon(Icons.account_balance,
-                          color: Colors.white70),
-                    ),
+                  child: Builder(
+                    builder: (context) {
+                      final img = (site['image'] as String?)?.trim() ?? '';
+                      if (img.startsWith('http://') || img.startsWith('https://')) {
+                        return Image.network(
+                          img,
+                          width: 85,
+                          height: 85,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            width: 85,
+                            height: 85,
+                            color: const Color(0xFF075E4D),
+                            child: const Icon(Icons.account_balance,
+                                color: Colors.white70),
+                          ),
+                        );
+                      }
+                      return Image.asset(
+                        img,
+                        width: 85,
+                        height: 85,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          width: 85,
+                          height: 85,
+                          color: const Color(0xFF075E4D),
+                          child: const Icon(Icons.account_balance,
+                              color: Colors.white70),
+                        ),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(width: 14),

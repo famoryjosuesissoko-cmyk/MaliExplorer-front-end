@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/services/favori_service.dart';
@@ -64,20 +65,36 @@ class FavorisNotifier extends StateNotifier<AsyncValue<List<FavoriModel>>> {
     loadFavoris();
   }
 
-  File _getCacheFile() {
+  User? _safeCurrentUser() {
+    try {
+      return FirebaseAuth.instance.currentUser;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Détermine le fichier de cache en isolant strictement chaque compte utilisateur
+  File? _getCacheFile() {
+    final user = _safeCurrentUser();
+    if (user == null) {
+      return null; // Aucun cache sur disque pour les visiteurs déconnectés
+    }
+    final safeUid = user.uid.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+    final filename = 'favoris_cache_$safeUid.json';
+
     try {
       final appDir = Directory('/data/user/0/com.maliexplorer.mali_explorer_frontend/app_flutter');
       if (appDir.existsSync()) {
-        return File('${appDir.path}/favoris_cache.json');
+        return File('${appDir.path}/$filename');
       }
     } catch (_) {}
-    return File('${Directory.systemTemp.path}/favoris_cache.json');
+    return File('${Directory.systemTemp.path}/$filename');
   }
 
   List<FavoriModel> _loadLocalCache() {
     try {
       final file = _getCacheFile();
-      if (file.existsSync()) {
+      if (file != null && file.existsSync()) {
         final content = file.readAsStringSync();
         if (content.isNotEmpty) {
           final List<dynamic> list = jsonDecode(content);
@@ -93,6 +110,7 @@ class FavorisNotifier extends StateNotifier<AsyncValue<List<FavoriModel>>> {
   void _saveLocalCache(List<FavoriModel> favoris) {
     try {
       final file = _getCacheFile();
+      if (file == null) return;
       final jsonStr = jsonEncode(favoris.map((f) => f.toJson()).toList());
       file.writeAsStringSync(jsonStr, flush: true);
     } catch (e) {
@@ -100,7 +118,41 @@ class FavorisNotifier extends StateNotifier<AsyncValue<List<FavoriModel>>> {
     }
   }
 
+  /// Purge synchrone de la mémoire et des fichiers caches locaux sur déconnexion
+  Future<void> purgeLocalCacheAndMemory() async {
+    state = const AsyncValue.data([]);
+    try {
+      final currentFile = _getCacheFile();
+      final legacyFiles = [
+        ?currentFile,
+        File('${Directory.systemTemp.path}/favoris_cache.json'),
+        File('/data/user/0/com.maliexplorer.mali_explorer_frontend/app_flutter/favoris_cache.json'),
+      ];
+
+      for (final f in legacyFiles) {
+        if (f.existsSync()) {
+          f.writeAsStringSync('[]', flush: true);
+          f.deleteSync();
+        }
+      }
+    } catch (e) {
+      debugPrint('[FavorisNotifier] Erreur purge cache: $e');
+    }
+  }
+
+  /// Alias de compatibilité pour la purge du cache
+  void clearLocalCache() {
+    purgeLocalCacheAndMemory();
+  }
+
   Future<void> loadFavoris() async {
+    final user = _safeCurrentUser();
+    // Si l'utilisateur n'est pas connecté, réinitialiser à vide sans charger de cache
+    if (user == null) {
+      state = const AsyncValue.data([]);
+      return;
+    }
+
     final localList = _loadLocalCache();
     if (localList.isNotEmpty) {
       state = AsyncValue.data(localList);
@@ -132,9 +184,9 @@ class FavorisNotifier extends StateNotifier<AsyncValue<List<FavoriModel>>> {
         final merged = map.values.toList();
         _saveLocalCache(merged);
         state = AsyncValue.data(merged);
-      } else if (localList.isNotEmpty) {
-        state = AsyncValue.data(localList);
       } else {
+        // Le serveur confirme 0 favoris pour cet utilisateur -> vider le cache local
+        _saveLocalCache([]);
         state = const AsyncValue.data([]);
       }
     } catch (e, st) {

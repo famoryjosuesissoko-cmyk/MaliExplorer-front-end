@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import '../core/constants/api_constants.dart';
 
 class ReligionModel {
@@ -212,5 +213,34 @@ class ReligionModel {
       publie: true,
     ),
   ];
+
+  /// Sélectionne l'icône de culte appropriée en fonction de la foi ou de la tradition religieuse
+  static IconData getAdaptiveIcon(String? nom, [String? categorie]) {
+    final text = '${nom ?? ''} ${categorie ?? ''}'.toLowerCase();
+    if (text.contains('islam') ||
+        text.contains('musulman') ||
+        text.contains('mosquée') ||
+        text.contains('mosquee')) {
+      return Icons.mosque_rounded;
+    }
+    if (text.contains('christ') ||
+        text.contains('chrétien') ||
+        text.contains('chretien') ||
+        text.contains('eglise') ||
+        text.contains('église') ||
+        text.contains('catholi') ||
+        text.contains('protest')) {
+      return Icons.church_rounded;
+    }
+    if (text.contains('animis') ||
+        text.contains('tradition') ||
+        text.contains('ancestr') ||
+        text.contains('cosmogon') ||
+        text.contains('nature') ||
+        text.contains('coutum')) {
+      return Icons.nature_people_rounded;
+    }
+    return Icons.account_balance_rounded;
+  }
 }
 

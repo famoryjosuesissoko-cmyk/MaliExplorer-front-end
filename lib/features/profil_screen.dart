@@ -8,6 +8,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../core/constants/app_colors.dart';
 import '../core/services/api_service.dart';
 import '../core/services/storage_service.dart';
+import '../core/services/badge_progression_service.dart';
+import '../core/services/historique_service.dart';
+import '../providers/favoris_provider.dart';
 import '../main.dart';
 import '../router/app_router.dart';
 import 'auth/auth_controller.dart';
@@ -25,16 +28,27 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
   Uint8List? _previewBytes;
   final ImagePicker _picker = ImagePicker();
 
+  User? _safeCurrentUser() {
+    try {
+      return FirebaseAuth.instance.currentUser;
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(authControllerProvider.notifier).syncProfile();
+      // Ne synchroniser avec Spring Boot que si un utilisateur Firebase est réellement connecté
+      if (_safeCurrentUser() != null) {
+        ref.read(authControllerProvider.notifier).syncProfile();
+      }
     });
   }
 
   Future<void> _pickAndUploadAvatar() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _safeCurrentUser();
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -123,7 +137,7 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
         _isUploadingAvatar = true;
       });
 
-      final user = FirebaseAuth.instance.currentUser;
+      final user = _safeCurrentUser();
       final apiService = ref.read(apiServiceProvider);
 
       // 1. Upload vers Spring Boot (avec bypass RLS Supabase et persistance MySQL)
@@ -183,9 +197,10 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
   @override
   Widget build(BuildContext context) {
     final userAsync = ref.watch(currentUserProvider);
-    final user = userAsync.value ?? FirebaseAuth.instance.currentUser;
+    final user = userAsync.value ?? _safeCurrentUser();
     final authState = ref.watch(authControllerProvider);
     final userMap = authState.user;
+    final bool isAuthenticated = (user != null || (userMap != null && userMap.isNotEmpty));
     final photoUrl = user?.photoURL ?? userMap?['photoUrl'];
     final isDarkMode = ref.watch(themeModeProvider) == ThemeMode.dark;
     final String currentEmail = (user?.email ?? userMap?['email'] ?? '').toString().toLowerCase();
@@ -193,6 +208,7 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
     final String rawRole = (userMap?['role'] ?? userMap?['roleName'] ?? (isAppAdmin ? 'admin' : 'touriste')).toString().toLowerCase();
     final bool isAdmin = rawRole.contains('admin') || isAppAdmin;
     final bool isPromoteur = !isAdmin && rawRole.contains('promoteur');
+    final bool isGuide = !isAdmin && !isPromoteur && rawRole.contains('guide');
 
     final String displayName = (user?.displayName != null && user!.displayName!.trim().isNotEmpty)
         ? user.displayName!
@@ -251,110 +267,129 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
                 child: Column(
                   children: [
-                    // Photo de profil avec badge caméra cliquable
+                    // Photo de profil avec badge caméra si connecté, sinon avatar neutre
                     Center(
-                      child: Stack(
-                        alignment: Alignment.bottomRight,
-                        children: [
-                          Container(
-                            width: 96,
-                            height: 96,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: const Color(0xFF075E4D),
-                                width: 2.5,
-                              ),
-                              color: const Color(0xFFE8F4F0),
-                            ),
-                            child: _previewBytes != null
-                                ? ClipOval(
-                                    child: Stack(
-                                      fit: StackFit.expand,
-                                      children: [
-                                        Image.memory(
-                                          _previewBytes!,
-                                          width: 96,
-                                          height: 96,
-                                          fit: BoxFit.cover,
-                                        ),
-                                        if (_isUploadingAvatar)
-                                          Container(
-                                            color: Colors.black38,
-                                            child: const Center(
+                      child: isAuthenticated
+                          ? Stack(
+                              alignment: Alignment.bottomRight,
+                              children: [
+                                Container(
+                                  width: 96,
+                                  height: 96,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: const Color(0xFF075E4D),
+                                      width: 2.5,
+                                    ),
+                                    color: const Color(0xFFE8F4F0),
+                                  ),
+                                  child: _previewBytes != null
+                                      ? ClipOval(
+                                          child: Stack(
+                                            fit: StackFit.expand,
+                                            children: [
+                                              Image.memory(
+                                                _previewBytes!,
+                                                width: 96,
+                                                height: 96,
+                                                fit: BoxFit.cover,
+                                              ),
+                                              if (_isUploadingAvatar)
+                                                Container(
+                                                  color: Colors.black38,
+                                                  child: const Center(
+                                                    child: CircularProgressIndicator(
+                                                      color: Colors.white,
+                                                      strokeWidth: 2.5,
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        )
+                                      : _isUploadingAvatar
+                                          ? const Center(
                                               child: CircularProgressIndicator(
-                                                color: Colors.white,
+                                                color: Color(0xFF075E4D),
                                                 strokeWidth: 2.5,
                                               ),
+                                            )
+                                          : (photoUrl != null && photoUrl.isNotEmpty)
+                                          ? ClipOval(
+                                              child: CachedNetworkImage(
+                                                imageUrl: photoUrl,
+                                                width: 96,
+                                                height: 96,
+                                                fit: BoxFit.cover,
+                                                placeholder: (context, url) => const Center(
+                                                  child: CircularProgressIndicator(
+                                                    color: Color(0xFF075E4D),
+                                                    strokeWidth: 2,
+                                                  ),
+                                                ),
+                                                errorWidget: (context, url, error) => const Icon(
+                                                  Icons.person_rounded,
+                                                  size: 50,
+                                                  color: Color(0xFF075E4D),
+                                                ),
+                                              ),
+                                            )
+                                          : const Icon(
+                                              Icons.person_rounded,
+                                              size: 50,
+                                              color: Color(0xFF075E4D),
                                             ),
-                                          ),
+                                ),
+                                GestureDetector(
+                                  onTap: _isUploadingAvatar ? null : _pickAndUploadAvatar,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(7),
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF075E4D),
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black26,
+                                          blurRadius: 4,
+                                          offset: Offset(0, 1),
+                                        ),
                                       ],
                                     ),
-                                  )
-                                : _isUploadingAvatar
-                                    ? const Center(
-                                        child: CircularProgressIndicator(
-                                          color: Color(0xFF075E4D),
-                                          strokeWidth: 2.5,
-                                        ),
-                                      )
-                                    : (photoUrl != null && photoUrl.isNotEmpty)
-                                    ? ClipOval(
-                                        child: CachedNetworkImage(
-                                          imageUrl: photoUrl,
-                                          width: 96,
-                                          height: 96,
-                                          fit: BoxFit.cover,
-                                          placeholder: (context, url) => const Center(
-                                            child: CircularProgressIndicator(
-                                              color: Color(0xFF075E4D),
-                                              strokeWidth: 2,
-                                            ),
-                                          ),
-                                          errorWidget: (context, url, error) => const Icon(
-                                            Icons.person_rounded,
-                                            size: 50,
-                                            color: Color(0xFF075E4D),
-                                          ),
-                                        ),
-                                      )
-                                    : const Icon(
-                                        Icons.person_rounded,
-                                        size: 50,
-                                        color: Color(0xFF075E4D),
-                                      ),
-                          ),
-                          GestureDetector(
-                            onTap: _isUploadingAvatar ? null : _pickAndUploadAvatar,
-                            child: Container(
-                              padding: const EdgeInsets.all(7),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF075E4D),
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black26,
-                                    blurRadius: 4,
-                                    offset: Offset(0, 1),
+                                    child: const Icon(
+                                      Icons.camera_alt_rounded,
+                                      size: 16,
+                                      color: Colors.white,
+                                    ),
                                   ),
-                                ],
+                                ),
+                              ],
+                            )
+                          : Container(
+                              width: 96,
+                              height: 96,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isDarkMode ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
+                                  width: 2.5,
+                                ),
+                                color: isDarkMode ? AppColors.darkSurfaceElevated : const Color(0xFFE8F4F0),
                               ),
-                              child: const Icon(
-                                Icons.camera_alt_rounded,
-                                size: 16,
-                                color: Colors.white,
+                              child: Icon(
+                                Icons.person_outline_rounded,
+                                size: 52,
+                                color: isDarkMode ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
                     ),
 
                     const SizedBox(height: 12),
 
-                    // Nom et Email de l'utilisateur
+                    // Nom et Email de l'utilisateur ou Titre et Description Visiteur
                     Text(
-                      displayName,
+                      isAuthenticated ? displayName : 'Bienvenue sur MaliExplorer',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
@@ -362,61 +397,121 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
                         letterSpacing: -0.3,
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 4),
                     Text(
-                      user?.email ?? 'Visiteur',
+                      isAuthenticated
+                          ? (user?.email ?? 'Compte MaliExplorer')
+                          : 'Connectez-vous pour retrouver vos favoris, suivre votre parcours culturel et gérer vos informations.',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w400,
                         color: isDarkMode ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                        height: 1.35,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    // Badge du Rôle utilisateur
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: (isPromoteur
+
+                    if (isAuthenticated) ...[
+                      const SizedBox(height: 6),
+                      // Badge du Rôle utilisateur
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: (isPromoteur
+                                  ? const Color(0xFF2563EB)
+                                  : isGuide
+                                      ? const Color(0xFFD97706)
+                                      : isAdmin
+                                          ? const Color(0xFF7C3AED)
+                                          : const Color(0xFF075E4D))
+                              .withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          isPromoteur
+                              ? 'Promoteur Culturel'
+                              : isGuide
+                                  ? 'Guide Touristique'
+                                  : isAdmin
+                                      ? 'Administrateur'
+                                      : 'Touriste',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: isPromoteur
                                 ? const Color(0xFF2563EB)
-                                : isAdmin
-                                    ? const Color(0xFF7C3AED)
-                                    : const Color(0xFF075E4D))
-                            .withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        isPromoteur
-                            ? 'Promoteur Culturel'
-                            : isAdmin
-                                ? 'Administrateur'
-                                : 'Touriste',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: isPromoteur
-                              ? const Color(0xFF2563EB)
-                              : isAdmin
-                                  ? const Color(0xFF7C3AED)
-                                  : const Color(0xFF075E4D),
+                                : isGuide
+                                    ? const Color(0xFFD97706)
+                                    : isAdmin
+                                        ? const Color(0xFF7C3AED)
+                                        : const Color(0xFF075E4D),
+                          ),
                         ),
                       ),
-                    ),
+                    ] else ...[
+                      const SizedBox(height: 16),
+                      // Boutons d'action Visiteur (Se connecter / Créer un compte)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => context.push(AppRouter.login),
+                              icon: const Icon(Icons.login_rounded, size: 18),
+                              label: const Text(
+                                'Se connecter',
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF075E4D),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                elevation: 2,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => context.push(AppRouter.register),
+                              icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+                              label: const Text(
+                                'Créer un compte',
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: isDarkMode ? const Color(0xFFD6A23A) : const Color(0xFF075E4D),
+                                side: BorderSide(
+                                  color: isDarkMode ? const Color(0xFFD6A23A) : const Color(0xFF075E4D),
+                                  width: 1.5,
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
 
                     const SizedBox(height: 22),
 
-                    // Options du menu conformes à la maquette
-                    _buildMenuItem(
-                      icon: Icons.person_rounded,
-                      title: 'Informations personnelles',
-                      isDark: isDarkMode,
-                      onTap: () => context.push(AppRouter.personalInfo),
-                    ),
-                    _buildMenuItem(
-                      icon: Icons.favorite_border_rounded,
-                      title: 'Favoris',
-                      isDark: isDarkMode,
-                      onTap: () => context.push(AppRouter.favoris),
-                    ),
+                    // Options du menu : Masquer Informations personnelles, Favoris, Quiz, Historique si visiteur
+                    if (isAuthenticated) ...[
+                      _buildMenuItem(
+                        icon: Icons.person_rounded,
+                        title: 'Informations personnelles',
+                        isDark: isDarkMode,
+                        onTap: () => context.push(AppRouter.personalInfo),
+                      ),
+                      _buildMenuItem(
+                        icon: Icons.favorite_border_rounded,
+                        title: 'Favoris',
+                        isDark: isDarkMode,
+                        onTap: () => context.push(AppRouter.favoris),
+                      ),
+                    ],
+
                     _buildSwitchMenuItem(
                       icon: isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
                       title: isDarkMode ? 'Mode Nuit (Sombre)' : 'Mode Jour (Clair)',
@@ -427,29 +522,41 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
                             val ? ThemeMode.dark : ThemeMode.light;
                       },
                     ),
-                    // Redirige vers Mon Parcours (Quiz, Résultats & Badges Bambara)
-                    _buildMenuItem(
-                      icon: Icons.emoji_events_outlined,
-                      title: 'Mes quiz et resultats',
-                      isDark: isDarkMode,
-                      onTap: () => context.push(AppRouter.monParcours),
-                    ),
-                    // Redirige vers Historique (Journal chronologique des points et activités)
-                    _buildMenuItem(
-                      icon: Icons.history_rounded,
-                      title: 'Historique',
-                      isDark: isDarkMode,
-                      onTap: () => context.push(AppRouter.historique),
-                    ),
-                    // Espaces Professionnels & Partenariats B2B (Strictement isolés par rôle)
-                    if (isPromoteur || isAdmin)
+
+                    if (isAuthenticated) ...[
+                      // Redirige vers Mon Parcours (Quiz, Résultats & Badges Bambara)
                       _buildMenuItem(
-                        icon: Icons.campaign_rounded,
-                        title: 'Espace Promoteur',
-                        subtitle: 'Festivals, projets culturels & sponsors B2B',
+                        icon: Icons.emoji_events_outlined,
+                        title: 'Mes quiz et resultats',
                         isDark: isDarkMode,
-                        onTap: () => context.push(AppRouter.promoteurDashboard),
+                        onTap: () => context.push(AppRouter.monParcours),
                       ),
+                      // Redirige vers Historique (Journal chronologique des points et activités)
+                      _buildMenuItem(
+                        icon: Icons.history_rounded,
+                        title: 'Historique',
+                        isDark: isDarkMode,
+                        onTap: () => context.push(AppRouter.historique),
+                      ),
+                      // Espaces Professionnels & Partenariats B2B (Guides & Promoteurs)
+                      if (isGuide)
+                        _buildMenuItem(
+                          icon: Icons.person_pin_circle_rounded,
+                          title: 'Espace Guide & Partenariat',
+                          subtitle: 'Ma fiche guide, statut de validation & demandes',
+                          isDark: isDarkMode,
+                          onTap: () => context.push(AppRouter.promoteurDashboard),
+                        ),
+                      if (isPromoteur || isAdmin)
+                        _buildMenuItem(
+                          icon: Icons.campaign_rounded,
+                          title: 'Espace Promoteur',
+                          subtitle: 'Festivals, projets culturels & sponsors B2B',
+                          isDark: isDarkMode,
+                          onTap: () => context.push(AppRouter.promoteurDashboard),
+                        ),
+                    ],
+
                     _buildMenuItem(
                       icon: Icons.settings_outlined,
                       title: 'Paramètres',
@@ -462,52 +569,30 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
                       isDark: isDarkMode,
                       onTap: () => context.push(AppRouter.helpSupport),
                     ),
-                    if (user != null || (userMap != null && userMap.isNotEmpty))
+
+                    if (isAuthenticated)
                       _buildMenuItem(
                         icon: Icons.logout_rounded,
                         title: 'Déconnexion',
                         isDestructive: true,
                         isDark: isDarkMode,
                         onTap: () async {
-                          await FirebaseAuth.instance.signOut();
+                          // Déconnexion complète, purge du cache et mémoire
+                          await ref.read(authControllerProvider.notifier).logout();
                           ref.read(apiServiceProvider).setAuthToken(null);
+                          ref.read(favorisNotifierProvider.notifier).clearLocalCache();
+                          ref.invalidate(userProgressionProvider);
+                          ref.invalidate(userHistoriqueProvider);
+
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: const Text('Déconnexion réussie'),
+                                content: const Text('Déconnexion réussie.'),
                                 backgroundColor: isDarkMode ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
                               ),
                             );
-                            context.go(AppRouter.login);
                           }
                         },
-                      )
-                    else
-                      Container(
-                        margin: const EdgeInsets.symmetric(vertical: 10),
-                        width: double.infinity,
-                        height: 52,
-                        child: ElevatedButton.icon(
-                          onPressed: () => context.push(AppRouter.login),
-                          icon: const Icon(Icons.login_rounded, color: Colors.white, size: 20),
-                          label: const Text(
-                            'Se connecter',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF075E4D),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            elevation: 2,
-                          ),
-                        ),
                       ),
 
                     const SizedBox(height: 24),

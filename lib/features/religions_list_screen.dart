@@ -139,18 +139,10 @@ class _ReligionsListScreenState extends ConsumerState<ReligionsListScreen> {
                             }).toList();
 
                             if (filtered.isEmpty) {
-                              return const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 40),
-                                child: Center(
-                                  child: Text(
-                                    'Aucune tradition ou religion trouvée.',
-                                    style: TextStyle(
-                                      color: Color(0xFF6C7C77),
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                              );
+                              if (_searchQuery.isNotEmpty) {
+                                return _buildSearchEmptyState();
+                              }
+                              return _buildEmptyState();
                             }
 
                             return ListView.separated(
@@ -324,7 +316,7 @@ class _ReligionsListScreenState extends ConsumerState<ReligionsListScreen> {
                         width: 70,
                         height: 70,
                         color: const Color(0xFF075E4D).withValues(alpha: 0.1),
-                        child: _buildThumbnail(religion.imageUrl),
+                        child: _buildThumbnail(religion.imageUrl, religion.nom),
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -404,14 +396,35 @@ class _ReligionsListScreenState extends ConsumerState<ReligionsListScreen> {
     );
   }
 
-  Widget _buildThumbnail(String url) {
+  /// Sélectionne dynamiquement l'icône de culte appropriée selon la tradition spirituelle
+  IconData _getFaithIcon(String nom) {
+    final lower = nom.toLowerCase();
+    if (lower.contains('islam') || lower.contains('musulm')) {
+      return Icons.mosque_rounded;
+    } else if (lower.contains('christ') ||
+        lower.contains('cathol') ||
+        lower.contains('protest') ||
+        lower.contains('église')) {
+      return Icons.church_rounded;
+    } else if (lower.contains('animis') ||
+        lower.contains('tradition') ||
+        lower.contains('ancêtre') ||
+        lower.contains('mandé') ||
+        lower.contains('dogon')) {
+      return Icons.nature_people_rounded;
+    }
+    return Icons.account_balance_rounded;
+  }
+
+  Widget _buildThumbnail(String url, String religionNom) {
+    final fallbackIcon = _getFaithIcon(religionNom);
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return Image.network(
         url,
         fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => const Icon(
-          Icons.mosque_rounded,
-          color: Color(0xFF075E4D),
+        errorBuilder: (_, _, _) => Icon(
+          fallbackIcon,
+          color: const Color(0xFF075E4D),
           size: 30,
         ),
       );
@@ -420,7 +433,140 @@ class _ReligionsListScreenState extends ConsumerState<ReligionsListScreen> {
       url,
       fit: BoxFit.cover,
       errorBuilder: (_, _, _) =>
-          const Icon(Icons.mosque_rounded, color: Color(0xFF075E4D), size: 30),
+          Icon(fallbackIcon, color: const Color(0xFF075E4D), size: 30),
+    );
+  }
+
+  /// État vide informatif officiel lorsqu'aucune religion n'est publiée
+  Widget _buildEmptyState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      margin: const EdgeInsets.only(top: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: const Color(0xFF075E4D).withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.temple_buddhist_rounded,
+              size: 44,
+              color: Color(0xFF075E4D),
+            ),
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            'Aucune religion répertoriée pour le moment',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF075E4D),
+              letterSpacing: -0.2,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Les données sur les religions et spiritualités du Mali apparaîtront ici dès leur publication administrative.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12.5,
+              color: Color(0xFF6C7C77),
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            onPressed: () => ref.refresh(religionsProvider),
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('Actualiser'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF075E4D),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              elevation: 0,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// État vide lorsque la recherche locale ne trouve aucun résultat
+  Widget _buildSearchEmptyState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+      margin: const EdgeInsets.only(top: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD6A23A).withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.search_off_rounded,
+              size: 38,
+              color: Color(0xFFD6A23A),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Aucun résultat correspondant',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 15.5,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF075E4D),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Aucune tradition ou religion ne correspond à « $_searchQuery ».',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 12.5,
+              color: Color(0xFF6C7C77),
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton(
+            onPressed: () {
+              _searchController.clear();
+              setState(() => _searchQuery = '');
+            },
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF075E4D),
+              side: const BorderSide(color: Color(0xFF075E4D)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+            ),
+            child: const Text('Effacer la recherche'),
+          ),
+        ],
+      ),
     );
   }
 
