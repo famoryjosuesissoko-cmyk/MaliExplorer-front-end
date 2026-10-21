@@ -402,21 +402,33 @@ class _VillesListScreenState extends ConsumerState<VillesListScreen> {
                   builder: (context) {
                     final trimmed = ville.imageUrl.trim();
                     final localAsset = VilleModel.getLocalPhoto(ville.nom);
-                    Widget buildFallback() => Image.asset(
+                    Widget buildPlaceholder() => Container(
+                          height: 98,
+                          color: const Color(0xFFD6A23A).withValues(alpha: 0.2),
+                          child: const Icon(
+                            Icons.location_city_rounded,
+                            color: Color(0xFF075E4D),
+                            size: 32,
+                          ),
+                        );
+                    Widget buildFallback() {
+                      if (localAsset.startsWith('http://') || localAsset.startsWith('https://')) {
+                        return Image.network(
                           localAsset,
                           height: 98,
                           width: double.infinity,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            height: 98,
-                            color: const Color(0xFFD6A23A).withValues(alpha: 0.2),
-                            child: const Icon(
-                              Icons.location_city_rounded,
-                              color: Color(0xFF075E4D),
-                              size: 32,
-                            ),
-                          ),
+                          errorBuilder: (context, error, stackTrace) => buildPlaceholder(),
                         );
+                      }
+                      return Image.asset(
+                        localAsset,
+                        height: 98,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => buildPlaceholder(),
+                      );
+                    }
 
                     if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
                       return Image.network(

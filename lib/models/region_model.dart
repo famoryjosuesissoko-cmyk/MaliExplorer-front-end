@@ -26,6 +26,72 @@ class RegionModel {
     this.attraits = const [],
     this.languesLocales = const [],
   });
+
+  static String _formatPopulation(dynamic rawPop, String fallback) {
+    if (rawPop == null) return fallback;
+    final str = rawPop.toString().trim();
+    if (str.isEmpty) return fallback;
+    final digits = str.replaceAll(RegExp(r'\D'), '');
+    if (digits.isNotEmpty) {
+      final buffer = StringBuffer();
+      for (int i = 0; i < digits.length; i++) {
+        if (i > 0 && (digits.length - i) % 3 == 0) {
+          buffer.write(' ');
+        }
+        buffer.write(digits[i]);
+      }
+      return '${buffer.toString()} hab.';
+    }
+    return str.contains('hab') ? str : '$str hab.';
+  }
+
+  static bool _isInvalidRegionImage(String url, String nom) {
+    if (url.isEmpty) return true;
+    if (url.contains('unsplash.com')) return true;
+    final lowerNom = nom.toLowerCase();
+    if (!lowerNom.contains('tombouctou') && url.contains('deuxieme_imagehome.jpeg')) {
+      return true;
+    }
+    if (!lowerNom.contains('bandiagara') && !lowerNom.contains('dogon') && url.contains('Africa_-_Mali_-_Banani.jpeg')) {
+      return true;
+    }
+    return false;
+  }
+
+  factory RegionModel.fromJson(Map<String, dynamic> json) {
+    final rawNom = (json['nom'] ?? json['nomRegion'] ?? '').toString().trim();
+    final rawChefLieu = (json['chefLieu'] ?? '').toString().trim();
+    final ref = RegionData.findByNameOrChefLieu(rawNom, rawChefLieu);
+
+    final double lat = (json['latitude'] as num?)?.toDouble() ?? ref?.latitude ?? 14.4958;
+    final double lng = (json['longitude'] as num?)?.toDouble() ?? ref?.longitude ?? -4.1873;
+
+    final rawImg = (json['imageUrl'] ?? json['imageCover'] ?? '').toString().trim();
+    final String resolvedImage = !_isInvalidRegionImage(rawImg, rawNom)
+        ? rawImg
+        : (ref?.imageCover ?? 'assets/images/mopti_cover.jpg');
+
+    final rawDesc = (json['description'] ?? '').toString().trim();
+    final rawSup = (json['superficie'] ?? '').toString().trim();
+
+    return RegionModel(
+      id: ref?.id ?? (json['id']?.toString() ?? rawNom.toLowerCase()),
+      nom: rawNom.isNotEmpty ? rawNom : (ref?.nom ?? 'Région du Mali'),
+      chefLieu: rawChefLieu.isNotEmpty ? rawChefLieu : (ref?.chefLieu ?? rawNom),
+      latitude: lat,
+      longitude: lng,
+      description: rawDesc.isNotEmpty ? rawDesc : (ref?.description ?? ''),
+      imageCover: resolvedImage,
+      population: _formatPopulation(
+        json['population'] ?? json['nbreHbt'],
+        ref?.population ?? '—',
+      ),
+      superficie: rawSup.isNotEmpty ? rawSup : (ref?.superficie ?? '—'),
+      isPrioritaire: ref?.isPrioritaire ?? false,
+      attraits: ref?.attraits ?? const [],
+      languesLocales: ref?.languesLocales ?? const [],
+    );
+  }
 }
 
 /// Liste exhaustive et documentée des régions administratives du Mali
@@ -172,7 +238,7 @@ class RegionData {
       longitude: -0.0447,
       description:
           'L’illustre capitale de l’Empire Songhaï au XVe et XVIe siècle sous l’Askia Mohammed. Traversée par le fleuve Niger, Gao fascine par le Tombeau des Askia inscrit au patrimoine mondial de l’UNESCO et la colline légendaire des dunes rouges de Koïma.',
-      imageCover: 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/slides/93c7822b-966e-446c-aab2-04396325e942_deuxieme_imagehome.jpeg',
+      imageCover: 'assets/images/Gao1.jpg',
       population: '544 000 hab.',
       superficie: '170 572 km²',
       isPrioritaire: true,
@@ -248,7 +314,7 @@ class RegionData {
       longitude: 1.4078,
       description:
           'Région montagnarde et désertique de l’Adrar des Ifoghas dans le nord-est malien. Fief de la culture nomade touarègue, réputée pour ses poésies, ses gravures rupestres préhistoriques et ses paysages sahariens grandioses.',
-      imageCover: 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/slides/0fbffaa1-70b6-47aa-8120-0e4f44226820_Africa_-_Mali_-_Banani.jpeg',
+      imageCover: 'assets/images/Kidal1.jpg',
       population: '67 000 hab.',
       superficie: '151 450 km²',
       isPrioritaire: false,
@@ -273,7 +339,7 @@ class RegionData {
       longitude: -3.9842,
       description:
           'Vaste étendue désertique du grand nord malien au cœur du désert du Tanezrouft. Historiquement réputée pour ses mines de sel gemme pluriséculaires et le passage des caravanes d’azalaï reliant Tombouctou.',
-      imageCover: 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/slides/93c7822b-966e-446c-aab2-04396325e942_deuxieme_imagehome.jpeg',
+      imageCover: 'assets/images/Taoudeni1.JPG',
       population: '18 000 hab.',
       superficie: '323 326 km²',
       isPrioritaire: false,
@@ -298,7 +364,7 @@ class RegionData {
       longitude: 2.4022,
       description:
           'Région pastorale de l’extrême est du Mali frontalière du Niger, traversée par la vallée fossile de l’Azawagh. Connue pour ses traditions d’élevage et son artisanat d’art.',
-      imageCover: 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/slides/0fbffaa1-70b6-47aa-8120-0e4f44226820_Africa_-_Mali_-_Banani.jpeg',
+      imageCover: 'assets/images/Menaka1.jpg',
       population: '54 000 hab.',
       superficie: '81 040 km²',
       isPrioritaire: false,
@@ -451,6 +517,18 @@ class RegionData {
     } catch (_) {
       return null;
     }
+  }
+
+  static RegionModel? findByNameOrChefLieu(String nom, [String? chefLieu]) {
+    final key = '${nom.toLowerCase()} ${(chefLieu ?? '').toLowerCase()}';
+    for (final r in regions) {
+      if (key.contains(r.id.toLowerCase()) ||
+          key.contains(r.chefLieu.toLowerCase()) ||
+          r.nom.toLowerCase() == nom.toLowerCase()) {
+        return r;
+      }
+    }
+    return null;
   }
 
   static List<RegionModel> get priorityRegions =>

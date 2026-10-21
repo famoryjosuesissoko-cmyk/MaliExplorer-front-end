@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mali_explorer_frontend/models/region_model.dart';
 import 'package:mali_explorer_frontend/features/region_detail_screen.dart';
@@ -31,8 +32,10 @@ void main() {
       final mopti = RegionData.findById('mopti')!;
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: RegionDetailScreen(region: mopti),
+        ProviderScope(
+          child: MaterialApp(
+            home: RegionDetailScreen(region: mopti),
+          ),
         ),
       );
       await tester.pumpAndSettle();

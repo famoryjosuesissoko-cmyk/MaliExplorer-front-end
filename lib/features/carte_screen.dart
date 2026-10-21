@@ -3,8 +3,10 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart' hide Path;
+import '../core/constants/api_constants.dart';
 import '../core/constants/app_colors.dart';
 import '../models/region_model.dart';
+import '../providers/regions_provider.dart';
 import '../router/app_router.dart';
 
 /// Écran Carte Interactive du Mali avec FlutterMap & OpenStreetMap
@@ -53,9 +55,9 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
     _mapController.move(const LatLng(17.5707, -3.9962), 5.2);
   }
 
-  List<RegionModel> get _filteredRegions {
+  List<RegionModel> _getFilteredRegions(List<RegionModel> source) {
     if (_selectedFilter == 'UNESCO') {
-      return RegionData.regions
+      return source
           .where((r) =>
               r.id == 'mopti' ||
               r.id == 'tombouctou' ||
@@ -65,7 +67,7 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
           .toList();
     }
     if (_selectedFilter == 'Nord') {
-      return RegionData.regions
+      return source
           .where((r) =>
               r.id == 'tombouctou' ||
               r.id == 'gao' ||
@@ -75,7 +77,7 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
           .toList();
     }
     if (_selectedFilter == 'Sud') {
-      return RegionData.regions
+      return source
           .where((r) =>
               r.id == 'bamako' ||
               r.id == 'sikasso' ||
@@ -89,7 +91,7 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
           .toList();
     }
     if (_selectedFilter == 'Centre') {
-      return RegionData.regions
+      return source
           .where((r) =>
               r.id == 'mopti' ||
               r.id == 'segou' ||
@@ -97,7 +99,7 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
               r.id == 'bandiagara')
           .toList();
     }
-    return RegionData.regions;
+    return source;
   }
 
   Widget _buildRegionImage(
@@ -108,7 +110,7 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
   }) {
     if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
       return Image.network(
-        imagePath,
+        ApiConstants.resolveImageUrl(imagePath),
         height: height,
         width: width,
         fit: fit,
@@ -143,7 +145,14 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final displayedRegions = _filteredRegions;
+    final allRegions = ref.watch(regionsProvider).valueOrNull ?? RegionData.regions;
+    for (final reg in allRegions) {
+      if (reg.id == _selectedRegion.id) {
+        _selectedRegion = reg;
+        break;
+      }
+    }
+    final displayedRegions = _getFilteredRegions(allRegions);
 
     return Scaffold(
       backgroundColor: isDark
@@ -334,7 +343,7 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
 
                                 // Marqueurs des régions du Mali
                                 MarkerLayer(
-                                  markers: _filteredRegions.map((region) {
+                                  markers: displayedRegions.map((region) {
                                     final isSelected =
                                         _selectedRegion.id == region.id;
                                     return Marker(

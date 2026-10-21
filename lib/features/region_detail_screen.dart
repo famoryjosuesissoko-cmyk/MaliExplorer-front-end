@@ -446,7 +446,7 @@ class RegionDetailScreen extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              '${r.latitude.toStringAsFixed(4)}° N, ${r.longitude.toStringAsFixed(4)}° O',
+                              '${r.latitude.abs().toStringAsFixed(4)}° ${r.latitude >= 0 ? 'N' : 'S'}, ${r.longitude.abs().toStringAsFixed(4)}° ${r.longitude >= 0 ? 'E' : 'O'}',
                               style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
@@ -737,6 +737,90 @@ class RegionDetailScreen extends StatelessWidget {
           ),
         },
       ];
+    } else if (r.id.toLowerCase() == 'gao') {
+      sites = [
+        {
+          'nom': 'Tombeau des Askia & Dune Rose de Koïma',
+          'ville': 'Gao',
+          'type': 'Patrimoine Mondial UNESCO',
+          'description':
+              'Tombeau pyramidal érigé en 1495 par l\'empereur Askia Mohamed et célèbre Dune Rose bordant le fleuve Niger.',
+          'image': 'assets/images/Gao1.jpg',
+          'has360': false,
+          'villeModel': VilleModel(
+            id: 6,
+            nom: 'Gao',
+            region: 'Gao',
+            description:
+                'Ancienne capitale de l\'Empire Songhaï, célèbre pour le Tombeau des Askia (UNESCO) et la Dune Rose.',
+            imageUrl: 'assets/images/Gao1.jpg',
+            nbreHbt: '86 633',
+          ),
+        },
+      ];
+    } else if (r.id.toLowerCase() == 'kidal') {
+      sites = [
+        {
+          'nom': 'Massif de l\'Adrar des Ifoghas & Gravures d\'Essouk',
+          'ville': 'Kidal',
+          'type': 'Site Archéologique & Saharien',
+          'description':
+              'Ruines médiévales de Tadmekka (Essouk) et gravures rupestres millénaires au cœur de l\'Adrar des Ifoghas.',
+          'image': 'assets/images/Kidal1.jpg',
+          'has360': false,
+          'villeModel': VilleModel(
+            id: 9,
+            nom: 'Kidal',
+            region: 'Kidal',
+            description:
+                'Cité saharienne au cœur du massif de l\'Adrar des Ifoghas, berceau de la culture Touarègue Kel Adagh.',
+            imageUrl: 'assets/images/Kidal1.jpg',
+            nbreHbt: '35 000',
+          ),
+        },
+      ];
+    } else if (r.id.toLowerCase() == 'taoudenit') {
+      sites = [
+        {
+          'nom': 'Salines Millénaires de Taoudénit & Caravanes Azalaï',
+          'ville': 'Taoudénit',
+          'type': 'Patrimoine Saharien',
+          'description':
+              'Mines de sel gemme exploitées depuis le XVIe siècle et point de départ des mythiques caravanes chamelières de l\'Azalaï.',
+          'image': 'assets/images/Taoudeni1.JPG',
+          'has360': false,
+          'villeModel': VilleModel(
+            id: 10,
+            nom: 'Taoudénit',
+            region: 'Taoudénit',
+            description:
+                'Célèbre centre d\'extraction de sel gemme du Sahara malien et étape mythique de l\'Azalaï vers Tombouctou.',
+            imageUrl: 'assets/images/Taoudeni1.JPG',
+            nbreHbt: '3 500',
+          ),
+        },
+      ];
+    } else if (r.id.toLowerCase() == 'menaka') {
+      sites = [
+        {
+          'nom': 'Vallées de l\'Azawagh & Campements Nomades',
+          'ville': 'Ménaka',
+          'type': 'Patrimoine Pastoral & Culturel',
+          'description':
+              'Vastitudes sahélo-sahariennes de l\'Azawagh, haut lieu de l\'artisanat du cuir et de l\'orfèvrerie nomade.',
+          'image': 'assets/images/Menaka1.jpg',
+          'has360': false,
+          'villeModel': VilleModel(
+            id: 11,
+            nom: 'Ménaka',
+            region: 'Ménaka',
+            description:
+                'Carrefour historique et pastoral de l\'est malien, au cœur du bassin de l\'Azawagh.',
+            imageUrl: 'assets/images/Menaka1.jpg',
+            nbreHbt: '25 000',
+          ),
+        },
+      ];
     } else if (r.id.toLowerCase() == 'kayes') {
       sites = [
         {
@@ -745,7 +829,7 @@ class RegionDetailScreen extends StatelessWidget {
           'type': 'Patrimoine Historique & Naturel',
           'description':
               'Fort érigé en 1855 sur les rives du fleuve Sénégal et spectaculaires chutes d’eau du Félou et de Gouina.',
-          'image': 'assets/images/explorer_artisans.jpeg',
+          'image': VilleModel.getLocalPhoto('Kayes'),
           'has360': false,
           'villeModel': VilleModel(
             id: 7,
@@ -753,8 +837,8 @@ class RegionDetailScreen extends StatelessWidget {
             region: 'Kayes',
             description:
                 'Première région administrative du Mali, carrefour frontalier avec le Sénégal et la Mauritanie.',
-            imageUrl: 'assets/images/explorer_artisans.jpeg',
-            nbreHbt: '1 996 000',
+            imageUrl: VilleModel.getLocalPhoto('Kayes'),
+            nbreHbt: '127 368',
           ),
         },
       ];
@@ -766,7 +850,7 @@ class RegionDetailScreen extends StatelessWidget {
           'type': 'Site Mythique & Fleuve Niger',
           'description':
               'Rocher légendaire de la disparition du roi du Sosso et terminus portuaire navigable sur le fleuve Niger.',
-          'image': 'assets/images/explorer_guides.jpeg',
+          'image': VilleModel.getLocalPhoto('Koulikoro'),
           'has360': false,
           'villeModel': VilleModel(
             id: 8,
@@ -774,8 +858,8 @@ class RegionDetailScreen extends StatelessWidget {
             region: 'Koulikoro',
             description:
                 'Deuxième région administrative du Mali, carrefour des monts Mandingues et du fleuve Niger.',
-            imageUrl: 'assets/images/explorer_guides.jpeg',
-            nbreHbt: '2 418 000',
+            imageUrl: VilleModel.getLocalPhoto('Koulikoro'),
+            nbreHbt: '43 174',
           ),
         },
       ];
@@ -787,7 +871,7 @@ class RegionDetailScreen extends StatelessWidget {
           'type': 'Capitale de l’Or Blanc',
           'description':
               'Centre économique névralgique de production de coton et creuset des traditions culturelles Minianka.',
-          'image': 'assets/images/explorer_artisans.jpeg',
+          'image': VilleModel.getLocalPhoto('Koutiala'),
           'has360': false,
           'villeModel': VilleModel(
             id: 12,
@@ -795,8 +879,8 @@ class RegionDetailScreen extends StatelessWidget {
             region: 'Koutiala',
             description:
                 'Capitale de l’or blanc (coton) et carrefour agro-industriel majeur du sud malien.',
-            imageUrl: 'assets/images/explorer_artisans.jpeg',
-            nbreHbt: '575 000',
+            imageUrl: VilleModel.getLocalPhoto('Koutiala'),
+            nbreHbt: '137 919',
           ),
         },
       ];
@@ -808,7 +892,7 @@ class RegionDetailScreen extends StatelessWidget {
           'type': 'Patrimoine Culturel UNESCO',
           'description':
               'Lieu de célébration du rite de pêche collective séculaire Sanké Mô et imposante architecture soudanaise.',
-          'image': 'assets/images/segou_cover.jpg',
+          'image': VilleModel.getLocalPhoto('San'),
           'has360': false,
           'villeModel': VilleModel(
             id: 13,
@@ -816,8 +900,8 @@ class RegionDetailScreen extends StatelessWidget {
             region: 'San',
             description:
                 'Carrefour historique au confluent du Bani, célèbre pour le Sanké Mô et ses traditions Bobo et Marka.',
-            imageUrl: 'assets/images/segou_cover.jpg',
-            nbreHbt: '330 000',
+            imageUrl: VilleModel.getLocalPhoto('San'),
+            nbreHbt: '68 067',
           ),
         },
       ];
@@ -829,7 +913,7 @@ class RegionDetailScreen extends StatelessWidget {
           'type': 'Paysage Naturel & Géologique',
           'description':
               'Falaises abruptes et vallées aurifères ancestrales du Bambouk dans la haute vallée de la Falémé.',
-          'image': 'assets/images/explorer_guides.jpeg',
+          'image': VilleModel.getLocalPhoto('Kéniéba'),
           'has360': false,
           'villeModel': VilleModel(
             id: 14,
@@ -837,8 +921,8 @@ class RegionDetailScreen extends StatelessWidget {
             region: 'Kayes',
             description:
                 'Cœur historique du Bambouk et capitale aurifère du Mali, lovée au pied des falaises du Tambaoura.',
-            imageUrl: 'assets/images/explorer_guides.jpeg',
-            nbreHbt: '215 000',
+            imageUrl: VilleModel.getLocalPhoto('Kéniéba'),
+            nbreHbt: '39 557',
           ),
         },
       ];
@@ -850,7 +934,7 @@ class RegionDetailScreen extends StatelessWidget {
           'type': 'Site Spirituel & Berceau Griotique',
           'description':
               'Montagne mystique protectrice de la cité, haut lieu de pèlerinage et berceau des griots mandingues.',
-          'image': 'assets/images/explorer_ethnies_traditions.jpeg',
+          'image': VilleModel.getLocalPhoto('Kita'),
           'has360': false,
           'villeModel': VilleModel(
             id: 15,
@@ -858,8 +942,8 @@ class RegionDetailScreen extends StatelessWidget {
             region: 'Kita',
             description:
                 'Capitale de l’arachide et berceau vénéré de la musique traditionnelle mandingue.',
-            imageUrl: 'assets/images/explorer_ethnies_traditions.jpeg',
-            nbreHbt: '438 000',
+            imageUrl: VilleModel.getLocalPhoto('Kita'),
+            nbreHbt: '48 947',
           ),
         },
       ];
@@ -871,7 +955,7 @@ class RegionDetailScreen extends StatelessWidget {
           'type': 'Patrimoine Mondial UNESCO',
           'description':
               'Falaises millénaires abritant l’architecture Dogon, la mémoire d’Amadou Hampâté Bâ et la culture des masques.',
-          'image': 'assets/images/mopti_gallery_2.jpeg',
+          'image': VilleModel.getLocalPhoto('Bandiagara'),
           'has360': false,
           'villeModel': VilleModel(
             id: 16,
@@ -879,8 +963,8 @@ class RegionDetailScreen extends StatelessWidget {
             region: 'Bandiagara',
             description:
                 'Capitale spirituelle et culturelle du Pays Dogon, classée au patrimoine mondial de l’UNESCO.',
-            imageUrl: 'assets/images/mopti_gallery_2.jpeg',
-            nbreHbt: '320 000',
+            imageUrl: VilleModel.getLocalPhoto('Bandiagara'),
+            nbreHbt: '25 564',
           ),
         },
       ];

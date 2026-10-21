@@ -123,10 +123,10 @@ class ExplorerPublicationModel {
     };
   }
 
-  static const List<ExplorerPublicationModel> initialPublications = [
-    // Festivals et événements culturels validés
+  /// Données de démonstration et de tests (utilisées UNIQUEMENT dans les tests ou en mode démo explicite)
+  static const List<ExplorerPublicationModel> demoPublications = [
     ExplorerPublicationModel(
-      id: 'fest-001',
+      id: 'demo-fest-001',
       type: PublicationType.festivalEvenement,
       titre: 'Festival sur le Niger — Ségou Art 2027',
       description:
@@ -143,42 +143,9 @@ class ExplorerPublicationModel {
       categorie: 'Musique & Arts visuels',
       tags: ['Festival', 'Ségou', 'Panafricain'],
     ),
-    ExplorerPublicationModel(
-      id: 'fest-002',
-      type: PublicationType.festivalEvenement,
-      titre: 'Festival des Masques & Traditions Dogon (FESTIMA)',
-      description:
-          'Sorties rituelles des masques Kanaga et Sirigé, danses sur échasses et contes sous l\'arbre à palabres au cœur des falaises millénaires de Bandiagara.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?q=80&w=800&auto=format&fit=crop',
-      auteur: 'Agence Sahel Roots Événements (Promoteur)',
-      localisation: 'Bandiagara & Mopti',
-      date: '20 - 25 Mars 2027',
-      prix: '5 000 FCFA',
-      vues: 112,
-      commentaires: 19,
-      statut: 'VALIDE',
-      categorie: 'Cérémonie & Rituels ancestraux',
-      tags: ['Masques', 'Dogon', 'UNESCO'],
-    ),
-    ExplorerPublicationModel(
-      id: 'fest-003',
-      type: PublicationType.festivalEvenement,
-      titre: 'Biennale Artistique & Culturelle Nationale',
-      description:
-          'Compétition nationale réunissant les troupes d\'artistes de toutes les régions du Mali : chœurs traditionnels, ballets folkloriques et orchestres modernes.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=800&auto=format&fit=crop',
-      auteur: 'Direction Nationale de la Culture',
-      localisation: 'Bamako, Palais de la Culture',
-      date: '10 - 17 Décembre 2027',
-      prix: '2 000 FCFA',
-      vues: 205,
-      commentaires: 34,
-      statut: 'VALIDE',
-      categorie: 'Culture & Fraternité nationale',
-      tags: ['Biennale', 'Bamako', 'Mali Kura'],
-    ),
   ];
+
+  /// Alias de rétrocompatibilité réservé aux tests unitaires
+  static const List<ExplorerPublicationModel> initialPublications = demoPublications;
 }
 
