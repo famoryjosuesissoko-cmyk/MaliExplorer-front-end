@@ -5,6 +5,7 @@ import '../core/constants/api_constants.dart';
 import '../core/constants/app_colors.dart';
 import '../models/ville_model.dart';
 import '../providers/favoris_provider.dart';
+import '../providers/villes_provider.dart';
 import '../router/app_router.dart';
 
 /// Page Détail d'une Ville / Lieu historique
@@ -18,14 +19,29 @@ class CityDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
+  VilleModel? _resolveActiveVille() {
+    final initial = widget.ville;
+    final asyncVilles = ref.watch(villesProvider);
+    return asyncVilles.maybeWhen(
+      data: (villes) {
+        if (initial == null) return villes.isNotEmpty ? villes.first : null;
+        for (final v in villes) {
+          if (initial.id > 0 && v.id == initial.id) return v;
+          if (v.nom.trim().toLowerCase() == initial.nom.trim().toLowerCase()) return v;
+        }
+        return initial;
+      },
+      orElse: () => initial,
+    );
+  }
 
-  List<String> get _galleryPhotos {
+  List<String> _buildGalleryPhotos(VilleModel? activeVille) {
     final list = <String>[];
-    final nom = (widget.ville?.nom ?? 'tombouctou').toLowerCase();
+    final nom = (activeVille?.nom ?? 'Tombouctou').trim();
 
     // 1. Priorité aux images dynamiques de la ville configurées depuis l'administration
-    if (widget.ville != null && widget.ville!.images.isNotEmpty) {
-      for (final img in widget.ville!.images) {
+    if (activeVille != null && activeVille.images.isNotEmpty) {
+      for (final img in activeVille.images) {
         final trimmed = img.trim();
         if (trimmed.isNotEmpty && !list.contains(trimmed)) {
           list.add(trimmed);
@@ -33,43 +49,18 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
       }
     }
 
-    if (widget.ville?.imageUrl != null &&
-        widget.ville!.imageUrl.trim().isNotEmpty &&
-        !list.contains(widget.ville!.imageUrl.trim())) {
-      list.insert(0, widget.ville!.imageUrl.trim());
+    if (activeVille?.imageUrl != null &&
+        activeVille!.imageUrl.trim().isNotEmpty &&
+        !list.contains(activeVille.imageUrl.trim())) {
+      list.insert(0, activeVille.imageUrl.trim());
     }
 
-    // 2. Si aucune image dynamique n'est présente, repli sur la galerie locale
-    if (list.isEmpty) {
-      if (nom.contains('bamako')) {
-        list.add('assets/images/bamako_gallery_1.jpeg');
-        list.add('assets/images/bamako_gallery_2.jpeg');
-        list.add('assets/images/bamako_cover.jpeg');
-      } else if (nom.contains('djenne') || nom.contains('djenné')) {
-        list.add('assets/pannellum/djenne_vue_aerienne_360.jpg');
-        list.add('assets/pannellum/djenne_nef_hypostyle_360.jpg');
-        list.add('assets/pannellum/djenne_cour_centrale_360.jpg');
-        list.add('assets/pannellum/djenne_minarets_zoom_360.jpg');
-        list.add('assets/pannellum/djenne_ruelle_contreforts_360.jpg');
-        list.add('assets/images/djenne_gallery_1.jpeg');
-        list.add('assets/images/djenne_gallery_2.jpeg');
-        list.add('assets/images/djenne_cover.jpeg');
-      } else if (nom.contains('mopti')) {
-        list.add('assets/images/mopti_gallery_1.jpg');
-        list.add('assets/images/mopti_gallery_2.jpeg');
-        list.add('assets/images/mopti_gallery_3.webp');
-      } else if (nom.contains('segou') || nom.contains('ségou')) {
-        list.add('assets/images/segou_gallery_1.jpg');
-        list.add('assets/images/segou_gallery_2.jpeg');
-        list.add('assets/images/segou_gallery_3.jpeg');
-      } else if (nom.contains('sikasso')) {
-        list.add('assets/images/sikasso_gallery_1.jpg');
-        list.add('assets/images/sikasso_gallery_2.jpg');
-        list.add('assets/images/sikasso_gallery_3.jpeg');
-      } else {
-        list.add('assets/images/tombouctou_gallery_1.jpeg');
-        list.add('assets/images/tombouctou_gallery_2.jpeg');
-        list.add('assets/images/tombouctou_hero.jpeg');
+    // 2. Si aucune galerie multi-photos n'est encore enregistrée en base, compléter avec les photos locales authentiques de la ville
+    if (list.length <= 1) {
+      for (final localImg in VilleModel.getLocalGallery(nom)) {
+        if (!list.contains(localImg)) {
+          list.add(localImg);
+        }
       }
     }
 
@@ -82,28 +73,31 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
     final double screenHeight = screenSize.height;
     final double heroHeight = (screenHeight * 0.38).clamp(260.0, 340.0);
 
-    final String nomVille = widget.ville?.nom ?? 'Tombouctou';
+    final activeVille = _resolveActiveVille();
+    final galleryPhotos = _buildGalleryPhotos(activeVille);
+
+    final String nomVille = activeVille?.nom ?? 'Tombouctou';
     final String badgeVille =
-        widget.ville?.region != null && widget.ville!.region.isNotEmpty
-        ? 'Région: ${widget.ville!.region}'
+        activeVille?.region != null && activeVille!.region.isNotEmpty
+        ? 'Région: ${activeVille.region}'
         : 'Lieu historique';
     final String description =
-        widget.ville?.description ??
+        activeVille?.description ??
         'Dotée de la prestigieuse université coranique de Sankoré et d\'autres medersa, Tombouctou était aux XVe et XVIe siècles une capitale intellectuelle et spirituelle et un centre de propagation de l\'islam en Afrique. Ses trois grandes mosquées (Djingareyber, Sankoré et Sidi Yahia) témoignent de son âge d\'or. Bien que restaurés au XVIe siècle, ces monuments sont aujourd\'hui menacés par l\'avancée du sable.';
     final String population =
-        widget.ville?.nbreHbt != null && widget.ville!.nbreHbt!.isNotEmpty
-        ? '${widget.ville!.nbreHbt} hab.'
+        activeVille?.nbreHbt != null && activeVille!.nbreHbt!.isNotEmpty
+        ? (activeVille.nbreHbt!.contains('hab') ? activeVille.nbreHbt! : '${activeVille.nbreHbt} hab.')
         : (nomVille.toLowerCase().contains('bamako')
             ? '3 000 000 hab.'
             : (nomVille.toLowerCase().contains('djenne') || nomVille.toLowerCase().contains('djenné')
-                ? '32 000 hab.'
+                ? '33 000 hab.'
                 : (nomVille.toLowerCase().contains('mopti')
-                    ? '115 000 hab.'
+                    ? '114 000 hab.'
                     : (nomVille.toLowerCase().contains('segou') || nomVille.toLowerCase().contains('ségou')
-                        ? '135 000 hab.'
+                        ? '134 000 hab.'
                         : (nomVille.toLowerCase().contains('sikasso')
-                            ? '225 000 hab.'
-                            : '85 000 hab.')))));
+                            ? '226 000 hab.'
+                            : '54 000 hab.')))));
     final String langue = nomVille.toLowerCase().contains('bamako')
         ? 'Bambara, Français'
         : (nomVille.toLowerCase().contains('djenne') || nomVille.toLowerCase().contains('djenné')
@@ -114,9 +108,13 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
                     ? 'Bambara, Bozo, Somono'
                     : (nomVille.toLowerCase().contains('sikasso')
                         ? 'Sénoufo, Bambara, Samogo'
-                        : (widget.ville?.region.isNotEmpty == true
-                            ? 'Bambara, langues locales'
-                            : 'Songhaï, Tamasheq, Bambara')))));
+                        : (nomVille.toLowerCase().contains('kidal') || nomVille.toLowerCase().contains('menaka') || nomVille.toLowerCase().contains('ménaka')
+                            ? 'Tamasheq, Songhaï, Arabe'
+                            : (nomVille.toLowerCase().contains('gao') || nomVille.toLowerCase().contains('tombouctou')
+                                ? 'Songhaï, Tamasheq, Arabe'
+                                : (activeVille?.region.isNotEmpty == true
+                                    ? 'Bambara, langues locales'
+                                    : 'Songhaï, Tamasheq, Bambara')))))));
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8F5),
@@ -131,7 +129,7 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
             child: SizedBox(
               height: heroHeight,
               width: double.infinity,
-              child: _buildHeroImageContent(heroHeight),
+              child: _buildHeroImageContent(heroHeight, activeVille),
             ),
           ),
 
@@ -239,15 +237,15 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
                         ),
 
                         // Badge Coordonnées GPS (si disponibles)
-                        if ((widget.ville?.cordonnees != null && widget.ville!.cordonnees!.isNotEmpty) ||
-                            (widget.ville?.latitude != null && widget.ville?.longitude != null)) ...[
+                        if ((activeVille?.cordonnees != null && activeVille!.cordonnees!.isNotEmpty) ||
+                            (activeVille?.latitude != null && activeVille?.longitude != null)) ...[
                           const SizedBox(height: 10),
                           _buildInfoCard(
                             icon: Icons.my_location_rounded,
                             title: 'Coordonnées GPS',
-                            value: widget.ville?.latitude != null && widget.ville?.longitude != null
-                                ? '${widget.ville!.latitude!.toStringAsFixed(4)}° N, ${widget.ville!.longitude!.abs().toStringAsFixed(4)}° O'
-                                : widget.ville!.cordonnees!,
+                            value: activeVille?.latitude != null && activeVille?.longitude != null
+                                ? '${activeVille!.latitude!.abs().toStringAsFixed(4)}° ${activeVille.latitude! >= 0 ? 'N' : 'S'}, ${activeVille.longitude!.abs().toStringAsFixed(4)}° ${activeVille.longitude! >= 0 ? 'E' : 'O'}'
+                                : activeVille!.cordonnees!,
                             iconColor: const Color(0xFF075E4D),
                           ),
                         ],
@@ -370,7 +368,7 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
                         const SizedBox(height: 22),
 
                         // Galerie photos de la ville (grandes cartes empilées)
-                        ..._galleryPhotos.map((photoUrl) {
+                        ...galleryPhotos.map((photoUrl) {
                           final isAsset = photoUrl.startsWith('assets/');
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 12.0),
@@ -395,7 +393,7 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
                                           ),
                                     )
                                   : Image.network(
-                                      photoUrl,
+                                      ApiConstants.resolveImageUrl(photoUrl),
                                       height: 165,
                                       width: double.infinity,
                                       fit: BoxFit.cover,
@@ -572,23 +570,36 @@ class _CityDetailScreenState extends ConsumerState<CityDetailScreen> {
     );
   }
 
-  Widget _buildHeroImageContent(double height) {
-    final rawUrl = widget.ville?.imageUrl.trim();
-    final localFallback = VilleModel.getLocalPhoto(widget.ville?.nom ?? 'Tombouctou');
+  Widget _buildHeroImageContent(double height, VilleModel? activeVille) {
+    final rawUrl = activeVille?.imageUrl.trim();
+    final localFallback = VilleModel.getLocalPhoto(activeVille?.nom ?? 'Tombouctou');
 
-    Widget fallbackWidget() => Image.asset(
+    Widget placeholderWidget() => Container(
+          height: height,
+          color: AppColors.textPrimary,
+          child: const Center(
+            child: Icon(Icons.location_city_rounded, color: Colors.white, size: 48),
+          ),
+        );
+
+    Widget fallbackWidget() {
+      if (localFallback.startsWith('http://') || localFallback.startsWith('https://')) {
+        return Image.network(
           localFallback,
           height: height,
           width: double.infinity,
           fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => Container(
-            height: height,
-            color: AppColors.textPrimary,
-            child: const Center(
-              child: Icon(Icons.location_city_rounded, color: Colors.white, size: 48),
-            ),
-          ),
+          errorBuilder: (context, error, stackTrace) => placeholderWidget(),
         );
+      }
+      return Image.asset(
+        localFallback,
+        height: height,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => placeholderWidget(),
+      );
+    }
 
     if (rawUrl != null && rawUrl.isNotEmpty) {
       if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
