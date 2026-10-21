@@ -62,7 +62,7 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
       'titre': 'Langues Nationales & Lexique',
       'sousTitre': 'Bamanankan, Fulfulde, Songhaï, Soninké, Tamasheq',
       'route': AppRouter.languesNationales,
-      'image': 'assets/images/languages_cover.jpeg',
+      'image': 'assets/images/Mali’s Languages, Our Heritage.png',
       'badge': 'Lexique',
       'icon': Icons.record_voice_over_rounded,
     },
@@ -99,7 +99,7 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currentFilter = ref.watch(explorerFilterTypeProvider);
-    final publications = ref.watch(filteredExplorerPublicationsProvider);
+    final publicationsAsync = ref.watch(filteredExplorerPublicationsProvider);
 
     // Filtrer les catégories patrimoine statiques si recherche
     final filteredCategories = _categories.where((cat) {
@@ -108,6 +108,11 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
       return (cat['titre'] as String).toLowerCase().contains(q) ||
           (cat['sousTitre'] as String).toLowerCase().contains(q);
     }).toList();
+
+    final hasNoPubs = publicationsAsync.maybeWhen(
+      data: (pubs) => pubs.isEmpty,
+      orElse: () => false,
+    );
 
     return Scaffold(
       backgroundColor: isDark
@@ -313,7 +318,7 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                     // Si recherche active et aucun résultat dans les catégories ni les publications
                     if (_searchQuery.isNotEmpty &&
                         filteredCategories.isEmpty &&
-                        publications.isEmpty)
+                        hasNoPubs)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 40),
                         child: Center(
@@ -360,59 +365,43 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
 
                     // Si 'tous' ou 'festivals', afficher les publications validées
                     if (currentFilter != 'patrimoine') ...[
-                      if (currentFilter == 'tous' &&
-                          publications.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        _buildSectionHeader(
-                          'Événements Culturels Validés',
-                          'Par nos Promoteurs et Partenaires culturels',
+                      publicationsAsync.when(
+                        loading: () => _buildEventsLoading(
                           isDark,
+                          isCompact: currentFilter == 'tous',
                         ),
-                      ],
-
-                      if (publications.isEmpty && currentFilter != 'tous')
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 40),
-                          child: Center(
-                            child: Column(
-                              children: [
-                                Icon(
-                                  Icons.inventory_2_outlined,
-                                  size: 54,
-                                  color: Colors.grey.shade400,
-                                ),
+                        error: (err, stack) => _buildEventsError(err, isDark),
+                        data: (pubs) {
+                          if (pubs.isEmpty) {
+                            if (_searchQuery.isNotEmpty) {
+                              return const SizedBox.shrink();
+                            }
+                            return _buildEventsEmpty(
+                              isDark,
+                              isCompact: currentFilter == 'tous',
+                            );
+                          }
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (currentFilter == 'tous') ...[
                                 const SizedBox(height: 12),
-                                Text(
-                                  'Aucun contenu validé pour le moment',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: isDark
-                                        ? Colors.white70
-                                        : Colors.black54,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Seules les publications approuvées sont visibles.',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: isDark
-                                        ? Colors.white38
-                                        : Colors.black38,
-                                  ),
+                                _buildSectionHeader(
+                                  'Événements Culturels Validés',
+                                  'Par nos Promoteurs et Partenaires culturels',
+                                  isDark,
                                 ),
                               ],
-                            ),
-                          ),
-                        )
-                      else
-                        ...publications.map(
-                          (pub) => Padding(
-                            padding: const EdgeInsets.only(bottom: 14),
-                            child: _buildPublicationCard(pub, isDark),
-                          ),
-                        ),
+                              ...pubs.map(
+                                (pub) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 14),
+                                  child: _buildPublicationCard(pub, isDark),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
                     ],
                   ],
                 ),
@@ -420,6 +409,214 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEventsLoading(bool isDark, {bool isCompact = false}) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: isCompact ? 24 : 48),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 32,
+              height: 32,
+              child: CircularProgressIndicator(
+                color: Color(0xFF075E4D),
+                strokeWidth: 3,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Chargement des événements...',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: isDark ? Colors.white60 : const Color(0xFF6C7C77),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEventsError(Object error, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark
+                  ? Colors.redAccent.withValues(alpha: 0.3)
+                  : Colors.red.shade100,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.cloud_off_rounded,
+                  color: Colors.redAccent,
+                  size: 26,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Événements temporairement indisponibles',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : const Color(0xFF16332D),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Impossible de joindre le serveur. Vérifiez votre connexion.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.white60 : Colors.black54,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () {
+                  ref
+                      .read(explorerPublicationsProvider.notifier)
+                      .chargerPublications();
+                },
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Réessayer'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF075E4D),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEventsEmpty(bool isDark, {bool isCompact = false}) {
+    if (isCompact) {
+      return Container(
+        margin: const EdgeInsets.only(top: 16, bottom: 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark
+                ? AppColors.darkBorder
+                : const Color(0xFF075E4D).withValues(alpha: 0.08),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF075E4D).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.event_note_rounded,
+                color: Color(0xFF075E4D),
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Aucun événement programmé actuellement',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : const Color(0xFF16332D),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Les prochains festivals validés apparaîtront ici dès leur publication.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? Colors.white60 : Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.event_busy_rounded,
+              size: 54,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Aucun événement disponible actuellement',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white70 : Colors.black54,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'De nouveaux festivals et événements culturels validés seront bientôt publiés.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? Colors.white38 : Colors.black38,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
