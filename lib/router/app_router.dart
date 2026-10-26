@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../core/services/auth_service.dart';
 import '../features/splash_screen.dart';
 import '../features/home_screen.dart';
 import '../features/carte_screen.dart';
@@ -168,6 +169,26 @@ class AppRouter {
         return login;
       }
 
+      // Guard pour /promoteur-dashboard :
+      // Accessible uniquement aux promoteurs et guides VALIDÉS (ou admins) non suspendus.
+      // Les touristes, comptes non validés (EN_ATTENTE, REJETE) ou suspendus sont redirigés vers /home.
+      if (location.startsWith(promoteurDashboard)) {
+        if (!isLoggedIn) {
+          return login;
+        }
+        final String role = (AuthService.cachedRole ?? AuthService.cachedUserModel?.role.name ?? '').toLowerCase();
+        final String statutModeration = (AuthService.cachedStatutModeration ?? AuthService.cachedUserModel?.statutModeration ?? '').toUpperCase();
+        final String userStatut = (AuthService.cachedStatut ?? AuthService.cachedUserModel?.statut ?? '').toUpperCase();
+        final bool isAdmin = role.contains('admin');
+        final bool isPromoteurOrGuide = role.contains('promoteur') || role.contains('guide');
+        final bool isValide = statutModeration == 'VALIDE' || statutModeration == 'APPROUVE';
+        final bool isNotSuspended = userStatut != 'SUSPENDU' && userStatut != 'BLOQUE';
+
+        if (!isAdmin && (!isPromoteurOrGuide || !isValide || !isNotSuspended)) {
+          return home;
+        }
+      }
+
       return null;
     },
     routes: <RouteBase>[
@@ -211,11 +232,19 @@ class AppRouter {
             },
           ),
 
-          // Destination 3 : Quiz
+          // Destination 3 : Quiz (Mode standard)
           GoRoute(
             path: quizList,
             pageBuilder: (BuildContext context, GoRouterState state) {
               return const NoTransitionPage(child: QuizListScreen());
+            },
+          ),
+
+          // Destination 3 (Alternative Promoteur Validé) : Espace Promoteur
+          GoRoute(
+            path: promoteurDashboard,
+            pageBuilder: (BuildContext context, GoRouterState state) {
+              return const NoTransitionPage(child: PromoteurDashboardScreen());
             },
           ),
 
@@ -570,41 +599,38 @@ class AppRouter {
           } else if (extra is SearchResultItem) {
             if (extra.payload is PresidentModel) {
               president = extra.payload as PresidentModel;
-            } else if (extra.payload is int) {
-              final idVal = extra.payload as int;
-              president = PresidentModel.chronologicalPresidents.firstWhere(
-                (p) => p.id == idVal,
+            } else {
+              final idVal = (extra.payload is int)
+                  ? extra.payload as int
+                  : int.tryParse(extra.id.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+              final q = _normalizeText(extra.titre);
+              final match = PresidentModel.chronologicalPresidents.firstWhere(
+                (p) {
+                  final fullNorm = _normalizeText(p.fullName);
+                  final nomNorm = _normalizeText(p.nom);
+                  return fullNorm == q || nomNorm == q || fullNorm.contains(q) || q.contains(fullNorm);
+                },
                 orElse: () => PresidentModel(
                   id: idVal,
                   prenom: '',
                   nom: extra.titre,
                   periodeMandat: extra.sousTitre ?? '',
                   biographie: extra.description ?? '',
-                  photoUrl: extra.imageUrl ?? PresidentModel.getLocalPhoto(extra.titre, idVal),
+                  photoUrl: extra.imageUrl ?? '',
                 ),
               );
-            } else {
-              final q = _normalizeText(extra.titre);
-              president = PresidentModel.chronologicalPresidents.firstWhere(
-                (p) {
-                  final nomNorm = _normalizeText(p.nom);
-                  final prenomNorm = _normalizeText(p.prenom);
-                  final fullNorm = _normalizeText(p.fullName);
-                  return nomNorm.contains(q) ||
-                      q.contains(nomNorm) ||
-                      prenomNorm.contains(q) ||
-                      q.contains(prenomNorm) ||
-                      fullNorm.contains(q) ||
-                      q.contains(fullNorm);
-                },
-                orElse: () => PresidentModel(
-                  id: int.tryParse(extra.id.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
-                  prenom: '',
-                  nom: extra.titre,
-                  periodeMandat: extra.sousTitre ?? '',
-                  biographie: extra.description ?? '',
-                  photoUrl: extra.imageUrl ?? PresidentModel.getLocalPhoto(extra.titre),
-                ),
+              president = match.copyWith(
+                id: idVal != 0 ? idVal : match.id,
+                nom: extra.titre.isNotEmpty ? extra.titre : match.nom,
+                periodeMandat: (extra.sousTitre != null && extra.sousTitre!.isNotEmpty)
+                    ? extra.sousTitre!
+                    : match.periodeMandat,
+                biographie: (extra.description != null && extra.description!.isNotEmpty)
+                    ? extra.description!
+                    : match.biographie,
+                photoUrl: (extra.imageUrl != null && extra.imageUrl!.isNotEmpty)
+                    ? extra.imageUrl!
+                    : match.photoUrl,
               );
             }
           } else if (extra is int) {
@@ -927,19 +953,6 @@ class AppRouter {
         path: historique,
         builder: (BuildContext context, GoRouterState state) {
           return const HistoriqueScreen();
-        },
-      ),
-      GoRoute(
-        parentNavigatorKey: rootNavigatorKey,
-        path: promoteurDashboard,
-        redirect: (BuildContext context, GoRouterState state) {
-          if (_safeCurrentUser() == null) {
-            return AppRouter.login;
-          }
-          return null;
-        },
-        builder: (BuildContext context, GoRouterState state) {
-          return const PromoteurDashboardScreen();
         },
       ),
       GoRoute(

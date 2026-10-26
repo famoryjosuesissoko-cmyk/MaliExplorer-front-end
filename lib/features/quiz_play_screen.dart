@@ -38,6 +38,9 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
 
   // Rapport de fin de partie
   bool _showEndReport = false;
+  bool _canPopRoute = false;
+  bool _hasAbandoned = false;
+  bool _isDialogOpen = false;
   Map<String, dynamic>? _endReportData;
   List<Map<String, dynamic>> _questionReviewList = [];
 
@@ -247,7 +250,9 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
   }
 
   Future<void> _onBackPressed() async {
+    if (_canPopRoute || _hasAbandoned || _isDialogOpen) return;
     _timer?.cancel();
+    _isDialogOpen = true;
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -298,20 +303,35 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
         ],
       ),
     );
+    _isDialogOpen = false;
 
-    if (confirm == true) {
+    if (confirm == true && !_hasAbandoned) {
+      _hasAbandoned = true;
       _timer?.cancel();
       final quizId = widget.quiz?.idQuiz ?? 1;
+      final authUser = ref.read(authControllerProvider).user;
+      final int? userId = (authUser?['idUsers'] as num?)?.toInt();
+
       if (mounted) {
-        context.pop();
+        setState(() {
+          _canPopRoute = true;
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && context.canPop()) {
+            context.pop();
+          }
+        });
       }
-      // Enregistrement de l'abandon en tâche de fond (ne bloque pas la sortie immédiate)
+      // Enregistrement unique de l'abandon
       ref
           .read(quizServiceProvider)
-          .abandonQuiz(quizId: quizId, sessionId: _sessionId)
-          .then((_) => ref.invalidate(userHistoriqueProvider))
+          .abandonQuiz(quizId: quizId, sessionId: _sessionId, userId: userId)
+          .then((_) {
+            ref.invalidate(userHistoriqueProvider);
+            ref.invalidate(userProgressionProvider);
+          })
           .catchError((_) {});
-    } else {
+    } else if (!_hasAbandoned) {
       _startTimer();
     }
   }
@@ -354,10 +374,8 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     }
     if (maxScore == 0) maxScore = _questions.length * 10;
 
-    final bool perfect =
-        _correctCount == _questions.length && _questions.isNotEmpty;
-    // Points d'activité selon cahier des charges : +20 complétion, +20 parfait
-    int pointsGagnes = calculatedScore + 20 + (perfect ? 20 : 0);
+    // Points d'activité réels = score obtenu aux questions du quiz (ex: 40/40 -> +40 pts)
+    int pointsGagnes = calculatedScore;
 
     String badgeActuel = 'Kalanden';
     String prochainBadge = 'Fasoden';
@@ -785,7 +803,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return PopScope(
-      canPop: false,
+      canPop: _canPopRoute || _showEndReport,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         _onBackPressed();

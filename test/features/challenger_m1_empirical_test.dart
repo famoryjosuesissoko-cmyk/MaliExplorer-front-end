@@ -36,6 +36,9 @@ class FakeAuthController extends StateNotifier<AuthState> implements AuthControl
     String? photoUrl,
     String? nomOrganisation,
     String? pieceIdentite,
+    String? langue,
+    int? experience,
+    String? description,
   }) async => true;
 
   @override

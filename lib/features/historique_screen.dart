@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../core/constants/app_colors.dart';
 import '../core/services/auth_service.dart';
+import '../core/services/badge_progression_service.dart';
 import '../core/services/historique_service.dart';
 import '../features/auth/auth_controller.dart';
 import '../models/historique_point_model.dart';
@@ -129,7 +130,43 @@ class HistoriqueScreen extends ConsumerWidget {
         : 'Récemment';
 
     final isQuiz = item.action.toUpperCase().contains('QUIZ');
-    final IconData iconData = isQuiz ? Icons.military_tech_rounded : Icons.stars_rounded;
+    final descLower = (item.description ?? '').toLowerCase();
+    final isAbandon = item.action.toUpperCase() == 'QUIZ_ABANDON' || descLower.contains('abandonné');
+    final isNonValide = !isAbandon && descLower.contains('non validé');
+
+    final IconData iconData = isAbandon
+        ? Icons.flag_rounded
+        : isNonValide
+            ? Icons.refresh_rounded
+            : (isQuiz ? Icons.military_tech_rounded : Icons.stars_rounded);
+
+    final Color iconColor = isAbandon
+        ? const Color(0xFFDC2626)
+        : isNonValide
+            ? const Color(0xFFD97706)
+            : const Color(0xFFF2B544);
+
+    final Color iconBgColor = isAbandon
+        ? (isDark ? const Color(0xFF4C1D24) : const Color(0xFFFEE2E2))
+        : isNonValide
+            ? (isDark ? const Color(0xFF3B2F17) : const Color(0xFFFEF3C7))
+            : (isDark ? const Color(0xFF332A15) : const Color(0xFFFFF9E6));
+
+    final Color badgeBgColor = isAbandon
+        ? (isDark ? const Color(0xFF4C1D24) : const Color(0xFFFEE2E2))
+        : isNonValide
+            ? (isDark ? const Color(0xFF3B2F17) : const Color(0xFFFEF3C7))
+            : (isDark ? const Color(0xFF134E42) : const Color(0xFFE8F5F1));
+
+    final Color badgeTextColor = isAbandon
+        ? (isDark ? const Color(0xFFFCA5A5) : const Color(0xFFDC2626))
+        : isNonValide
+            ? (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706))
+            : (isDark ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D));
+
+    final String pointsLabel = isAbandon
+        ? '0 pt'
+        : '+${item.pointsGagnes} pts';
 
     return Dismissible(
       key: ValueKey(item.idHistorique),
@@ -171,6 +208,7 @@ class HistoriqueScreen extends ConsumerWidget {
       onDismissed: (direction) async {
         final success = await ref.read(historiqueServiceProvider).supprimerItem(item.idHistorique);
         ref.invalidate(userHistoriqueProvider);
+        ref.invalidate(userProgressionProvider);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -205,12 +243,12 @@ class HistoriqueScreen extends ConsumerWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF332A15) : const Color(0xFFFFF9E6),
+                color: iconBgColor,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 iconData,
-                color: const Color(0xFFF2B544),
+                color: iconColor,
                 size: 24,
               ),
             ),
@@ -253,15 +291,15 @@ class HistoriqueScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF134E42) : const Color(0xFFE8F5F1),
+                color: badgeBgColor,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                '+${item.pointsGagnes} pts',
+                pointsLabel,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
-                  color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
+                  color: badgeTextColor,
                 ),
               ),
             ),
@@ -305,6 +343,7 @@ class HistoriqueScreen extends ConsumerWidget {
     if (confirm == true) {
       final success = await ref.read(historiqueServiceProvider).supprimerItem(item.idHistorique);
       ref.invalidate(userHistoriqueProvider);
+      ref.invalidate(userProgressionProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -354,6 +393,7 @@ class HistoriqueScreen extends ConsumerWidget {
     if (confirm == true) {
       final success = await ref.read(historiqueServiceProvider).viderToutHistorique();
       ref.invalidate(userHistoriqueProvider);
+      ref.invalidate(userProgressionProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

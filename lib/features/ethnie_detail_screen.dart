@@ -26,12 +26,33 @@ class _EthnicityDetailScreenState extends ConsumerState<EthnicityDetailScreen> {
     final double screenHeight = screenSize.height;
     final double heroHeight = (screenHeight * 0.38).clamp(260.0, 350.0);
 
-    final currentEthnie = widget.ethnie ?? EthnieModel.defaultEthnies.first;
+    final currentEthnie = widget.ethnie ??
+        const EthnieModel(
+          id: 0,
+          nom: 'Ethnie',
+          region: '',
+          population: '',
+          description: '',
+          imageUrl: '',
+          photoHomme: '',
+          photoFemme: '',
+          titreHomme: '',
+          articleHomme: '',
+          titreFemme: '',
+          articleFemme: '',
+          coutumes: [],
+        );
 
     // Photo affichée dans le hero selon la sélection
     final String activePhoto = _selectedGenderIndex == 0
-        ? currentEthnie.photoHomme
-        : currentEthnie.photoFemme;
+        ? (currentEthnie.photoHomme.isNotEmpty
+            ? currentEthnie.photoHomme
+            : currentEthnie.imageUrl)
+        : (currentEthnie.photoFemme.isNotEmpty
+            ? currentEthnie.photoFemme
+            : (currentEthnie.photoHomme.isNotEmpty
+                ? currentEthnie.photoHomme
+                : currentEthnie.imageUrl));
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8F5),
@@ -173,28 +194,30 @@ class _EthnicityDetailScreenState extends ConsumerState<EthnicityDetailScreen> {
                         const SizedBox(height: 26),
 
                         // 3. ARTICLE DÉTAILLÉ 1 : L'HOMME DE L'ETHNIE
-                        _buildArticleCard(
-                          photoPath: currentEthnie.photoHomme,
-                          badgeText: 'IMAGE 1 • TRADITION MASCULINE',
-                          badgeColor: const Color(0xFF075E4D),
-                          titre: currentEthnie.titreHomme,
-                          contenu: currentEthnie.articleHomme,
-                          icon: Icons.man_rounded,
-                        ),
-
-                        const SizedBox(height: 24),
+                        if (currentEthnie.titreHomme.isNotEmpty || currentEthnie.articleHomme.isNotEmpty || currentEthnie.photoHomme.isNotEmpty) ...[
+                          _buildArticleCard(
+                            photoPath: currentEthnie.photoHomme,
+                            badgeText: 'IMAGE 1 • TRADITION MASCULINE',
+                            badgeColor: const Color(0xFF075E4D),
+                            titre: currentEthnie.titreHomme.isNotEmpty ? currentEthnie.titreHomme : 'Tradition Masculine',
+                            contenu: currentEthnie.articleHomme,
+                            icon: Icons.man_rounded,
+                          ),
+                          const SizedBox(height: 24),
+                        ],
 
                         // 4. ARTICLE DÉTAILLÉ 2 : LA FEMME DE L'ETHNIE
-                        _buildArticleCard(
-                          photoPath: currentEthnie.photoFemme,
-                          badgeText: 'IMAGE 2 • TRADITION FÉMININE',
-                          badgeColor: const Color(0xFFD6A23A),
-                          titre: currentEthnie.titreFemme,
-                          contenu: currentEthnie.articleFemme,
-                          icon: Icons.woman_rounded,
-                        ),
-
-                        const SizedBox(height: 26),
+                        if (currentEthnie.titreFemme.isNotEmpty || currentEthnie.articleFemme.isNotEmpty || currentEthnie.photoFemme.isNotEmpty) ...[
+                          _buildArticleCard(
+                            photoPath: currentEthnie.photoFemme,
+                            badgeText: 'IMAGE 2 • TRADITION FÉMININE',
+                            badgeColor: const Color(0xFFD6A23A),
+                            titre: currentEthnie.titreFemme.isNotEmpty ? currentEthnie.titreFemme : 'Tradition Féminine',
+                            contenu: currentEthnie.articleFemme,
+                            icon: Icons.woman_rounded,
+                          ),
+                          const SizedBox(height: 26),
+                        ],
 
                         // 5. Coutumes & Rites Majeurs
                         if (currentEthnie.coutumes.isNotEmpty) ...[
@@ -560,31 +583,38 @@ class _EthnicityDetailScreenState extends ConsumerState<EthnicityDetailScreen> {
           // Photo grand format de l'homme / la femme
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-            child: photoPath.startsWith('assets/')
-                ? Image.asset(
-                    photoPath,
+            child: photoPath.trim().isEmpty
+                ? Container(
                     height: 250,
                     width: double.infinity,
-                    fit: BoxFit.cover,
-                    alignment: Alignment.topCenter,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      height: 250,
-                      color: badgeColor.withValues(alpha: 0.15),
-                      child: Icon(icon, size: 48, color: badgeColor),
-                    ),
+                    color: badgeColor.withValues(alpha: 0.15),
+                    child: Icon(icon, size: 48, color: badgeColor),
                   )
-                : Image.network(
-                    photoPath,
-                    height: 250,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    alignment: Alignment.topCenter,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      height: 250,
-                      color: badgeColor.withValues(alpha: 0.15),
-                      child: Icon(icon, size: 48, color: badgeColor),
-                    ),
-                  ),
+                : (photoPath.startsWith('assets/')
+                    ? Image.asset(
+                        photoPath,
+                        height: 250,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        alignment: Alignment.topCenter,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 250,
+                          color: badgeColor.withValues(alpha: 0.15),
+                          child: Icon(icon, size: 48, color: badgeColor),
+                        ),
+                      )
+                    : Image.network(
+                        photoPath,
+                        height: 250,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        alignment: Alignment.topCenter,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 250,
+                          color: badgeColor.withValues(alpha: 0.15),
+                          child: Icon(icon, size: 48, color: badgeColor),
+                        ),
+                      )),
           ),
 
           Padding(
@@ -686,41 +716,58 @@ class _EthnicityDetailScreenState extends ConsumerState<EthnicityDetailScreen> {
         ? EthnieModel.getLocalPhotoHomme(ethnie.nom)
         : EthnieModel.getLocalPhotoFemme(ethnie.nom);
 
-    Widget fallbackWidget() => Image.asset(
-          fallbackAsset,
-          fit: BoxFit.cover,
-          alignment: Alignment.topCenter,
-          errorBuilder: (context, error, stackTrace) => Container(
+    Widget fallbackWidget() => fallbackAsset.isNotEmpty
+        ? Image.asset(
+            fallbackAsset,
+            fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
+            errorBuilder: (context, error, stackTrace) => Container(
+              color: const Color(0xFF2C3E38),
+              child: const Center(
+                child: Icon(Icons.people, color: Colors.white54, size: 48),
+              ),
+            ),
+          )
+        : Container(
             color: const Color(0xFF2C3E38),
             child: const Center(
               child: Icon(Icons.people, color: Colors.white54, size: 48),
             ),
-          ),
-        );
+          );
+
+    final cleanPhoto = photoPath.trim();
+    Widget heroWidget;
+    if (cleanPhoto.isEmpty) {
+      heroWidget = fallbackWidget();
+    } else if (cleanPhoto.startsWith('assets/')) {
+      heroWidget = Image.asset(
+        cleanPhoto,
+        fit: BoxFit.cover,
+        alignment: Alignment.topCenter,
+        errorBuilder: (context, error, stackTrace) => fallbackWidget(),
+      );
+    } else if (cleanPhoto.startsWith('http://') || cleanPhoto.startsWith('https://')) {
+      heroWidget = Image.network(
+        cleanPhoto,
+        fit: BoxFit.cover,
+        alignment: Alignment.topCenter,
+        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+          if (wasSynchronouslyLoaded || frame != null) {
+            return child;
+          }
+          return fallbackWidget();
+        },
+        errorBuilder: (context, error, stackTrace) => fallbackWidget(),
+      );
+    } else {
+      heroWidget = fallbackWidget();
+    }
 
     return Stack(
       fit: StackFit.expand,
       children: [
         // Image Hero
-        photoPath.startsWith('assets/')
-            ? Image.asset(
-                photoPath,
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
-                errorBuilder: (context, error, stackTrace) => fallbackWidget(),
-              )
-            : Image.network(
-                photoPath,
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
-                frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                  if (wasSynchronouslyLoaded || frame != null) {
-                    return child;
-                  }
-                  return fallbackWidget();
-                },
-                errorBuilder: (context, error, stackTrace) => fallbackWidget(),
-              ),
+        heroWidget,
 
         // Gradient
         Container(

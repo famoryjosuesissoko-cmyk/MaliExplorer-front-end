@@ -13,6 +13,12 @@ class ExplorerPublicationModel {
   final String localisation;
   final String? prix;
   final String? date;
+  final String? dateDebut;
+  final String? heureDebut;
+  final String? dateFin;
+  final String? heureFin;
+  final String? lieu;
+  final String? ville;
   final int vues;
   final int commentaires;
   final String statut; // "VALIDE", "EN_ATTENTE", "REJETE"
@@ -29,6 +35,12 @@ class ExplorerPublicationModel {
     required this.localisation,
     this.prix,
     this.date,
+    this.dateDebut,
+    this.heureDebut,
+    this.dateFin,
+    this.heureFin,
+    this.lieu,
+    this.ville,
     this.vues = 0,
     this.commentaires = 0,
     this.statut = 'VALIDE',
@@ -48,6 +60,12 @@ class ExplorerPublicationModel {
     String? localisation,
     String? prix,
     String? date,
+    String? dateDebut,
+    String? heureDebut,
+    String? dateFin,
+    String? heureFin,
+    String? lieu,
+    String? ville,
     int? vues,
     int? commentaires,
     String? statut,
@@ -64,6 +82,12 @@ class ExplorerPublicationModel {
       localisation: localisation ?? this.localisation,
       prix: prix ?? this.prix,
       date: date ?? this.date,
+      dateDebut: dateDebut ?? this.dateDebut,
+      heureDebut: heureDebut ?? this.heureDebut,
+      dateFin: dateFin ?? this.dateFin,
+      heureFin: heureFin ?? this.heureFin,
+      lieu: lieu ?? this.lieu,
+      ville: ville ?? this.ville,
       vues: vues ?? this.vues,
       commentaires: commentaires ?? this.commentaires,
       statut: statut ?? this.statut,
@@ -86,6 +110,16 @@ class ExplorerPublicationModel {
       return PublicationType.patrimoine;
     }
 
+    final String lieuStr = (json['lieu'] ?? '').toString().trim();
+    final String villeStr = (json['ville'] ?? '').toString().trim();
+    final String locStr = (json['localisation'] ??
+            (lieuStr.isNotEmpty && villeStr.isNotEmpty && lieuStr != villeStr
+                ? '$lieuStr, $villeStr'
+                : (lieuStr.isNotEmpty
+                    ? lieuStr
+                    : (villeStr.isNotEmpty ? villeStr : 'Mali'))))
+        .toString();
+
     return ExplorerPublicationModel(
       id: (json['id'] ?? '').toString(),
       type: parseType(json['type']?.toString()),
@@ -93,9 +127,15 @@ class ExplorerPublicationModel {
       description: (json['description'] ?? '').toString(),
       imageUrl: (json['imageUrl'] ?? json['afficheUrl'] ?? json['image'] ?? json['photo'] ?? '').toString().trim(),
       auteur: (json['auteur'] ?? json['nomOrganisateur'] ?? json['nomComplet'] ?? 'Promoteur Culturel').toString(),
-      localisation: (json['localisation'] ?? json['lieu'] ?? json['ville'] ?? 'Mali').toString(),
+      localisation: locStr,
       prix: json['prix']?.toString(),
       date: (json['date'] ?? json['dateDebut'])?.toString(),
+      dateDebut: json['dateDebut']?.toString(),
+      heureDebut: json['heureDebut']?.toString(),
+      dateFin: json['dateFin']?.toString(),
+      heureFin: json['heureFin']?.toString(),
+      lieu: lieuStr.isNotEmpty ? lieuStr : null,
+      ville: villeStr.isNotEmpty ? villeStr : null,
       vues: (json['vues'] as num?)?.toInt() ?? 0,
       commentaires: (json['nombreCommentaires'] as num?)?.toInt() ?? 0,
       statut: (json['statut'] ?? 'VALIDE').toString().toUpperCase(),
