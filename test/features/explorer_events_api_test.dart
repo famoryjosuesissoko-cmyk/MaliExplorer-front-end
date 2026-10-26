@@ -163,7 +163,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Aucun événement disponible actuellement'), findsOneWidget);
+      expect(find.text('Aucun événement publié pour le moment.'), findsOneWidget);
       expect(find.byIcon(Icons.event_busy_rounded), findsOneWidget);
     });
 

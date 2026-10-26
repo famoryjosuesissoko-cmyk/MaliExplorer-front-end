@@ -112,12 +112,14 @@ class QuizService {
   Future<void> abandonQuiz({
     required int quizId,
     String? sessionId,
+    int? userId,
   }) async {
     try {
       final Map<String, dynamic> body = {
         'quizId': quizId,
       };
       if (sessionId != null) body['sessionId'] = sessionId;
+      if (userId != null) body['userId'] = userId;
 
       await _apiService.post(
         '${ApiConstants.quiz}/abandonner',

@@ -24,6 +24,7 @@ class _EthniesListScreenState extends ConsumerState<EthniesListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isShortScreen = MediaQuery.sizeOf(context).height < 600;
     return Scaffold(
       backgroundColor: const Color(0xFF075E4D),
       body: Stack(
@@ -35,7 +36,12 @@ class _EthniesListScreenState extends ConsumerState<EthniesListScreen> {
               SafeArea(
                 bottom: false,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    isShortScreen ? 8 : 12,
+                    16,
+                    isShortScreen ? 12 : 20,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -59,27 +65,38 @@ class _EthniesListScreenState extends ConsumerState<EthniesListScreen> {
                           ),
                           const SizedBox(width: 12),
                           const Expanded(
-                            child: Text(
-                              'Peuples & Traditions',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                                letterSpacing: -0.5,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'Peuples & Traditions',
+                                maxLines: 1,
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: -0.5,
+                                ),
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
-                      const Padding(
-                        padding: EdgeInsets.only(left: 32.0),
-                        child: Text(
-                          'Riche mosaïque ethnique qui fait la force culturelle du Mali',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.white70,
-                            fontWeight: FontWeight.w400,
+                      const SizedBox(height: 4),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 32.0),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Riche mosaïque ethnique qui fait la force culturelle du Mali',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w400,
+                            ),
                           ),
                         ),
                       ),
@@ -98,107 +115,122 @@ class _EthniesListScreenState extends ConsumerState<EthniesListScreen> {
                       top: Radius.circular(28),
                     ),
                   ),
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 110),
-                    child: Column(
-                      children: [
-                        // Barre de recherche
-                        _buildSearchBar(),
+                  child: RefreshIndicator(
+                    color: const Color(0xFF075E4D),
+                    onRefresh: () async {
+                      ref.invalidate(ethniesProvider);
+                      try {
+                        await ref.read(ethniesProvider.future);
+                      } catch (_) {}
+                    },
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
+                      padding: const EdgeInsets.fromLTRB(16, 20, 16, 110),
+                      child: Column(
+                        children: [
+                          // Barre de recherche
+                          _buildSearchBar(),
 
-                        const SizedBox(height: 18),
+                          const SizedBox(height: 18),
 
-                        // Grandes cartes d'ethnies connectées à Riverpod
-                        ref
-                            .watch(filteredEthniesProvider)
-                            .when(
-                              data: (ethnies) {
-                                if (ethnies.isEmpty) {
-                                  return const Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 40),
-                                    child: Center(
-                                      child: Column(
-                                        children: [
-                                          Icon(
-                                            Icons.theater_comedy_rounded,
-                                            size: 48,
-                                            color: Color(0xFF8B9B95),
-                                          ),
-                                          SizedBox(height: 12),
-                                          Text(
-                                            'Aucune ethnie trouvée.',
-                                            style: TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w600,
-                                              color: Color(0xFF6C7C77),
+                          // Grandes cartes d'ethnies connectées à Riverpod
+                          ref
+                              .watch(filteredEthniesProvider)
+                              .when(
+                                data: (ethnies) {
+                                  if (ethnies.isEmpty) {
+                                    final query = ref.watch(ethnieSearchQueryProvider).trim();
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 40),
+                                      child: Center(
+                                        child: Column(
+                                          children: [
+                                            const Icon(
+                                              Icons.theater_comedy_rounded,
+                                              size: 48,
+                                              color: Color(0xFF8B9B95),
                                             ),
-                                          ),
-                                        ],
+                                            const SizedBox(height: 12),
+                                            Text(
+                                              query.isEmpty
+                                                  ? 'Aucune ethnie enregistrée pour le moment.'
+                                                  : 'Aucune ethnie trouvée.',
+                                              textAlign: TextAlign.center,
+                                              style: const TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xFF6C7C77),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
+                                    );
+                                  }
+                                  return Column(
+                                    children: ethnies
+                                        .map((eth) => _buildEthnicityCard(eth))
+                                        .toList(),
                                   );
-                                }
-                                return Column(
-                                  children: ethnies
-                                      .map((eth) => _buildEthnicityCard(eth))
-                                      .toList(),
-                                );
-                              },
-                              loading: () => const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 50),
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    color: Color(0xFF075E4D),
+                                },
+                                loading: () => const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 50),
+                                  child: Center(
+                                    child: CircularProgressIndicator(
+                                      color: Color(0xFF075E4D),
+                                    ),
                                   ),
                                 ),
-                              ),
-                              error: (error, stack) => Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 30,
-                                ),
-                                child: Center(
-                                  child: Column(
-                                    children: [
-                                      const Icon(
-                                        Icons.error_outline_rounded,
-                                        size: 44,
-                                        color: Colors.redAccent,
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Erreur de chargement des ethnies',
-                                        style: TextStyle(
-                                          color: Colors.red[700],
-                                          fontWeight: FontWeight.w600,
+                                error: (error, stack) => Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 30,
+                                  ),
+                                  child: Center(
+                                    child: Column(
+                                      children: [
+                                        const Icon(
+                                          Icons.error_outline_rounded,
+                                          size: 44,
+                                          color: Colors.redAccent,
                                         ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      ElevatedButton.icon(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(
-                                            0xFF075E4D,
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Erreur de chargement des ethnies',
+                                          style: TextStyle(
+                                            color: Colors.red[700],
+                                            fontWeight: FontWeight.w600,
                                           ),
-                                          foregroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              20,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        ElevatedButton.icon(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(
+                                              0xFF075E4D,
+                                            ),
+                                            foregroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(
+                                                20,
+                                              ),
                                             ),
                                           ),
+                                          onPressed: () =>
+                                              ref.refresh(ethniesProvider),
+                                          icon: const Icon(
+                                            Icons.refresh_rounded,
+                                            size: 18,
+                                          ),
+                                          label: const Text('Réessayer'),
                                         ),
-                                        onPressed: () =>
-                                            ref.refresh(ethniesProvider),
-                                        icon: const Icon(
-                                          Icons.refresh_rounded,
-                                          size: 18,
-                                        ),
-                                        label: const Text('Réessayer'),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),

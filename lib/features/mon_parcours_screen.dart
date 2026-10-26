@@ -2,9 +2,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../core/constants/app_colors.dart';
 import '../core/services/badge_progression_service.dart';
+import '../core/services/historique_service.dart';
 import '../features/auth/auth_controller.dart';
+import '../models/historique_point_model.dart';
 import '../models/progression_model.dart';
 import '../router/app_router.dart';
 
@@ -20,6 +23,8 @@ class _MonParcoursScreenState extends ConsumerState<MonParcoursScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final progressionAsync = ref.watch(userProgressionProvider);
+    final historiqueAsync = ref.watch(userHistoriqueProvider);
+    final List<HistoriquePointModel> historiqueItems = historiqueAsync.valueOrNull ?? const [];
     final user = FirebaseAuth.instance.currentUser;
     final authState = ref.watch(authControllerProvider);
     final userMap = authState.user;
@@ -92,6 +97,7 @@ class _MonParcoursScreenState extends ConsumerState<MonParcoursScreen> {
                     color: const Color(0xFF075E4D),
                     onRefresh: () async {
                       ref.invalidate(userProgressionProvider);
+                      ref.invalidate(userHistoriqueProvider);
                     },
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(
@@ -109,6 +115,7 @@ class _MonParcoursScreenState extends ConsumerState<MonParcoursScreen> {
                           isDark: isDark,
                           displayName: displayName,
                           photoUrl: photoUrl,
+                          historiqueItems: historiqueItems,
                           progression: const ProgressionModel(
                             points: 0,
                             badge: 'Kalanden',
@@ -122,6 +129,7 @@ class _MonParcoursScreenState extends ConsumerState<MonParcoursScreen> {
                           isDark: isDark,
                           displayName: displayName,
                           photoUrl: photoUrl,
+                          historiqueItems: historiqueItems,
                           progression: data ??
                               const ProgressionModel(
                                 points: 0,
@@ -149,6 +157,7 @@ class _MonParcoursScreenState extends ConsumerState<MonParcoursScreen> {
     required String displayName,
     required String? photoUrl,
     required ProgressionModel progression,
+    required List<HistoriquePointModel> historiqueItems,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -164,7 +173,49 @@ class _MonParcoursScreenState extends ConsumerState<MonParcoursScreen> {
         const SizedBox(height: 18),
 
         // 3 Statistiques réelles
-        _buildStatsRow(progression, isDark),
+        _buildStatsRow(progression, historiqueItems.length, isDark),
+
+        const SizedBox(height: 24),
+
+        // Section Mes quiz et résultats récents
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Mes quiz et résultats',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () => context.push(AppRouter.historique),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              icon: Icon(
+                Icons.history_rounded,
+                size: 15,
+                color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
+              ),
+              label: Text(
+                'Historique complet',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF075E4D),
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 10),
+
+        _buildQuizResultsSection(historiqueItems, isDark),
 
         const SizedBox(height: 24),
 
@@ -362,10 +413,9 @@ class _MonParcoursScreenState extends ConsumerState<MonParcoursScreen> {
   }
 
   /// Ligne des 3 statistiques dynamiques
-  Widget _buildStatsRow(ProgressionModel progression, bool isDark) {
+  Widget _buildStatsRow(ProgressionModel progression, int realActivityCount, bool isDark) {
     final int points = progression.points;
-    final int badgesDebloques = points >= 300 ? 3 : (points >= 100 ? 2 : (points > 0 ? 1 : 0));
-    final int quizEstimes = points > 0 ? (points / 25).ceil() : 0;
+    final int badgesDebloques = points >= 300 ? 3 : (points >= 100 ? 2 : 1);
 
     return Row(
       children: [
@@ -383,7 +433,7 @@ class _MonParcoursScreenState extends ConsumerState<MonParcoursScreen> {
           child: _buildStatItem(
             icon: Icons.assignment_outlined,
             iconColor: const Color(0xFF075E4D),
-            value: quizEstimes.toString(),
+            value: realActivityCount.toString(),
             label: 'Activités\nréalisées',
             isDark: isDark,
           ),
@@ -399,6 +449,163 @@ class _MonParcoursScreenState extends ConsumerState<MonParcoursScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildQuizResultsSection(List<HistoriquePointModel> items, bool isDark) {
+    if (items.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+          ),
+        ),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.quiz_outlined,
+              size: 36,
+              color: Color(0xFF075E4D),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Aucun quiz réalisé pour le moment',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Lancez un quiz culturel pour voir vos scores et débloquer vos badges Bambara.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () => context.push(AppRouter.quizList),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF075E4D),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: const Icon(Icons.play_arrow_rounded, size: 18),
+              label: const Text(
+                'Découvrir les quiz',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+    final displayList = items.take(5).toList();
+
+    return Column(
+      children: displayList.map((item) {
+        final desc = item.description ?? 'Quiz culturel';
+        final descLower = desc.toLowerCase();
+        final isAbandon = item.action.toUpperCase() == 'QUIZ_ABANDON' || descLower.contains('abandonné');
+        final isNonValide = !isAbandon && descLower.contains('non validé');
+
+        final Color statusColor = isAbandon
+            ? const Color(0xFFDC2626)
+            : isNonValide
+                ? const Color(0xFFD97706)
+                : const Color(0xFF075E4D);
+
+        final Color statusBg = isAbandon
+            ? (isDark ? const Color(0xFF4C1D24) : const Color(0xFFFEE2E2))
+            : isNonValide
+                ? (isDark ? const Color(0xFF3B2F17) : const Color(0xFFFEF3C7))
+                : (isDark ? const Color(0xFF134E42) : const Color(0xFFE8F5F1));
+
+        final IconData statusIcon = isAbandon
+            ? Icons.flag_rounded
+            : isNonValide
+                ? Icons.refresh_rounded
+                : Icons.military_tech_rounded;
+
+        final String formattedDate = item.dateGain != null
+            ? dateFormat.format(item.dateGain!)
+            : 'Récemment';
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: statusBg,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(statusIcon, color: statusColor, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      desc,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      formattedDate,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? AppColors.darkTextSecondary : const Color(0xFF94A3B8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: statusBg,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  isAbandon ? '0 pt' : '+${item.pointsGagnes} pts',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    color: statusColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 

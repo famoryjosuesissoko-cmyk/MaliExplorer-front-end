@@ -43,30 +43,29 @@ class StorageService {
     final uniquePath = '$folder/${DateTime.now().millisecondsSinceEpoch}_$cleanFileName';
 
     // 1. Priorité Architecture MaliExplorer : Upload sécurisé via l'API REST Spring Boot
-    if (apiService != null) {
-      try {
-        final endpoint = folder == 'avatars' ? '/storage/upload/avatars' : '/storage/upload';
-        final response = await apiService.uploadMultipart(
-          endpoint,
-          fileFieldName: 'file',
-          fileBytes: bytes,
-          filename: cleanFileName,
-          fields: {'folder': folder},
-        );
+    final effectiveApiService = apiService ?? ApiService();
+    try {
+      final endpoint = folder == 'avatars' ? '/storage/upload/avatars' : '/storage/upload';
+      final response = await effectiveApiService.uploadMultipart(
+        endpoint,
+        fileFieldName: 'file',
+        fileBytes: bytes,
+        filename: cleanFileName,
+        fields: {'folder': folder},
+      );
 
-        if (response.statusCode == 201 || response.statusCode == 200) {
-          final data = jsonDecode(response.body) as Map<String, dynamic>;
-          final url = data['fileUrl'] as String? ?? data['url'] as String?;
-          if (url != null && url.isNotEmpty) {
-            debugPrint('[StorageService] Fichier uploadé avec succès via Spring Boot: $url');
-            return url;
-          }
-        } else {
-          debugPrint('[StorageService] Erreur API Spring Boot (${response.statusCode}): ${response.body}');
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final url = data['fileUrl'] as String? ?? data['url'] as String?;
+        if (url != null && url.isNotEmpty) {
+          debugPrint('[StorageService] Fichier uploadé avec succès via Spring Boot: $url');
+          return url;
         }
-      } catch (backendError) {
-        debugPrint('[StorageService] Erreur connexion backend Spring Boot: $backendError');
+      } else {
+        debugPrint('[StorageService] Erreur API Spring Boot (${response.statusCode}): ${response.body}');
       }
+    } catch (backendError) {
+      debugPrint('[StorageService] Erreur connexion backend Spring Boot: $backendError');
     }
 
     // 2. Secours : Tentative directe vers Supabase Storage

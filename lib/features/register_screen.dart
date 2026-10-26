@@ -8,9 +8,8 @@ import '../core/constants/app_colors.dart';
 import '../core/services/storage_service.dart';
 import '../core/services/api_service.dart';
 import '../router/app_router.dart';
+import '../models/user_model.dart';
 import 'auth/auth_controller.dart';
-
-enum UserRole { touriste, promoteur, guide }
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -49,6 +48,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   // Contrôleurs Promoteur / Guide
   final _nomOrganisationController = TextEditingController();
   final _nifRccmController = TextEditingController();
+  final _langueController = TextEditingController();
+  final _experienceController = TextEditingController();
+  final _descriptionController = TextEditingController();
 
   @override
   void dispose() {
@@ -61,6 +63,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     _nomOrganisationController.dispose();
     _nifRccmController.dispose();
+    _langueController.dispose();
+    _experienceController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -68,6 +73,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Future<void> _pickAvatar() async {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -250,6 +256,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       }
     }
 
+    final int? expVal = int.tryParse(_experienceController.text.trim());
     final success = await ref.read(authControllerProvider.notifier).register(
       prenom: _prenomController.text,
       nom: _nomController.text,
@@ -261,18 +268,63 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       photoUrl: photoUrl,
       nomOrganisation: _nomOrganisationController.text,
       pieceIdentite: pieceIdentiteUrl,
+      langue: _selectedRole == UserRole.guide ? _langueController.text.trim() : null,
+      experience: _selectedRole == UserRole.guide ? expVal : null,
+      description: _selectedRole == UserRole.guide ? _descriptionController.text.trim() : null,
     );
 
     if (!mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Compte créé avec succès ! Bienvenue sur MaliExplorer.'),
-          backgroundColor: AppColors.primaryForest,
-        ),
-      );
-      context.go(AppRouter.home);
+      if (_selectedRole == UserRole.promoteur || _selectedRole == UserRole.guide) {
+        final dialogTitle = _selectedRole == UserRole.guide
+            ? 'Demande Guide Enregistrée'
+            : 'Demande Promoteur Enregistrée';
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogCtx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: [
+                const Icon(Icons.verified_outlined, color: AppColors.primaryForest),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    dialogTitle,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            content: const Text(
+              "Votre dossier a bien été soumis. Il sera examiné par notre équipe. Vous serez informé de la décision après analyse de votre dossier. En attendant, vous pouvez continuer à utiliser l'application en tant que visiteur.",
+              style: TextStyle(fontSize: 14, height: 1.4),
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.of(dialogCtx).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryForest,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: const Text('Compris'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Compte créé avec succès ! Bienvenue sur MaliExplorer.'),
+            backgroundColor: AppColors.primaryForest,
+          ),
+        );
+      }
+      if (mounted) {
+        context.go(AppRouter.home);
+      }
     } else {
       final error = ref.read(authControllerProvider).errorMessage ?? 'Erreur lors de l\'inscription';
       ScaffoldMessenger.of(context).showSnackBar(
@@ -465,6 +517,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         return 'Rejoignez MaliExplorer comme guide touristique certifié.';
       case UserRole.promoteur:
         return 'Rejoignez MaliExplorer comme promoteur culturel ou événementiel.';
+      default:
+        return 'Rejoignez MaliExplorer et commencez votre aventure dès maintenant.';
     }
   }
 
@@ -747,6 +801,26 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           hint: 'Région / Ville d\'exercice',
           icon: Icons.location_on_outlined,
         ),
+        const SizedBox(height: 12),
+        _buildPillField(
+          controller: _langueController,
+          hint: 'Langues parlées (ex: Français, Bambara)',
+          icon: Icons.translate_outlined,
+        ),
+        const SizedBox(height: 12),
+        _buildPillField(
+          controller: _experienceController,
+          hint: 'Années d\'expérience (ex: 5)',
+          icon: Icons.work_history_outlined,
+          keyboardType: TextInputType.number,
+        ),
+        const SizedBox(height: 12),
+        _buildPillField(
+          controller: _descriptionController,
+          hint: 'Présentation / Bio professionnelle',
+          icon: Icons.description_outlined,
+          maxLines: 3,
+        ),
         const SizedBox(height: 14),
         _buildInteractiveFilePickerTile(
           title: 'Photo de profil',
@@ -1004,12 +1078,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     TextInputType? keyboardType,
     bool obscureText = false,
     Widget? suffixIcon,
+    int maxLines = 1,
     String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscureText,
+      maxLines: maxLines,
       style: const TextStyle(fontSize: 14),
       decoration: InputDecoration(
         hintText: hint,
@@ -1020,15 +1096,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(maxLines > 1 ? 16 : 24),
           borderSide: const BorderSide(color: AppColors.borderLight),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(maxLines > 1 ? 16 : 24),
           borderSide: const BorderSide(color: AppColors.borderLight),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(maxLines > 1 ? 16 : 24),
           borderSide: const BorderSide(color: AppColors.primaryForest, width: 1.5),
         ),
       ),

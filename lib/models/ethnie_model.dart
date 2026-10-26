@@ -34,64 +34,102 @@ class EthnieModel {
   static String getLocalPhotoHomme(String name) {
     final lower = name.toLowerCase();
     if (lower.contains('dogon')) return 'assets/images/ethnies/dogon_homme.jpeg';
-    if (lower.contains('peul') || lower.contains('fula')) return 'assets/images/ethnies/peul_homme.jpeg';
-    if (lower.contains('sonink')) return 'assets/images/ethnies/soninke_homme.jpeg';
-    if (lower.contains('touareg') || lower.contains('tuareg')) return 'assets/images/ethnies/touareg_homme.jpeg';
-    if (lower.contains('malink')) return 'assets/images/ethnies/malinke_homme.jpeg';
-    if (lower.contains('bambara')) return 'assets/images/ethnies/bambara_homme.jpeg';
-    return 'assets/images/ethnies/dogon_homme.jpeg';
+    if (lower.contains('peul') || lower.contains('fula') || lower.contains('fulbe')) return 'assets/images/ethnies/peul_homme.jpeg';
+    if (lower.contains('sonink') || lower.contains('sarakol')) return 'assets/images/ethnies/soninke_homme.jpeg';
+    if (lower.contains('touareg') || lower.contains('tuareg') || lower.contains('tamasheq')) return 'assets/images/ethnies/touareg_homme.jpeg';
+    if (lower.contains('malink') || lower.contains('mandink') || lower.contains('manding')) return 'assets/images/ethnies/malinke_homme.jpeg';
+    if (lower.contains('bambara') || lower.contains('bamana')) return 'assets/images/ethnies/bambara_homme.jpeg';
+    return '';
   }
 
   static String getLocalPhotoFemme(String name) {
     final lower = name.toLowerCase();
     if (lower.contains('dogon')) return 'assets/images/ethnies/dogon_femme.jpeg';
-    if (lower.contains('peul') || lower.contains('fula')) return 'assets/images/ethnies/peul_femme.jpeg';
-    if (lower.contains('sonink')) return 'assets/images/ethnies/soninke_femme.jpeg';
-    if (lower.contains('touareg') || lower.contains('tuareg')) return 'assets/images/ethnies/touareg_femme.jpeg';
-    if (lower.contains('malink')) return 'assets/images/ethnies/malinke_femme.jpeg';
-    if (lower.contains('bambara')) return 'assets/images/ethnies/Bambara2.jpeg';
-    return 'assets/images/ethnies/dogon_femme.jpeg';
+    if (lower.contains('peul') || lower.contains('fula') || lower.contains('fulbe')) return 'assets/images/ethnies/peul_femme.jpeg';
+    if (lower.contains('sonink') || lower.contains('sarakol')) return 'assets/images/ethnies/soninke_femme.jpeg';
+    if (lower.contains('touareg') || lower.contains('tuareg') || lower.contains('tamasheq')) return 'assets/images/ethnies/touareg_femme.jpeg';
+    if (lower.contains('malink') || lower.contains('mandink') || lower.contains('manding')) return 'assets/images/ethnies/malinke_femme.jpeg';
+    if (lower.contains('bambara') || lower.contains('bamana')) return 'assets/images/ethnies/Bambara2.jpeg';
+    return '';
   }
 
   String get displayPhoto => photoHomme.isNotEmpty ? photoHomme : imageUrl;
 
   factory EthnieModel.fromJson(Map<String, dynamic> json) {
-    final nomEthnie = json['nom'] ?? json['nomEthnie'] ?? '';
-    final defaultMatch = defaultEthnies.firstWhere(
-      (e) => e.nom.toLowerCase().contains(nomEthnie.toLowerCase()) ||
-          nomEthnie.toLowerCase().contains(e.nom.toLowerCase()),
-      orElse: () => defaultEthnies.first,
-    );
+    final nomEthnie = (json['nom'] ?? json['nomEthnie'] ?? '').toString().trim();
+    
+    // Correspondance exacte ou partielle avec les ethnies patrimoniales pour enrichissement
+    // SANS JAMAIS replier vers defaultEthnies.first (Dogon) par défaut !
+    EthnieModel? exactMatch;
+    if (nomEthnie.isNotEmpty) {
+      for (final e in defaultEthnies) {
+        final eNom = e.nom.toLowerCase();
+        final nNom = nomEthnie.toLowerCase();
+        if (eNom == nNom || (nNom.length >= 4 && (eNom.contains(nNom) || nNom.contains(eNom)))) {
+          exactMatch = e;
+          break;
+        }
+      }
+    }
 
-    final rawImg = json['imageUrl'] ?? json['photoUrl'];
+    final rawImg = json['imageUrl'] ?? json['photoUrl'] ?? json['image'];
+    final localHomme = getLocalPhotoHomme(nomEthnie);
+    final localFemme = getLocalPhotoFemme(nomEthnie);
+
     final resolvedImg = (rawImg != null && rawImg.toString().trim().isNotEmpty)
         ? rawImg.toString().trim()
-        : getLocalPhotoHomme(nomEthnie);
+        : (localHomme.isNotEmpty ? localHomme : (exactMatch?.imageUrl ?? ''));
+
+    final photoHommeVal = (json['photoHomme'] != null && json['photoHomme'].toString().trim().isNotEmpty)
+        ? json['photoHomme'].toString().trim()
+        : (localHomme.isNotEmpty ? localHomme : (exactMatch?.photoHomme ?? resolvedImg));
+
+    final photoFemmeVal = (json['photoFemme'] != null && json['photoFemme'].toString().trim().isNotEmpty)
+        ? json['photoFemme'].toString().trim()
+        : (localFemme.isNotEmpty ? localFemme : (exactMatch?.photoFemme ?? ''));
+
+    final idVal = json['id'] ?? json['idEthnie'];
+    final int resolvedId = idVal is int
+        ? idVal
+        : int.tryParse(idVal?.toString() ?? '') ?? (exactMatch?.id ?? 0);
 
     return EthnieModel(
-      id: json['id'] ?? json['idEthnie'] ?? defaultMatch.id,
-      nom: nomEthnie.isNotEmpty ? nomEthnie : defaultMatch.nom,
-      region: json['region'] ?? defaultMatch.region,
-      population: json['population'] ?? defaultMatch.population,
-      description: json['description'] ?? defaultMatch.description,
+      id: resolvedId,
+      nom: nomEthnie.isNotEmpty ? nomEthnie : (exactMatch?.nom ?? 'Ethnie'),
+      region: (json['region']?.toString().trim().isNotEmpty ?? false)
+          ? json['region'].toString().trim()
+          : (exactMatch?.region ?? ''),
+      population: (json['population']?.toString().trim().isNotEmpty ?? false)
+          ? json['population'].toString().trim()
+          : (exactMatch?.population ?? ''),
+      description: (json['description']?.toString().trim().isNotEmpty ?? false)
+          ? json['description'].toString().trim()
+          : (exactMatch?.description ?? ''),
       imageUrl: resolvedImg,
-      photoHomme: (json['photoHomme'] != null &&
-              json['photoHomme'].toString().trim().isNotEmpty)
-          ? json['photoHomme'].toString()
-          : resolvedImg,
-      photoFemme: (json['photoFemme'] != null &&
-              json['photoFemme'].toString().trim().isNotEmpty)
-          ? json['photoFemme'].toString()
-          : getLocalPhotoFemme(nomEthnie),
-      titreHomme: json['titreHomme'] ?? defaultMatch.titreHomme,
-      articleHomme: json['articleHomme'] ?? defaultMatch.articleHomme,
-      titreFemme: json['titreFemme'] ?? defaultMatch.titreFemme,
-      articleFemme: json['articleFemme'] ?? defaultMatch.articleFemme,
+      photoHomme: photoHommeVal,
+      photoFemme: photoFemmeVal,
+      titreHomme: (json['titreHomme']?.toString().trim().isNotEmpty ?? false)
+          ? json['titreHomme'].toString().trim()
+          : (exactMatch?.titreHomme ?? ''),
+      articleHomme: (json['articleHomme']?.toString().trim().isNotEmpty ?? false)
+          ? json['articleHomme'].toString().trim()
+          : (exactMatch?.articleHomme ?? ''),
+      titreFemme: (json['titreFemme']?.toString().trim().isNotEmpty ?? false)
+          ? json['titreFemme'].toString().trim()
+          : (exactMatch?.titreFemme ?? ''),
+      articleFemme: (json['articleFemme']?.toString().trim().isNotEmpty ?? false)
+          ? json['articleFemme'].toString().trim()
+          : (exactMatch?.articleFemme ?? ''),
       coutumes: (json['coutumes'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
-          defaultMatch.coutumes,
-      langue: json['langue'] ?? defaultMatch.langue,
+          (exactMatch?.coutumes ?? const []),
+      langue: (json['langue']?.toString().trim().isNotEmpty ?? false)
+          ? json['langue'].toString().trim()
+          : (exactMatch?.langue ??
+              ((json['langues']?.toString().trim().isNotEmpty ?? false)
+                  ? json['langues'].toString().trim()
+                  : 'Langue traditionnelle')),
     );
   }
 

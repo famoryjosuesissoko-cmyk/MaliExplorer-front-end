@@ -7,13 +7,17 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../core/constants/app_colors.dart';
 import '../core/services/api_service.dart';
+import '../core/services/auth_service.dart';
 import '../core/services/storage_service.dart';
 import '../core/services/badge_progression_service.dart';
 import '../core/services/historique_service.dart';
+import '../models/user_model.dart';
 import '../providers/favoris_provider.dart';
+import '../widgets/promoteur_status_banner.dart';
 import '../main.dart';
 import '../router/app_router.dart';
 import 'auth/auth_controller.dart';
+import 'explorer_screen.dart';
 
 class ProfilScreen extends ConsumerStatefulWidget {
   const ProfilScreen({super.key});
@@ -61,6 +65,7 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
 
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -200,21 +205,40 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
     final user = userAsync.value ?? _safeCurrentUser();
     final authState = ref.watch(authControllerProvider);
     final userMap = authState.user;
-    final bool isAuthenticated = (user != null || (userMap != null && userMap.isNotEmpty));
-    final photoUrl = user?.photoURL ?? userMap?['photoUrl'];
+    final bool isAuthenticated = (user != null ||
+        (userMap != null && userMap.isNotEmpty) ||
+        authState.userModel != null);
+    final photoUrl = user?.photoURL ?? userMap?['photoUrl'] ?? authState.userModel?.photoUrl;
     final isDarkMode = ref.watch(themeModeProvider) == ThemeMode.dark;
-    final String currentEmail = (user?.email ?? userMap?['email'] ?? '').toString().toLowerCase();
-    final bool isAppAdmin = currentEmail == 'famoryjosuesissoko@gmail.com' || currentEmail == 'hamath.o.diallo18@gmail.com';
-    final String rawRole = (userMap?['role'] ?? userMap?['roleName'] ?? (isAppAdmin ? 'admin' : 'touriste')).toString().toLowerCase();
-    final bool isAdmin = rawRole.contains('admin') || isAppAdmin;
-    final bool isPromoteur = !isAdmin && rawRole.contains('promoteur');
-    final bool isGuide = !isAdmin && !isPromoteur && rawRole.contains('guide');
+    final String currentEmail = (user?.email ?? userMap?['email'] ?? authState.userModel?.email ?? '').toString().toLowerCase();
+    final String rawRole = (authState.userModel?.role.name ??
+            userMap?['role'] ??
+            userMap?['roleName'] ??
+            AuthService.cachedRole ??
+            'touriste')
+        .toString()
+        .toLowerCase();
+    final bool isAdmin = rawRole.contains('admin');
+    final bool isPromoteur = !isAdmin &&
+        (rawRole.contains('promoteur') ||
+            (authState.userModel != null &&
+                authState.userModel!.role == UserRole.promoteur));
+    final bool isGuide = !isAdmin &&
+        !isPromoteur &&
+        (rawRole.contains('guide') ||
+            (authState.userModel != null &&
+                authState.userModel!.role == UserRole.guide));
 
+    final currentModel = authState.currentUserModel;
     final String displayName = (user?.displayName != null && user!.displayName!.trim().isNotEmpty)
         ? user.displayName!
         : (userMap != null && (userMap['prenom'] != null || userMap['nom'] != null))
             ? '${userMap['prenom'] ?? ''} ${userMap['nom'] ?? ''}'.trim()
-            : 'Utilisateur MaliExplorer';
+            : (currentModel != null &&
+                    (currentModel.prenom.isNotEmpty ||
+                        currentModel.nom.isNotEmpty))
+                ? '${currentModel.prenom} ${currentModel.nom}'.trim()
+                : 'Utilisateur MaliExplorer';
 
     return Scaffold(
       backgroundColor: isDarkMode ? AppColors.darkBackground : const Color(0xFFF7F8F5),
@@ -448,6 +472,10 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
                           ),
                         ),
                       ),
+                      if (isPromoteur || isGuide) ...[
+                        const SizedBox(height: 12),
+                        PromoteurStatusBanner(isDark: isDarkMode),
+                      ],
                     ] else ...[
                       const SizedBox(height: 16),
                       // Boutons d'action Visiteur (Se connecter / Créer un compte)
@@ -512,6 +540,15 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
                       ),
                     ],
 
+                    // Accès dédié aux Quiz et Défis Culturels (indispensable pour les promoteurs validés dont l'onglet a été remplacé, et les visiteurs)
+                    _buildMenuItem(
+                      icon: Icons.quiz_rounded,
+                      title: 'Quiz et Défis Culturels',
+                      subtitle: 'Testez vos connaissances et découvrez le patrimoine',
+                      isDark: isDarkMode,
+                      onTap: () => context.push(AppRouter.quizList),
+                    ),
+
                     _buildSwitchMenuItem(
                       icon: isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
                       title: isDarkMode ? 'Mode Nuit (Sombre)' : 'Mode Jour (Clair)',
@@ -538,20 +575,123 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
                         isDark: isDarkMode,
                         onTap: () => context.push(AppRouter.historique),
                       ),
-                      // Espaces Professionnels & Partenariats B2B (Guides & Promoteurs)
-                      if (isGuide)
+                      // Accès permanent aux billets achetés et preuves d'achat numériques
+                      _buildMenuItem(
+                        icon: Icons.confirmation_number_outlined,
+                        title: 'Mes billets',
+                        subtitle: 'Billets réservés et preuves d\'achat numériques',
+                        isDark: isDarkMode,
+                        onTap: () => ExplorerScreen.showMesBilletsModal(context),
+                      ),
+                      // Espaces Professionnels & Administration Mobile
+                      if (isGuide && !isAdmin)
                         _buildMenuItem(
                           icon: Icons.person_pin_circle_rounded,
                           title: 'Espace Guide & Partenariat',
-                          subtitle: 'Ma fiche guide, statut de validation & demandes',
+                          subtitle: 'Mon circuit touristique, fiche guide & statut',
                           isDark: isDarkMode,
-                          onTap: () => context.push(AppRouter.promoteurDashboard),
+                          onTap: () {
+                            final isValide = currentModel?.isGuideValide ??
+                                ((authState.userModel?.statutModeration ??
+                                            userMap?['statutModeration'] ??
+                                            AuthService.cachedStatutModeration ??
+                                            '')
+                                        .toString()
+                                        .toUpperCase() ==
+                                    'VALIDE' ||
+                                (authState.userModel?.statutModeration ??
+                                            userMap?['statutModeration'] ??
+                                            AuthService.cachedStatutModeration ??
+                                            '')
+                                        .toString()
+                                        .toUpperCase() ==
+                                    'APPROUVE');
+                            final isRejete = currentModel?.isGuideRejete ??
+                                ((authState.userModel?.statutModeration ??
+                                            userMap?['statutModeration'] ??
+                                            AuthService.cachedStatutModeration ??
+                                            '')
+                                        .toString()
+                                        .toUpperCase() ==
+                                    'REJETE' ||
+                                (authState.userModel?.statutModeration ??
+                                            userMap?['statutModeration'] ??
+                                            AuthService.cachedStatutModeration ??
+                                            '')
+                                        .toString()
+                                        .toUpperCase() ==
+                                    'REFUSE');
+
+                            if (!isValide) {
+                              showDialog<void>(
+                                context: context,
+                                builder: (dialogCtx) => AlertDialog(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  title: Row(
+                                    children: [
+                                      Icon(
+                                        isRejete
+                                            ? Icons.cancel_outlined
+                                            : Icons.hourglass_top_rounded,
+                                        color: isRejete
+                                            ? const Color(0xFFDC2626)
+                                            : const Color(0xFFD97706),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          isRejete
+                                              ? 'Candidature non retenue'
+                                              : 'Dossier en cours d\'examen',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  content: Text(
+                                    isRejete
+                                        ? "Votre candidature de guide n'a pas été retenue par notre équipe. Vous conservez votre accès visiteur complet aux contenus de l'application."
+                                        : "Votre dossier a bien été soumis. Il sera examiné par notre équipe. Vous serez informé de la décision après analyse de votre dossier. En attendant, vous pouvez continuer à utiliser l'application en tant que visiteur.",
+                                    style: const TextStyle(fontSize: 14, height: 1.4),
+                                  ),
+                                  actions: [
+                                    ElevatedButton(
+                                      onPressed: () => Navigator.of(dialogCtx).pop(),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF075E4D),
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                      child: const Text('Compris'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            } else {
+                              context.push(AppRouter.promoteurDashboard);
+                            }
+                          },
                         ),
-                      if (isPromoteur || isAdmin)
+                      if (isPromoteur && !isAdmin)
                         _buildMenuItem(
                           icon: Icons.campaign_rounded,
                           title: 'Espace Promoteur',
-                          subtitle: 'Festivals, projets culturels & sponsors B2B',
+                          subtitle: 'Festivals, événements culturels & billetterie',
+                          isDark: isDarkMode,
+                          onTap: () => context.push(AppRouter.promoteurDashboard),
+                        ),
+                      if (isAdmin)
+                        _buildMenuItem(
+                          icon: Icons.analytics_outlined,
+                          title: 'Activités récentes',
+                          subtitle: 'Suivi mobile des inscriptions, publications & billets',
                           isDark: isDarkMode,
                           onTap: () => context.push(AppRouter.promoteurDashboard),
                         ),
@@ -595,7 +735,7 @@ class _ProfilScreenState extends ConsumerState<ProfilScreen> {
                         },
                       ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 110),
                   ],
                 ),
               ),
