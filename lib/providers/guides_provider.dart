@@ -4,7 +4,8 @@ import '../models/guide_model.dart';
 
 final guidesProvider = FutureProvider<List<GuideModel>>((ref) async {
   final service = ref.watch(guideServiceProvider);
-  return await service.getGuides();
+  final allGuides = await service.getGuides();
+  return allGuides.where((g) => g.statut.toUpperCase() != 'BLOQUE').toList();
 });
 
 final guideSearchQueryProvider = StateProvider<String>((ref) => '');

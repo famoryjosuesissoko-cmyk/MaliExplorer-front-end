@@ -34,13 +34,39 @@ class _VisiteVirtuelle360ScreenState extends State<VisiteVirtuelle360Screen> {
     }
   }
 
+  void _handleBackNavigation() {
+    if (mounted) {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      } else {
+        context.go('/carte');
+      }
+    }
+  }
+
   void _initMobileWebView() {
     try {
       final controller = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setBackgroundColor(const Color(0xFF0D1E1A))
+        ..addJavaScriptChannel(
+          'MaliExplorerChannel',
+          onMessageReceived: (JavaScriptMessage message) {
+            if (message.message == 'goBack') {
+              _handleBackNavigation();
+            }
+          },
+        )
         ..setNavigationDelegate(
           NavigationDelegate(
+            onNavigationRequest: (NavigationRequest request) {
+              if (request.url.startsWith('maliexplorer://back') ||
+                  request.url.contains('goBack')) {
+                _handleBackNavigation();
+                return NavigationDecision.prevent;
+              }
+              return NavigationDecision.navigate;
+            },
             onPageStarted: (String url) {
               if (mounted) setState(() => _isLoading = true);
             },
