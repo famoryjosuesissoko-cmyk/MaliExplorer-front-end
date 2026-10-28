@@ -81,6 +81,14 @@ class ApiService {
       if (res.statusCode == 401 && FirebaseAuth.instance.currentUser != null) {
         await _ensureAuthToken(forceRefresh: true);
         res = await requestFn(_activeBaseUrl);
+      } else if (res.statusCode == 403 && (res.body.contains('Compte Bloqué') || res.body.contains('bloqué'))) {
+        // Le compte actuellement connecté a été bloqué par l'administration : purger le token
+        _sharedAuthToken = null;
+        try {
+          await FirebaseAuth.instance.signOut();
+        } catch (_) {}
+        // Retenter la requête sans token (visiteur anonyme) si c'était une consultation publique
+        res = await requestFn(_activeBaseUrl);
       }
       ApiConstants.setActiveBaseUrl(_activeBaseUrl);
       return res;
@@ -91,6 +99,12 @@ class ApiService {
             var res = await requestFn(candidate).timeout(ApiConstants.probeTimeout);
             if (res.statusCode == 401 && FirebaseAuth.instance.currentUser != null) {
               await _ensureAuthToken(forceRefresh: true);
+              res = await requestFn(candidate).timeout(ApiConstants.probeTimeout);
+            } else if (res.statusCode == 403 && (res.body.contains('Compte Bloqué') || res.body.contains('bloqué'))) {
+              _sharedAuthToken = null;
+              try {
+                await FirebaseAuth.instance.signOut();
+              } catch (_) {}
               res = await requestFn(candidate).timeout(ApiConstants.probeTimeout);
             }
             _activeBaseUrl = candidate; // Sauvegarde de l'URL fonctionnelle

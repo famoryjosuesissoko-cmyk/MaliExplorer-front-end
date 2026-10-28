@@ -4,6 +4,7 @@ class GuideModel {
   final String prenom;
   final String nom;
   final String email;
+  final String telephone;
   final String adresse;
   final String photoUrl;
   final String? dateCreation;
@@ -15,6 +16,7 @@ class GuideModel {
   final String? titreProjet;
   final String? besoinPartenariat;
   final String? statutModeration;
+  final String statut;
 
   const GuideModel({
     required this.idUsers,
@@ -22,6 +24,7 @@ class GuideModel {
     required this.prenom,
     required this.nom,
     required this.email,
+    this.telephone = '',
     required this.adresse,
     required this.photoUrl,
     this.dateCreation,
@@ -33,6 +36,7 @@ class GuideModel {
     this.titreProjet,
     this.besoinPartenariat,
     this.statutModeration,
+    this.statut = 'ACTIF',
   });
 
   String get fullName => '$prenom $nom'.trim();
@@ -44,6 +48,7 @@ class GuideModel {
       prenom: json['prenom'] ?? '',
       nom: json['nom'] ?? '',
       email: json['email'] ?? '',
+      telephone: json['telephone'] ?? '',
       adresse: json['adresse'] ?? '',
       photoUrl: json['photoUrl'] ?? '',
       dateCreation: json['dateCreation']?.toString(),
@@ -55,6 +60,7 @@ class GuideModel {
       titreProjet: json['titreProjet'],
       besoinPartenariat: json['besoinPartenariat'],
       statutModeration: json['statutModeration'],
+      statut: json['statut'] ?? 'ACTIF',
     );
   }
 
@@ -65,6 +71,7 @@ class GuideModel {
       'prenom': prenom,
       'nom': nom,
       'email': email,
+      'telephone': telephone,
       'adresse': adresse,
       'photoUrl': photoUrl,
       'dateCreation': dateCreation,
@@ -76,6 +83,7 @@ class GuideModel {
       'titreProjet': titreProjet,
       'besoinPartenariat': besoinPartenariat,
       'statutModeration': statutModeration,
+      'statut': statut,
     };
   }
 }

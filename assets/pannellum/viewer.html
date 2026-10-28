@@ -255,6 +255,17 @@
         }
 
         /* Pannellum overrides */
+        .pnlm-controls-container {
+            top: 72px !important;
+            left: 14px !important;
+        }
+        .pnlm-zoom-controls {
+            background-color: rgba(13, 30, 26, 0.85) !important;
+            border: 1px solid rgba(214, 162, 58, 0.5) !important;
+            border-radius: 8px !important;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
         .pnlm-load-button {
             background-color: #075E4D !important;
             border: 2px solid #D6A23A !important;
@@ -287,19 +298,19 @@
     <div class="bottom-controls-bar">
         <div class="bottom-controls">
             <button id="btn-scene-aerienne" class="btn-scene active" onclick="loadScene('aerienne')">
-                🌐 Vue Panoramique
+                Vue Panoramique
             </button>
             <button id="btn-scene-facade" class="btn-scene" onclick="loadScene('facade')">
-                🕌 Façade & Torons
+                Vue lateral
             </button>
             <button id="btn-scene-cour_centrale" class="btn-scene" onclick="loadScene('cour_centrale')">
-                🏛️ Cour Intérieure
+                Cour Interieur
             </button>
             <button id="btn-scene-nef_hypostyle" class="btn-scene" onclick="loadScene('nef_hypostyle')">
-                ✨ Nef Hypostyle
+                Vue Interieur
             </button>
             <button id="btn-scene-ruelle" class="btn-scene" onclick="loadScene('ruelle')">
-                🧱 Ruelle & Contreforts
+                vue ruelle
             </button>
         </div>
     </div>
@@ -313,11 +324,39 @@
 
     <script>
         function goBack() {
-            if (window.history.length > 1) {
-                window.history.back();
-            } else {
-                window.location.href = '/#/carte';
+            // 1. Détecter le canal JavaScript MaliExplorer WebView mobile
+            if (window.MaliExplorerChannel && typeof window.MaliExplorerChannel.postMessage === 'function') {
+                try {
+                    window.MaliExplorerChannel.postMessage('goBack');
+                    return;
+                } catch(e) {
+                    console.error('Erreur MaliExplorerChannel:', e);
+                }
             }
+            // 2. Schéma d'URL personnalisé intercepté par la WebView Flutter
+            try {
+                window.location.href = 'maliexplorer://back';
+            } catch(e) {}
+
+            // 3. Fallback Web (popup / onglet / iframe / historique)
+            setTimeout(function() {
+                try {
+                    if (window.opener && !window.opener.closed) {
+                        window.close();
+                        return;
+                    }
+                } catch(e) {}
+                try {
+                    if (window.parent && window.parent !== window) {
+                        window.parent.postMessage({ type: 'MALI_EXPLORER_CLOSE' }, '*');
+                    }
+                } catch(e) {}
+                if (window.history.length > 1) {
+                    window.history.back();
+                } else {
+                    window.location.href = '/#/carte';
+                }
+            }, 150);
         }
 
         function toggleFullscreen() {

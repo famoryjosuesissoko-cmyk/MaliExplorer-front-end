@@ -360,15 +360,18 @@ class AuthService {
     final prenom = nameParts.first;
     final nom = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : 'Google';
 
-    return springProfile ??
+    final result = springProfile ??
         {
           'email': userCredential.user?.email ?? googleUser.email,
           'displayName': displayName,
           'prenom': prenom,
           'nom': nom,
+          'role': cachedRole ?? 'touriste',
           'photoUrl': userCredential.user?.photoURL ?? googleUser.photoUrl,
           'idToken': idToken,
         };
+    await persistSessionData(UserModel.fromJson(result));
+    return result;
   }
 
   /// Envoie un lien de connexion sans mot de passe (Magic Link) par e-mail
