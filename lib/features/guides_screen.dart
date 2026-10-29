@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/guide_model.dart';
 import '../providers/guides_provider.dart';
 import '../router/app_router.dart';
@@ -24,6 +26,248 @@ class _GuidesScreenState extends ConsumerState<GuidesScreen> {
   void _clearSearch() {
     _searchController.clear();
     ref.read(guideSearchQueryProvider.notifier).state = '';
+  }
+
+  Future<void> _makePhoneCall(BuildContext context, String phoneNumber) async {
+    final cleanPhone = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
+    if (cleanPhone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Le numéro de téléphone n'est pas renseigné."),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    final Uri launchUri = Uri(scheme: 'tel', path: cleanPhone);
+    try {
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri);
+        return;
+      }
+    } catch (_) {}
+    try {
+      await launchUrl(launchUri, mode: LaunchMode.externalApplication);
+      return;
+    } catch (_) {}
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Numéro de téléphone : $phoneNumber'),
+          backgroundColor: const Color(0xFF075E4D),
+          action: SnackBarAction(
+            label: 'Copier',
+            textColor: Colors.amber,
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: phoneNumber));
+            },
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _sendEmail(BuildContext context, String email, String guideName) async {
+    if (email.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("L'adresse email n'est pas renseignée."),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    final Uri launchUri = Uri(
+      scheme: 'mailto',
+      path: email.trim(),
+      query:
+          'subject=${Uri.encodeComponent("Demande de visite guidée - MaliExplorer")}&body=${Uri.encodeComponent("Bonjour $guideName,\n\nJe souhaiterais échanger avec vous concernant l\'organisation d\'une visite guidée au Mali.\n\nCordialement,")}',
+    );
+    try {
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri);
+        return;
+      }
+    } catch (_) {}
+    try {
+      await launchUrl(launchUri, mode: LaunchMode.externalApplication);
+      return;
+    } catch (_) {}
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Email : $email'),
+          backgroundColor: const Color(0xFF075E4D),
+          action: SnackBarAction(
+            label: 'Copier',
+            textColor: Colors.amber,
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: email));
+            },
+          ),
+        ),
+      );
+    }
+  }
+
+  void _showGuideContactSheet(BuildContext context, GuideModel guide, bool isDark) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.25),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 18),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.black12,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Image.network(
+                    guide.photoUrl.isNotEmpty
+                        ? guide.photoUrl
+                        : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=400&auto=format&fit=crop',
+                    width: 58,
+                    height: 58,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      width: 58,
+                      height: 58,
+                      color: const Color(0xFF075E4D).withValues(alpha: 0.15),
+                      child: const Icon(Icons.person, color: Color(0xFF075E4D)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        guide.fullName,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? Colors.white : const Color(0xFF16332D),
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'Guide Touristique Certifié (${guide.experience} ans d\'exp.)',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          color: Color(0xFF059669),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (guide.description.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              Text(
+                guide.description,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? Colors.white70 : const Color(0xFF6C7C77),
+                  height: 1.4,
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
+            Text(
+              'Langues : ${guide.langue.isNotEmpty ? guide.langue : "Bambara, Français"}',
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? Colors.white60 : const Color(0xFF6C7C77),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 20),
+            if (guide.telephone.isNotEmpty) ...[
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _makePhoneCall(context, guide.telephone);
+                },
+                icon: const Icon(Icons.phone_in_talk_rounded, size: 20),
+                label: Text(
+                  'Appeler (${guide.telephone})',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF075E4D),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 2,
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+            if (guide.email.isNotEmpty) ...[
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _sendEmail(context, guide.email, guide.fullName);
+                },
+                icon: const Icon(Icons.email_outlined, size: 20),
+                label: Text(
+                  'Envoyer un e-mail (${guide.email})',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF075E4D),
+                  side: const BorderSide(color: Color(0xFF075E4D), width: 1.5),
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ],
+            if (guide.telephone.isEmpty && guide.email.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    'Aucun canal de contact direct renseigné pour ce guide.',
+                    style: TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -131,7 +375,7 @@ class _GuidesScreenState extends ConsumerState<GuidesScreen> {
                             ),
                           ),
                         ),
-                        error: (err, stack) => _buildErrorState(isDark),
+                        error: (err, stack) => _buildErrorState(isDark, err.toString()),
                         data: (guides) {
                           if (guides.isEmpty) {
                             if (searchQuery.isNotEmpty) {
@@ -301,7 +545,12 @@ class _GuidesScreenState extends ConsumerState<GuidesScreen> {
   }
 
   /// État d'erreur réseau / serveur avec bouton « Réessayer »
-  Widget _buildErrorState(bool isDark) {
+  Widget _buildErrorState(bool isDark, [String? errorMessage]) {
+    final bool isBlockedOrForbidden = errorMessage != null &&
+        (errorMessage.contains('403') ||
+            errorMessage.contains('bloqué') ||
+            errorMessage.contains('Bloqué'));
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
       child: Column(
@@ -314,15 +563,19 @@ class _GuidesScreenState extends ConsumerState<GuidesScreen> {
               color: Colors.red.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.cloud_off_rounded,
+            child: Icon(
+              isBlockedOrForbidden
+                  ? Icons.lock_person_rounded
+                  : Icons.cloud_off_rounded,
               color: Colors.redAccent,
               size: 34,
             ),
           ),
           const SizedBox(height: 16),
           Text(
-            'Impossible de charger les guides touristiques',
+            isBlockedOrForbidden
+                ? 'Accès Restreint ou Compte Bloqué'
+                : 'Impossible de charger les guides touristiques',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,
@@ -332,7 +585,9 @@ class _GuidesScreenState extends ConsumerState<GuidesScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Vérifiez votre connexion réseau et réessayez.',
+            isBlockedOrForbidden
+                ? 'Ce compte a été restreint par l\'administration. La session a été révoquée.'
+                : 'Vérifiez votre connexion réseau et réessayez.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
@@ -368,7 +623,6 @@ class _GuidesScreenState extends ConsumerState<GuidesScreen> {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -383,85 +637,225 @@ class _GuidesScreenState extends ConsumerState<GuidesScreen> {
           color: isDark ? const Color(0xFF334155) : Colors.black.withValues(alpha: 0.05),
         ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              photo,
-              width: 76,
-              height: 76,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                width: 76,
-                height: 76,
-                color: const Color(0xFF075E4D).withValues(alpha: 0.15),
-                child: const Icon(
-                  Icons.person,
-                  color: Color(0xFF075E4D),
-                  size: 32,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: () => _showGuideContactSheet(context, guide, isDark),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  guide.fullName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 15.5,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF075E4D),
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  guide.description.isNotEmpty
-                      ? guide.description
-                      : 'Guide touristique (${guide.experience} ans d\'expérience)',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w500,
-                    color: isDark ? Colors.white70 : const Color(0xFF6C7C77),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.language_rounded,
-                      color: Color(0xFF0E8F76),
-                      size: 14,
-                    ),
-                    const SizedBox(width: 5),
-                    Expanded(
-                      child: Text(
-                        guide.langue.isNotEmpty
-                            ? guide.langue
-                            : 'Bambara, Français',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          color: isDark ? Colors.white60 : const Color(0xFF6C7C77),
-                          fontWeight: FontWeight.w500,
-                        ),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    photo,
+                    width: 78,
+                    height: 78,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 78,
+                      height: 78,
+                      color: const Color(0xFF075E4D).withValues(alpha: 0.15),
+                      child: const Icon(
+                        Icons.person,
+                        color: Color(0xFF075E4D),
+                        size: 32,
                       ),
                     ),
-                  ],
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              guide.fullName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 15.5,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF075E4D),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.verified_rounded, color: Color(0xFF059669), size: 13),
+                                SizedBox(width: 3),
+                                Text(
+                                  'Certifié',
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF059669),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        guide.description.isNotEmpty
+                            ? guide.description
+                            : 'Guide touristique (${guide.experience} ans d\'expérience)',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w500,
+                          color: isDark ? Colors.white70 : const Color(0xFF6C7C77),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.language_rounded,
+                            color: Color(0xFF0E8F76),
+                            size: 14,
+                          ),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              guide.langue.isNotEmpty
+                                  ? guide.langue
+                                  : 'Bambara, Français',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: isDark ? Colors.white60 : const Color(0xFF6C7C77),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      // Canaux cliquables : Appel téléphonique et/ou Email
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          if (guide.telephone.isNotEmpty)
+                            InkWell(
+                              onTap: () => _makePhoneCall(context, guide.telephone),
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF075E4D),
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF075E4D).withValues(alpha: 0.3),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.call_rounded, size: 13, color: Colors.white),
+                                    SizedBox(width: 5),
+                                    Text(
+                                      'Appeler',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          if (guide.email.isNotEmpty)
+                            InkWell(
+                              onTap: () => _sendEmail(context, guide.email, guide.fullName),
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF075E4D).withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: const Color(0xFF075E4D),
+                                    width: 1.2,
+                                  ),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.email_outlined, size: 13, color: Color(0xFF075E4D)),
+                                    SizedBox(width: 5),
+                                    Text(
+                                      'Email',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF075E4D),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          if (guide.telephone.isEmpty && guide.email.isEmpty)
+                            InkWell(
+                              onTap: () => _showGuideContactSheet(context, guide, isDark),
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.info_outline_rounded, size: 13, color: Colors.grey),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Détails',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

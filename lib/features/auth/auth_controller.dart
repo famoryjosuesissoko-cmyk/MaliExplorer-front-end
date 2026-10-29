@@ -7,22 +7,42 @@ import '../../core/services/api_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/badge_progression_service.dart';
 import '../../core/services/historique_service.dart';
+import '../../models/user_model.dart';
 import '../../providers/favoris_provider.dart';
 
 class AuthState {
   final bool isLoading;
   final String? errorMessage;
+  final UserModel? userModel;
   final Map<String, dynamic>? user;
 
-  const AuthState({this.isLoading = false, this.errorMessage, this.user});
+  const AuthState({
+    this.isLoading = false,
+    this.errorMessage,
+    this.userModel,
+    this.user,
+  });
 
-  bool get isAuthenticated => user != null;
+  bool get isAuthenticated => userModel != null || user != null;
 
-  AuthState copyWith({bool? isLoading, String? errorMessage, Map<String, dynamic>? user}) {
+  UserModel? get currentUserModel =>
+      userModel ?? (user != null ? UserModel.fromJson(user!) : null);
+
+  AuthState copyWith({
+    bool? isLoading,
+    String? errorMessage,
+    UserModel? userModel,
+    Map<String, dynamic>? user,
+  }) {
+    final effectiveUserModel =
+        userModel ?? (user != null ? UserModel.fromJson(user) : this.userModel);
+    final effectiveUserMap = user ?? effectiveUserModel?.toMap() ?? this.user;
+
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage,
-      user: user ?? this.user,
+      userModel: effectiveUserModel,
+      user: effectiveUserMap,
     );
   }
 }
@@ -41,13 +61,15 @@ class AuthController extends StateNotifier<AuthState> {
   StreamSubscription<User?>? _authSubscription;
 
   AuthController(this._authService, this._ref) : super(const AuthState()) {
+    _initPersistedSession();
+
     if (_authService.currentUser != null) {
       syncProfile();
     }
     // Écoute automatique des changements d'état d'authentification Firebase
     _authSubscription = _authService.userChanges.listen((user) {
       if (user == null) {
-        if (state.user != null) {
+        if (state.user != null || state.userModel != null) {
           state = const AuthState();
           _purgeUserSessionData();
         }
@@ -55,6 +77,17 @@ class AuthController extends StateNotifier<AuthState> {
         syncProfile();
       }
     });
+  }
+
+  Future<void> _initPersistedSession() async {
+    try {
+      final persisted = await AuthService.loadPersistedSessionData();
+      if (persisted != null && state.user == null) {
+        state = state.copyWith(userModel: persisted, user: persisted.toMap());
+      }
+    } catch (e) {
+      debugPrint('[AuthController] Erreur initPersistedSession: $e');
+    }
   }
 
   @override
@@ -86,14 +119,18 @@ class AuthController extends StateNotifier<AuthState> {
   void updateUserData(Map<String, dynamic> updated) {
     final current = Map<String, dynamic>.from(state.user ?? {});
     current.addAll(updated);
-    state = state.copyWith(user: current);
+    final model = UserModel.fromJson(current);
+    AuthService.persistSessionData(model);
+    state = state.copyWith(userModel: model, user: current);
   }
 
   Future<bool> login(String email, String password) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       final user = await _authService.login(email, password);
-      state = state.copyWith(isLoading: false, user: user);
+      final model = UserModel.fromJson(user);
+      await AuthService.persistSessionData(model);
+      state = state.copyWith(isLoading: false, userModel: model, user: user);
       return true;
     } catch (e) {
       debugPrint('[AuthController] Erreur login: $e');
@@ -191,6 +228,9 @@ class AuthController extends StateNotifier<AuthState> {
     String? photoUrl,
     String? nomOrganisation,
     String? pieceIdentite,
+    String? langue,
+    int? experience,
+    String? description,
   }) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
@@ -205,8 +245,13 @@ class AuthController extends StateNotifier<AuthState> {
         photoUrl: photoUrl,
         nomOrganisation: nomOrganisation,
         pieceIdentite: pieceIdentite,
+        langue: langue,
+        experience: experience,
+        description: description,
       );
-      state = state.copyWith(isLoading: false, user: user);
+      final model = UserModel.fromJson(user);
+      await AuthService.persistSessionData(model);
+      state = state.copyWith(isLoading: false, userModel: model, user: user);
       return true;
     } catch (e) {
       state = state.copyWith(
@@ -221,35 +266,13 @@ class AuthController extends StateNotifier<AuthState> {
     try {
       final updatedProfile = await _authService.syncProfileWithBackend();
       if (updatedProfile != null) {
-        state = state.copyWith(user: updatedProfile);
-        return true;
-      }
-      final currentEmail = _authService.currentUser?.email?.toLowerCase();
-      if (currentEmail == 'famoryjosuesissoko@gmail.com' || currentEmail == 'hamath.o.diallo18@gmail.com') {
-        state = state.copyWith(
-          user: {
-            'email': _authService.currentUser?.email,
-            'role': 'admin',
-            'prenom': _authService.currentUser?.displayName?.split(' ').first ?? 'Admin',
-            'nom': 'MaliExplorer',
-          },
-        );
+        final model = UserModel.fromJson(updatedProfile);
+        await AuthService.persistSessionData(model);
+        state = state.copyWith(userModel: model, user: updatedProfile);
         return true;
       }
       return false;
     } catch (_) {
-      final currentEmail = _authService.currentUser?.email?.toLowerCase();
-      if (currentEmail == 'famoryjosuesissoko@gmail.com' || currentEmail == 'hamath.o.diallo18@gmail.com') {
-        state = state.copyWith(
-          user: {
-            'email': _authService.currentUser?.email,
-            'role': 'admin',
-            'prenom': _authService.currentUser?.displayName?.split(' ').first ?? 'Admin',
-            'nom': 'MaliExplorer',
-          },
-        );
-        return true;
-      }
       return false;
     }
   }

@@ -48,7 +48,11 @@ void main() {
       );
       expect(
         EthnieModel.getLocalPhotoHomme('mandinka'),
-        'assets/images/ethnies/dogon_homme.jpeg', // repli si le mot-clé ne correspond pas
+        'assets/images/ethnies/malinke_homme.jpeg',
+      );
+      expect(
+        EthnieModel.getLocalPhotoHomme('ethnie_inconnue'),
+        '', // plus de contamination Dogon
       );
       expect(
         EthnieModel.getLocalPhotoHomme('malinke'),

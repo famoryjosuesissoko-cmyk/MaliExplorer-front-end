@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../core/constants/app_colors.dart';
 import '../models/president_model.dart';
 import '../providers/favoris_provider.dart';
+import '../providers/presidents_provider.dart';
 import '../router/app_router.dart';
 
 class PresidentDetailScreen extends ConsumerWidget {
@@ -13,13 +14,17 @@ class PresidentDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final current = president ?? PresidentModel.chronologicalPresidents.first;
-    final allPresidents = PresidentModel.chronologicalPresidents;
+    final dynamicPresidents = ref.watch(presidentsProvider).valueOrNull;
+    final List<PresidentModel> allPresidents = (dynamicPresidents != null && dynamicPresidents.isNotEmpty)
+        ? dynamicPresidents
+        : PresidentModel.chronologicalPresidents;
+
+    final current = president ?? allPresidents.first;
     final currentIndex = allPresidents.indexWhere(
       (p) =>
-          p.id == current.id &&
-          (p.nom.toLowerCase() == current.nom.toLowerCase() ||
-              p.fullName.toLowerCase() == current.fullName.toLowerCase()),
+          (p.id != 0 && p.id == current.id) ||
+          (p.nom.isNotEmpty && p.nom.toLowerCase() == current.nom.toLowerCase()) ||
+          (p.fullName.isNotEmpty && p.fullName.toLowerCase() == current.fullName.toLowerCase()),
     );
 
     final PresidentModel? prevPresident = currentIndex > 0

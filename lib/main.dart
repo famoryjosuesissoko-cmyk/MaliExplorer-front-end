@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/constants/app_strings.dart';
+import 'core/services/auth_service.dart';
 import 'core/services/firebase_service.dart';
 import 'core/services/storage_service.dart';
 import 'core/theme/app_theme.dart';
@@ -23,6 +24,7 @@ void main() async {
   // Initialisation des services Firebase & Supabase/Storage
   await FirebaseService.init();
   await StorageService.init();
+  await AuthService.loadPersistedSessionData();
 
   // Élimine définitivement l'écran rouge d'erreur Flutter en cas de rupture réseau temporaire
   ErrorWidget.builder = (FlutterErrorDetails details) {

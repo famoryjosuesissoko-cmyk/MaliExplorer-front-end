@@ -8,18 +8,21 @@ import '../../models/religion_model.dart';
 import '../../models/president_model.dart';
 import '../../models/ville_model.dart';
 import '../../models/search_result_item.dart';
+import '../../providers/ethnies_provider.dart';
+import '../../providers/presidents_provider.dart';
 import '../../router/app_router.dart';
 import '../constants/api_constants.dart';
 import 'api_service.dart';
 
 final searchServiceProvider = Provider<SearchService>((ref) {
-  return SearchService(ref.watch(apiServiceProvider));
+  return SearchService(ref.watch(apiServiceProvider), ref);
 });
 
 class SearchService {
   final ApiService _apiService;
+  final Ref? _ref;
 
-  SearchService(this._apiService);
+  SearchService(this._apiService, [this._ref]);
 
   Future<List<SearchResultItem>> search(String query) async {
     final cleanQuery = query.trim();
@@ -92,7 +95,12 @@ class SearchService {
     }
 
     // 2. Chefs d'État & Présidents
-    for (final pres in PresidentModel.chronologicalPresidents) {
+    final dynamicPres = _ref?.read(presidentsProvider).valueOrNull;
+    final List<PresidentModel> presidentsList = (dynamicPres != null && dynamicPres.isNotEmpty)
+        ? dynamicPres
+        : PresidentModel.chronologicalPresidents;
+
+    for (final pres in presidentsList) {
       final nomNorm = normalizeText(pres.nom);
       final prenomNorm = normalizeText(pres.prenom);
       final fullNorm = normalizeText(pres.fullName);
@@ -138,7 +146,12 @@ class SearchService {
     }
 
     // 4. Ethnies & Traditions
-    for (final ethnie in EthnieModel.defaultEthnies) {
+    final dynamicEthnies = _ref?.read(ethniesProvider).valueOrNull;
+    final List<EthnieModel> ethniesList = (dynamicEthnies != null && dynamicEthnies.isNotEmpty)
+        ? dynamicEthnies
+        : EthnieModel.defaultEthnies;
+
+    for (final ethnie in ethniesList) {
       final nomNorm = normalizeText(ethnie.nom);
       final regNorm = normalizeText(ethnie.region);
       final langueNorm = normalizeText(ethnie.langue);

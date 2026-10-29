@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../features/auth/auth_controller.dart';
 import '../../models/progression_model.dart';
 import '../constants/api_constants.dart';
 import 'api_service.dart';
@@ -9,6 +10,7 @@ final badgeProgressionServiceProvider = Provider<BadgeProgressionService>((ref) 
 });
 
 final userProgressionProvider = FutureProvider.autoDispose<ProgressionModel?>((ref) async {
+  ref.watch(authControllerProvider.select((s) => s.user?['idUsers'] ?? s.user?['email']));
   final service = ref.watch(badgeProgressionServiceProvider);
   return await service.getMaProgression();
 });

@@ -401,12 +401,10 @@ class _QuizListScreenState extends ConsumerState<QuizListScreen> {
                       width: 76,
                       height: 76,
                       color: isDark ? AppColors.darkSurfaceElevated : Colors.grey[200],
-                      child: const Center(
-                        child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
+                      child: Icon(
+                        Icons.quiz_outlined,
+                        color: isDark ? AppColors.darkTextDisabled : Colors.grey[400],
+                        size: 28,
                       ),
                     ),
                     errorWidget: (context, url, error) => Container(
@@ -440,74 +438,96 @@ class _QuizListScreenState extends ConsumerState<QuizListScreen> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Row(
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 6,
+                        runSpacing: 2,
                         children: [
-                          Text(
-                            '$nbQuestions questions • $dureeMin min',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              '$nbQuestions questions • $dureeMin min',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                              ),
                             ),
                           ),
-                          Builder(
-                            builder: (context) {
-                              final d = quiz.dateCreation ?? DateTime(2025, 10, 1, 10, 0).add(Duration(hours: quiz.idQuiz * 3));
-                              return Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    ' • ',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
-                                    ),
+                          if (quiz.dateCreation != null)
+                            Builder(
+                              builder: (context) {
+                                final d = quiz.dateCreation!;
+                                return FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.schedule_rounded,
+                                        size: 11,
+                                        color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w500,
+                                          color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  Icon(
-                                    Icons.schedule_rounded,
-                                    size: 11,
-                                    color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
-                                  ),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w500,
-                                      color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6C7C77),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
+                                );
+                              },
+                            ),
                         ],
                       ),
                       const SizedBox(height: 8),
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Text(
-                            '+${quiz.point} pts',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.solarYellow,
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                '+${quiz.point} pts',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.solarYellow,
+                                ),
+                              ),
                             ),
                           ),
-                          const Spacer(),
+                          const SizedBox(width: 8),
                           // Badge de difficulté
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: diffBg,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              diffLabel,
-                              style: TextStyle(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w700,
-                                color: diffTextColor,
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: diffBg,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  diffLabel,
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: diffTextColor,
+                                  ),
+                                ),
                               ),
                             ),
                           ),

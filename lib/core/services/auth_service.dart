@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../models/user_model.dart';
 import 'api_service.dart';
 import 'firebase_service.dart';
 
@@ -19,17 +21,109 @@ class AuthService {
     scopes: ['email', 'profile'],
   );
 
+  static String? cachedRole;
+  static String? cachedStatutModeration;
+  static String? cachedStatut;
+  static UserModel? cachedUserModel;
+
+  static const String prefRoleKey = 'user_role';
+  static const String prefStatutModerationKey = 'statut_moderation';
+  static const String prefStatutKey = 'user_statut';
+  static const String prefUserKey = 'cached_user_model';
+
+  static Future<void> persistSessionData(UserModel user) async {
+    cachedUserModel = user;
+    cachedRole = user.role.name;
+    cachedStatutModeration = user.statutModeration;
+    cachedStatut = user.statut;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(prefRoleKey, user.role.name);
+      if (user.statutModeration != null && user.statutModeration!.isNotEmpty) {
+        await prefs.setString(prefStatutModerationKey, user.statutModeration!);
+      } else {
+        await prefs.remove(prefStatutModerationKey);
+      }
+      if (user.statut != null && user.statut!.isNotEmpty) {
+        await prefs.setString(prefStatutKey, user.statut!);
+      } else {
+        await prefs.remove(prefStatutKey);
+      }
+      await prefs.setString(prefUserKey, jsonEncode(user.toJson()));
+    } catch (e) {
+      debugPrint('[AuthService] Erreur persistance session: $e');
+    }
+  }
+
+  static Future<UserModel?> loadPersistedSessionData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      cachedRole = prefs.getString(prefRoleKey);
+      cachedStatutModeration = prefs.getString(prefStatutModerationKey);
+      cachedStatut = prefs.getString(prefStatutKey);
+      final rawUser = prefs.getString(prefUserKey);
+      if (rawUser != null && rawUser.isNotEmpty) {
+        cachedUserModel = UserModel.fromJson(jsonDecode(rawUser) as Map<String, dynamic>);
+        return cachedUserModel;
+      }
+      if (cachedRole != null && cachedRole!.isNotEmpty) {
+        cachedUserModel = UserModel(
+          email: '',
+          role: UserRole.fromString(cachedRole),
+          statut: cachedStatut,
+          statutModeration: cachedStatutModeration,
+        );
+        return cachedUserModel;
+      }
+    } catch (e) {
+      debugPrint('[AuthService] Erreur chargement session: $e');
+    }
+    return cachedUserModel;
+  }
+
+  static Future<void> clearPersistedSessionData() async {
+    cachedUserModel = null;
+    cachedRole = null;
+    cachedStatutModeration = null;
+    cachedStatut = null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(prefRoleKey);
+      await prefs.remove(prefStatutModerationKey);
+      await prefs.remove(prefStatutKey);
+      await prefs.remove(prefUserKey);
+    } catch (_) {}
+  }
+
   AuthService([ApiService? apiService])
     : _apiService = apiService ?? ApiService();
 
   /// Utilisateur actuellement connecté dans Firebase Auth
-  User? get currentUser => _auth.currentUser;
+  User? get currentUser {
+    try {
+      return _auth.currentUser;
+    } catch (_) {
+      return null;
+    }
+  }
 
   /// Flux réactif des changements d'état d'authentification Firebase
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
+  Stream<User?> get authStateChanges {
+    try {
+      return _auth.authStateChanges();
+    } catch (_) {
+      return const Stream.empty();
+    }
+  }
 
   /// Flux réactif complet incluant les mises à jour de profil et rechargements
-  Stream<User?> get userChanges => _auth.userChanges();
+  Stream<User?> get userChanges {
+    try {
+      return _auth.userChanges();
+    } catch (_) {
+      return const Stream.empty();
+    }
+  }
 
   /// Récupère le Firebase ID Token actuel ou en génère un nouveau
   Future<String?> getIdToken([bool forceRefresh = false]) async {
@@ -73,12 +167,20 @@ class AuthService {
       }
     }
 
-    return springProfile ??
+    if (cachedRole == null) {
+      await loadPersistedSessionData();
+    }
+
+    final result = springProfile ??
         {
           'email': userCredential.user?.email ?? email,
           'displayName': userCredential.user?.displayName,
           'idToken': idToken,
+          'role': cachedRole ?? 'touriste',
+          if (cachedStatutModeration != null) 'statutModeration': cachedStatutModeration,
         };
+    await persistSessionData(UserModel.fromJson(result));
+    return result;
   }
 
   /// Inscription d'un nouvel utilisateur (Touriste, Guide ou Promoteur)
@@ -94,6 +196,9 @@ class AuthService {
     String? photoUrl,
     String? nomOrganisation,
     String? pieceIdentite,
+    String? langue,
+    int? experience,
+    String? description,
   }) async {
     // 1. Création du compte dans Firebase Auth
     final userCredential = await _auth.createUserWithEmailAndPassword(
@@ -117,7 +222,7 @@ class AuthService {
 
     // 3. Persistance dans le backend Spring Boot & base MySQL
     // Note de sécurité : le mot de passe Firebase n'est JAMAIS stocké dans Spring Boot/MySQL
-    final body = {
+    final body = <String, dynamic>{
       'idToken': idToken,
       'prenom': prenom.trim(),
       'nom': nom.trim(),
@@ -129,6 +234,15 @@ class AuthService {
       'nomOrganisation': nomOrganisation?.trim() ?? '',
       'pieceIdentite': pieceIdentite ?? '',
     };
+    if (langue != null && langue.trim().isNotEmpty) {
+      body['langue'] = langue.trim();
+    }
+    if (experience != null) {
+      body['experience'] = experience;
+    }
+    if (description != null && description.trim().isNotEmpty) {
+      body['description'] = description.trim();
+    }
 
     Map<String, dynamic>? springProfile;
     try {
@@ -141,8 +255,8 @@ class AuthService {
       // Si Spring Boot est temporairement injoignable, le compte Firebase existe déjà
     }
 
-    return springProfile ??
-        {
+    final result = springProfile ??
+        <String, dynamic>{
           'email': email,
           'nom': nom,
           'prenom': prenom,
@@ -152,6 +266,19 @@ class AuthService {
           'nomOrganisation': nomOrganisation,
           'pieceIdentite': pieceIdentite,
         };
+    if (springProfile == null) {
+      if (langue != null && langue.trim().isNotEmpty) {
+        result['langue'] = langue.trim();
+      }
+      if (experience != null) {
+        result['experience'] = experience;
+      }
+      if (description != null && description.trim().isNotEmpty) {
+        result['description'] = description.trim();
+      }
+    }
+    await persistSessionData(UserModel.fromJson(result));
+    return result;
   }
 
   /// Synchronise manuellement le profil avec Spring Boot après reconnexion ou mise à jour
@@ -164,7 +291,9 @@ class AuthService {
       // 1. Lecture directe depuis MySQL via la route de profil connecté
       final meResponse = await _apiService.get('/utilisateurs/me');
       if (meResponse.statusCode == 200) {
-        return jsonDecode(utf8.decode(meResponse.bodyBytes)) as Map<String, dynamic>;
+        final profile = jsonDecode(utf8.decode(meResponse.bodyBytes)) as Map<String, dynamic>;
+        await persistSessionData(UserModel.fromJson(profile));
+        return profile;
       }
     } catch (e) {
       debugPrint('[AuthService] Info sync direct /me: $e');
@@ -178,7 +307,9 @@ class AuthService {
           body: {'idToken': token},
         );
         if (response.statusCode == 200) {
-          return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+          final profile = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+          await persistSessionData(UserModel.fromJson(profile));
+          return profile;
         }
       }
     } catch (_) {}
@@ -229,15 +360,18 @@ class AuthService {
     final prenom = nameParts.first;
     final nom = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : 'Google';
 
-    return springProfile ??
+    final result = springProfile ??
         {
           'email': userCredential.user?.email ?? googleUser.email,
           'displayName': displayName,
           'prenom': prenom,
           'nom': nom,
+          'role': cachedRole ?? 'touriste',
           'photoUrl': userCredential.user?.photoURL ?? googleUser.photoUrl,
           'idToken': idToken,
         };
+    await persistSessionData(UserModel.fromJson(result));
+    return result;
   }
 
   /// Envoie un lien de connexion sans mot de passe (Magic Link) par e-mail
@@ -304,6 +438,7 @@ class AuthService {
 
   /// Déconnexion
   Future<void> logout() async {
+    await clearPersistedSessionData();
     try {
       await _googleSignIn.signOut();
     } catch (_) {}

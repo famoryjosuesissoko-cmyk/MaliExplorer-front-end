@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -12,6 +11,7 @@ import '../models/search_result_item.dart';
 import '../models/ville_model.dart';
 import '../providers/home_extended_providers.dart';
 import '../router/app_router.dart';
+import '../widgets/promoteur_status_banner.dart';
 import 'auth/auth_controller.dart';
 
 /// Page d'Accueil 100% Responsive et adaptative avec Diaporama Hero 5s, Carrousel continu des Villes et Recherche Dynamique.
@@ -175,6 +175,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Bannière persistante statut promoteur
+                    PromoteurStatusBanner(
+                      isDark: isDark,
+                      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    ),
+
                     // Grille responsive des 4 catégories
                     _buildCategoriesSection(screenWidth, isDark),
 
@@ -292,45 +298,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16.0, 2.0, 16.0, 8.0),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Flexible(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Image.asset(
-                                'assets/images/MaliExplorer.png',
-                                height: 42,
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, _, _) => const Icon(
-                                  Icons.explore,
-                                  color: Colors.white,
-                                  size: 36,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'MaliExplorer',
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
-                                  letterSpacing: -0.5,
-                                  shadows: [
-                                    Shadow(
-                                      offset: Offset(0, 1.5),
-                                      blurRadius: 4.0,
-                                      color: Colors.black54,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                        Image.asset(
+                          'assets/images/MaliExplorer.png',
+                          height: 38,
+                          width: 38,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, _, _) => const Icon(
+                            Icons.explore,
+                            color: Colors.white,
+                            size: 32,
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'MaliExplorer',
+                              maxLines: 1,
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: -0.5,
+                                shadows: [
+                                  Shadow(
+                                    offset: Offset(0, 1.5),
+                                    blurRadius: 4.0,
+                                    color: Colors.black54,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
                         _buildAuthButton(context),
                       ],
                     ),
@@ -439,87 +444,98 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildAuthButton(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        final bool isLoggedIn = snapshot.hasData && snapshot.data != null;
-        if (isLoggedIn) {
-          return Container(
-            height: 38,
-            decoration: BoxDecoration(
-              color: const Color(0xFFDC2626),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFDC2626).withValues(alpha: 0.35),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: ElevatedButton.icon(
-              onPressed: () => _confirmSignOut(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-              icon: const Icon(
-                Icons.logout_rounded,
-                color: Colors.white,
-                size: 18,
-              ),
-              label: const Text(
-                'Se déconnecter',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          );
-        }
+    final authState = ref.watch(authControllerProvider);
+    final bool isLoggedIn = authState.isAuthenticated;
 
-        return Container(
-          height: 38,
-          decoration: BoxDecoration(
-            color: const Color(0xFF075E4D),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.25),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: ElevatedButton(
-            onPressed: () => context.push(AppRouter.login),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.transparent,
-              shadowColor: Colors.transparent,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
+    if (isLoggedIn) {
+      return Container(
+        height: 38,
+        constraints: const BoxConstraints(maxWidth: 155),
+        decoration: BoxDecoration(
+          color: const Color(0xFFDC2626),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFDC2626).withValues(alpha: 0.35),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            child: const Text(
-              'Se connecter',
+          ],
+        ),
+        child: ElevatedButton.icon(
+          onPressed: () => _confirmSignOut(context),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+          ),
+          icon: const Icon(
+            Icons.logout_rounded,
+            color: Colors.white,
+            size: 16,
+          ),
+          label: const FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              'Se déconnecter',
+              maxLines: 1,
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
-        );
-      },
+        ),
+      );
+    }
+
+    return Container(
+      height: 38,
+      constraints: const BoxConstraints(maxWidth: 135),
+      decoration: BoxDecoration(
+        color: const Color(0xFF075E4D),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: () => context.push(AppRouter.login),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+        child: const FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'Se connecter',
+            maxLines: 1,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -969,14 +985,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Villes du Mali',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.white : const Color(0xFF16332D),
+              Expanded(
+                child: Text(
+                  'Villes du Mali',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? Colors.white : const Color(0xFF16332D),
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               GestureDetector(
                 onTap: () => context.push(AppRouter.villesList),
                 child: const Text(
