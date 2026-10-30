@@ -170,41 +170,53 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'CARTE DU MALI',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          letterSpacing: 1.1,
+                      const Expanded(
+                        child: Text(
+                          'CARTE DU MALI',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: 1.1,
+                          ),
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(
-                              Icons.explore_rounded,
-                              color: Color(0xFFD6A23A),
-                              size: 16,
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'OpenStreetMap',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.explore_rounded,
+                                color: Color(0xFFD6A23A),
+                                size: 16,
                               ),
-                            ),
-                          ],
+                              SizedBox(width: 5),
+                              Flexible(
+                                child: Text(
+                                  'OpenStreetMap',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -349,8 +361,8 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
                                     return Marker(
                                       point: LatLng(
                                           region.latitude, region.longitude),
-                                      width: isSelected ? 110 : 85,
-                                      height: isSelected ? 50 : 40,
+                                      width: isSelected ? 115 : 90,
+                                      height: isSelected ? 50 : 42,
                                       child: GestureDetector(
                                         onTap: () => _centerOnRegion(region),
                                         child: AnimatedContainer(
@@ -394,6 +406,7 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
                                               Flexible(
                                                 child: Text(
                                                   region.chefLieu,
+                                                  maxLines: 1,
                                                   overflow:
                                                       TextOverflow.ellipsis,
                                                   style: TextStyle(
@@ -479,16 +492,21 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text(
-                          'Régions du Mali',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: isDark
-                                ? AppColors.darkTextPrimary
-                                : AppColors.textPrimary,
+                        Expanded(
+                          child: Text(
+                            'Régions du Mali',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.textPrimary,
+                            ),
                           ),
                         ),
+                        const SizedBox(width: 8),
                         InkWell(
                           onTap: () {
                             context.push(
@@ -686,6 +704,8 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
                                           children: [
                                             Text(
                                               _selectedRegion.nom,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                               style: const TextStyle(
                                                 fontSize: 19,
                                                 fontWeight: FontWeight.bold,
@@ -694,6 +714,8 @@ class _CarteScreenState extends ConsumerState<CarteScreen> {
                                             ),
                                             Text(
                                               'Chef-lieu : ${_selectedRegion.chefLieu} • ${_selectedRegion.superficie}',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                               style: const TextStyle(
                                                 fontSize: 12,
                                                 color: Color(0xFFD6A23A),

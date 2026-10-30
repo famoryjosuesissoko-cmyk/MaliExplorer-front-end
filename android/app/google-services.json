@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "258002604598-igmp6kf0ojicasge02pqh61bbva44arn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.maliexplorer.mali_explorer_frontend",
+            "certificate_hash": "628e0ee0b9dd200ce12f2772dbbe433906296770"
+          }
+        },
+        {
           "client_id": "258002604598-m3l22it77encmv21rjm1n2nk6fitk1lh.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
