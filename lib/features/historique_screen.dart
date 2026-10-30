@@ -50,6 +50,8 @@ class HistoriqueScreen extends ConsumerWidget {
                     child: Center(
                       child: Text(
                         'Historique d\'activités',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
@@ -259,14 +261,17 @@ class HistoriqueScreen extends ConsumerWidget {
                 children: [
                   Text(
                     item.description ?? (isQuiz ? 'Quiz complété' : 'Activité culturelle'),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 14.5,
+                      fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         Icons.schedule_rounded,
@@ -274,12 +279,16 @@ class HistoriqueScreen extends ConsumerWidget {
                         color: isDark ? AppColors.darkTextSecondary : const Color(0xFF94A3B8),
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        formattedDate,
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          color: isDark ? AppColors.darkTextSecondary : const Color(0xFF94A3B8),
-                          fontWeight: FontWeight.w500,
+                      Flexible(
+                        child: Text(
+                          formattedDate,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: isDark ? AppColors.darkTextSecondary : const Color(0xFF94A3B8),
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ],
@@ -289,7 +298,7 @@ class HistoriqueScreen extends ConsumerWidget {
             ),
             const SizedBox(width: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: badgeBgColor,
                 borderRadius: BorderRadius.circular(12),
@@ -297,7 +306,7 @@ class HistoriqueScreen extends ConsumerWidget {
               child: Text(
                 pointsLabel,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 12.5,
                   fontWeight: FontWeight.w800,
                   color: badgeTextColor,
                 ),

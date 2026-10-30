@@ -156,16 +156,22 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'EXPLORER',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          letterSpacing: 1.1,
+                      const Expanded(
+                        child: Text(
+                          'EXPLORER',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: 1.1,
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           InkWell(
                             onTap: () =>
@@ -768,7 +774,7 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
   Widget _buildCategoryCard(Map<String, dynamic> cat, bool isDark) {
     final String targetRoute = cat['route'] as String;
     return Container(
-      height: 110,
+      constraints: const BoxConstraints(minHeight: 110),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -789,7 +795,9 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
         child: InkWell(
           onTap: () => context.push(targetRoute),
           borderRadius: BorderRadius.circular(20),
-          child: Row(
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               ClipRRect(
                 borderRadius: const BorderRadius.horizontal(
@@ -797,7 +805,6 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                 ),
                 child: SizedBox(
                   width: 115,
-                  height: 110,
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
@@ -845,7 +852,7 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
-                    vertical: 12,
+                    vertical: 10,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -876,8 +883,10 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                       const SizedBox(height: 5),
                       Text(
                         cat['titre'] as String,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 15.5,
+                          fontSize: 15,
                           fontWeight: FontWeight.w800,
                           color: isDark
                               ? AppColors.darkTextPrimary
@@ -911,6 +920,7 @@ class _ExplorerScreenState extends ConsumerState<ExplorerScreen> {
                 ),
               ),
             ],
+          ),
           ),
         ),
       ),

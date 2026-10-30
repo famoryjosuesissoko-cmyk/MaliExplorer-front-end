@@ -217,92 +217,110 @@ class _SplashScreenState extends State<SplashScreen>
             fit: StackFit.expand,
             alignment: Alignment.center,
             children: [
-              // 1. Arrière-plan blanc
+              // 1. Arrière-plan blanc plein écran
               Container(color: AppColors.pureWhite),
 
-              // 2. Zone centrale : Carte + Texte "MaliExplorer"
+              // 2. Zone centrale responsive : Carte + Loupe synchronisée + Texte
               Center(
-                child: Opacity(
-                  opacity: mapOpacity,
-                  child: Transform.scale(
-                    scale: _mapScaleAnimation.value,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Carte du Mali SVG
-                        SvgPicture.asset(
-                          'assets/images/carte.svg',
-                          width: 200,
-                          height: 186,
-                          fit: BoxFit.contain,
-                        ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Transform.scale(
+                      scale: _mapScaleAnimation.value,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Carte du Mali SVG avec repère fixe pour la loupe
+                          SizedBox(
+                            width: 200,
+                            height: 186,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              clipBehavior: Clip.none,
+                              children: [
+                                // Carte du Mali SVG
+                                Opacity(
+                                  opacity: mapOpacity,
+                                  child: SvgPicture.asset(
+                                    'assets/images/carte.svg',
+                                    width: 200,
+                                    height: 186,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
 
-                        // Texte "MaliExplorer" (Splash 3)
-                        if (progress >= 0.52)
-                          FadeTransition(
-                            opacity: _textOpacityAnimation,
-                            child: SlideTransition(
-                              position: _textSlideAnimation,
-                              child: Padding(
-                                padding: const EdgeInsets.only(left: 12.0),
-                                child: RichText(
-                                  text: const TextSpan(
-                                    style: TextStyle(
-                                      fontSize: 26,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: -0.5,
-                                      fontFamily: 'Roboto',
+                                // Loupe SVG mobile + Zoom géant (Splash 4)
+                                Transform.translate(
+                                  offset: _loupePositionAnimation.value,
+                                  child: Transform.rotate(
+                                    angle: _loupeRotationAnimation.value,
+                                    child: Transform.scale(
+                                      scale: _loupeScaleAnimation.value,
+                                      alignment: const Alignment(-0.35, -0.25),
+                                      child: Opacity(
+                                        opacity: _loupeOpacityAnimation.value,
+                                        child: SvgPicture.asset(
+                                          'assets/images/loupe.svg',
+                                          width: 78,
+                                          height: 68,
+                                          fit: BoxFit.contain,
+                                        ),
+                                      ),
                                     ),
-                                    children: [
-                                      TextSpan(
-                                        text: 'Mali',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Texte "MaliExplorer" (Splash 3)
+                          if (progress >= 0.52)
+                            Opacity(
+                              opacity: mapOpacity,
+                              child: FadeTransition(
+                                opacity: _textOpacityAnimation,
+                                child: SlideTransition(
+                                  position: _textSlideAnimation,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(left: 12.0),
+                                    child: RichText(
+                                      text: const TextSpan(
                                         style: TextStyle(
-                                          color: Color(0xFF075E4D),
+                                          fontSize: 26,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: -0.5,
+                                          fontFamily: 'Roboto',
                                         ),
+                                        children: [
+                                          TextSpan(
+                                            text: 'Mali',
+                                            style: TextStyle(
+                                              color: Color(0xFF075E4D),
+                                            ),
+                                          ),
+                                          TextSpan(
+                                            text: 'Explorer',
+                                            style: TextStyle(
+                                              color: Color(0xFFC62828),
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      TextSpan(
-                                        text: 'Explorer',
-                                        style: TextStyle(
-                                          color: Color(0xFFC62828),
-                                        ),
-                                      ),
-                                    ],
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              // 3. Loupe SVG mobile + Zoom géant (Splash 4)
-              Center(
-                child: Transform.translate(
-                  offset: _loupePositionAnimation.value,
-                  child: Transform.rotate(
-                    angle: _loupeRotationAnimation.value,
-                    child: Transform.scale(
-                      scale: _loupeScaleAnimation.value,
-                      alignment: const Alignment(-0.35, -0.25),
-                      child: Opacity(
-                        opacity: _loupeOpacityAnimation.value,
-                        child: SvgPicture.asset(
-                          'assets/images/loupe.svg',
-                          width: 78,
-                          height: 68,
-                          fit: BoxFit.contain,
-                        ),
+                        ],
                       ),
                     ),
                   ),
                 ),
               ),
 
-              // 4. Voile Blanc de transition (Splash 5)
+              // 3. Voile Blanc de transition (Splash 5)
               if (progress >= 0.88)
                 IgnorePointer(
                   child: Container(

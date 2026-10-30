@@ -133,194 +133,217 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
-    final size = MediaQuery.of(context).size;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFFF7F8F5),
-      body: Column(
-        children: [
-          // ==================== PARTIE SUPÉRIEURE : HERO BANNER FIGMA ====================
-          SizedBox(
-            height: (size.height * 0.38).clamp(240.0, 320.0),
-            width: double.infinity,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                // Image de fond Arch / Mali de haute qualité
-                Image.asset(
-                  'assets/images/auth_hero.jpg',
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Image.asset(
-                    'assets/images/auth_hero.png',
-                    fit: BoxFit.cover,
-                    errorBuilder: (ctx, err, trace) => Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF075E4D), Color(0xFF16332D)],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final screenHeight = constraints.maxHeight;
+          final isCompact = screenHeight < 700;
+          final bannerHeight = (screenHeight * (isCompact ? 0.28 : 0.34)).clamp(170.0, 270.0);
+          final horizontalPadding = (constraints.maxWidth * 0.07).clamp(20.0, 32.0);
 
-                // Dégradé sombre pour sublimer le logo et le texte MaliExplorer
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.60),
-                        Colors.black.withValues(alpha: 0.20),
-                        Colors.black.withValues(alpha: 0.45),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Logo officiel MaliExplorer & Titre alignés en haut à gauche (Conforme HomeScreen & Figma)
-                SafeArea(
-                  child: Align(
-                    alignment: Alignment.topLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16.0, 10.0, 16.0, 0),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+          return SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: screenHeight),
+              child: IntrinsicHeight(
+                child: Column(
+                  children: [
+                    // ==================== PARTIE SUPÉRIEURE : HERO BANNER FIGMA ====================
+                    SizedBox(
+                      height: bannerHeight,
+                      width: double.infinity,
+                      child: Stack(
+                        fit: StackFit.expand,
                         children: [
+                          // Image de fond Arch / Mali de haute qualité
                           Image.asset(
-                            'assets/images/MaliExplorer.png',
-                            height: 42,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) => const Icon(
-                              Icons.explore,
-                              color: Colors.white,
-                              size: 36,
+                            'assets/images/auth_hero.jpg',
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Image.asset(
+                              'assets/images/auth_hero.png',
+                              fit: BoxFit.cover,
+                              errorBuilder: (ctx, err, trace) => Container(
+                                decoration: const BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [Color(0xFF075E4D), Color(0xFF16332D)],
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'MaliExplorer',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              letterSpacing: -0.5,
-                              shadows: [
-                                Shadow(
-                                  offset: Offset(0, 1.5),
-                                  blurRadius: 4.0,
-                                  color: Colors.black54,
+
+                          // Dégradé sombre pour sublimer le logo et le texte MaliExplorer
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.black.withValues(alpha: 0.60),
+                                  Colors.black.withValues(alpha: 0.20),
+                                  Colors.black.withValues(alpha: 0.45),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          // Logo officiel MaliExplorer & Titre alignés en haut à gauche (Conforme HomeScreen & Figma)
+                          SafeArea(
+                            bottom: false,
+                            child: Align(
+                              alignment: Alignment.topLeft,
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(16.0, 10.0, 16.0, 0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Image.asset(
+                                      'assets/images/MaliExplorer.png',
+                                      height: isCompact ? 36 : 42,
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (context, error, stackTrace) => Icon(
+                                        Icons.explore,
+                                        color: Colors.white,
+                                        size: isCompact ? 30 : 36,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'MaliExplorer',
+                                      style: TextStyle(
+                                        fontSize: isCompact ? 19 : 22,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white,
+                                        letterSpacing: -0.5,
+                                        shadows: const [
+                                          Shadow(
+                                            offset: Offset(0, 1.5),
+                                            blurRadius: 4.0,
+                                            color: Colors.black54,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ),
-                ),
-              ],
-            ),
-          ),
 
-          // ==================== PARTIE INFÉRIEURE : FICHE ARRONDIR FIGMA ====================
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkBackgroundSecondary : const Color(0xFFF7F8F5),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-                border: isDark ? const Border(top: BorderSide(color: AppColors.darkBorder, width: 1)) : null,
-              ),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(28, 28, 28, 16),
-                      child: AnimatedCrossFade(
-                        duration: const Duration(milliseconds: 200),
-                        crossFadeState: _showEmailForm
-                            ? CrossFadeState.showSecond
-                            : CrossFadeState.showFirst,
-                        firstChild: _buildFigmaOptionsView(isDark),
-                        secondChild: _buildFigmaEmailFormView(authState, isDark),
-                      ),
-                    ),
-                  ),
-
-                  // Flèche retour en bas à gauche Figma
-                  SafeArea(
-                    top: false,
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 20.0, bottom: 12.0),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: IconButton(
-                          icon: Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
-                            size: 22,
+                    // ==================== PARTIE INFÉRIEURE : FICHE ARRONDIR FIGMA ====================
+                    Expanded(
+                      child: Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.darkBackgroundSecondary : const Color(0xFFF7F8F5),
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                          border: isDark ? const Border(top: BorderSide(color: AppColors.darkBorder, width: 1)) : null,
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            horizontalPadding,
+                            isCompact ? 20.0 : 28.0,
+                            horizontalPadding,
+                            16.0,
                           ),
-                          onPressed: () {
-                            if (_showEmailForm) {
-                              setState(() {
-                                _showEmailForm = false;
-                                _emailLinkSent = false;
-                              });
-                            } else if (context.canPop()) {
-                              context.pop();
-                            } else {
-                              context.go(AppRouter.home);
-                            }
-                          },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              AnimatedCrossFade(
+                                duration: const Duration(milliseconds: 200),
+                                crossFadeState: _showEmailForm
+                                    ? CrossFadeState.showSecond
+                                    : CrossFadeState.showFirst,
+                                firstChild: _buildFigmaOptionsView(isDark, isCompact),
+                                secondChild: _buildFigmaEmailFormView(authState, isDark, isCompact),
+                              ),
+
+                              const Spacer(),
+
+                              // Flèche retour en bas à gauche Figma
+                              SafeArea(
+                                top: false,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 8.0),
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: IconButton(
+                                      icon: Icon(
+                                        Icons.arrow_back_ios_new_rounded,
+                                        color: isDark ? AppColors.darkTextPrimary : const Color(0xFF16332D),
+                                        size: 22,
+                                      ),
+                                      onPressed: () {
+                                        if (_showEmailForm) {
+                                          setState(() {
+                                            _showEmailForm = false;
+                                            _emailLinkSent = false;
+                                          });
+                                        } else if (context.canPop()) {
+                                          context.pop();
+                                        } else {
+                                          context.go(AppRouter.home);
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
 
   /// Écran Figma 1 : Interface Connexion (Choix Google vs Email)
-  Widget _buildFigmaOptionsView(bool isDark) {
+  Widget _buildFigmaOptionsView(bool isDark, bool isCompact) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           'Connexion',
           style: TextStyle(
-            fontSize: 28,
+            fontSize: isCompact ? 24 : 28,
             fontWeight: FontWeight.w900,
             color: isDark ? AppColors.darkTextPrimary : const Color(0xFF064E3B),
             letterSpacing: -0.5,
           ),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: isCompact ? 6 : 10),
         Text(
           'Accédez à votre espace personnel\net continuez votre exploration.',
           style: TextStyle(
-            fontSize: 14,
+            fontSize: isCompact ? 13 : 14,
             color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
             height: 1.45,
           ),
         ),
-        const SizedBox(height: 36),
+        SizedBox(height: isCompact ? 20 : 32),
 
         // Bouton Google
         InkWell(
           onTap: _handleGoogleLogin,
           borderRadius: BorderRadius.circular(30),
           child: Container(
-            height: 52,
+            height: isCompact ? 48 : 52,
             decoration: BoxDecoration(
               color: isDark ? AppColors.darkSurface : Colors.white,
               borderRadius: BorderRadius.circular(30),
@@ -342,7 +365,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Text(
                   'Se connecter avec Google',
                   style: TextStyle(
-                    fontSize: 14.5,
+                    fontSize: isCompact ? 13.5 : 14.5,
                     fontWeight: FontWeight.w600,
                     color: isDark ? AppColors.darkTextPrimary : const Color(0xFF374151),
                   ),
@@ -352,7 +375,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
 
-        const SizedBox(height: 16),
+        SizedBox(height: isCompact ? 12 : 16),
 
         // Bouton Email -> Déclenche le formulaire pour recevoir le lien direct sans mot de passe
         InkWell(
@@ -362,24 +385,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           }),
           borderRadius: BorderRadius.circular(30),
           child: Container(
-            height: 52,
+            height: isCompact ? 48 : 52,
             decoration: BoxDecoration(
               color: isDark ? AppColors.primaryInteractive : const Color(0xFF064E3B),
               borderRadius: BorderRadius.circular(30),
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
+                const Icon(
                   Icons.email_outlined,
                   color: Colors.white,
                   size: 22,
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Text(
                   'Se connecter avec Email',
                   style: TextStyle(
-                    fontSize: 14.5,
+                    fontSize: isCompact ? 13.5 : 14.5,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                   ),
@@ -389,7 +412,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
 
-        const SizedBox(height: 28),
+        SizedBox(height: isCompact ? 18 : 24),
 
         // Pied de page Inscription
         Center(child: _buildFooterRegister(isDark)),
@@ -398,13 +421,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   /// Écran Figma 2 : Interface connexion par Email (Lien sécurisé sans mot de passe)
-  Widget _buildFigmaEmailFormView(AuthState authState, bool isDark) {
+  Widget _buildFigmaEmailFormView(AuthState authState, bool isDark, bool isCompact) {
     if (_emailLinkSent) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.all(22),
+            padding: EdgeInsets.all(isCompact ? 16 : 22),
             decoration: BoxDecoration(
               color: isDark ? AppColors.darkSurface : Colors.white,
               borderRadius: BorderRadius.circular(24),
@@ -423,7 +447,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(isCompact ? 12 : 16),
                   decoration: BoxDecoration(
                     color: (isDark ? const Color(0xFF4DB6AC) : const Color(0xFF064E3B)).withValues(alpha: 0.12),
                     shape: BoxShape.circle,
@@ -431,44 +455,44 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: Icon(
                     Icons.mark_email_read_rounded,
                     color: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF064E3B),
-                    size: 40,
+                    size: isCompact ? 32 : 40,
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: isCompact ? 12 : 16),
                 Text(
                   'Lien de connexion envoyé !',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: isCompact ? 18 : 20,
                     fontWeight: FontWeight.w900,
                     color: isDark ? AppColors.darkTextPrimary : const Color(0xFF064E3B),
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Text(
                   'Un lien direct a été envoyé à :\n${_emailController.text.trim()}',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: isCompact ? 13 : 14,
                     fontWeight: FontWeight.w600,
                     color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1F2937),
                     height: 1.4,
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: isCompact ? 8 : 12),
                 Text(
                   'Ouvrez votre application de messagerie sur ce téléphone et touchez le lien reçu pour vous connecter automatiquement.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 12.5,
+                    fontSize: isCompact ? 11.5 : 12.5,
                     color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
                     height: 1.45,
                   ),
                 ),
-                const SizedBox(height: 22),
+                SizedBox(height: isCompact ? 16 : 22),
                 SizedBox(
                   width: double.infinity,
-                  height: 48,
+                  height: isCompact ? 44 : 48,
                   child: ElevatedButton(
                     onPressed: authState.isLoading ? null : _handleSendEmailLink,
                     style: ElevatedButton.styleFrom(
@@ -489,7 +513,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 TextButton(
                   onPressed: () => setState(() => _emailLinkSent = false),
                   child: Text(
@@ -504,7 +528,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: isCompact ? 14 : 20),
           Center(child: _buildFooterRegister(isDark)),
         ],
       );
@@ -514,26 +538,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             'Connexion par Email',
             style: TextStyle(
-              fontSize: 28,
+              fontSize: isCompact ? 24 : 28,
               fontWeight: FontWeight.w900,
               color: isDark ? AppColors.darkTextPrimary : const Color(0xFF064E3B),
               letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: isCompact ? 6 : 10),
           Text(
             'Entrez votre adresse email pour recevoir votre lien de connexion sécurisé sans mot de passe.',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: isCompact ? 13 : 14,
               color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
               height: 1.4,
             ),
           ),
-          const SizedBox(height: 28),
+          SizedBox(height: isCompact ? 18 : 26),
 
           // Champ Email
           TextFormField(
@@ -555,7 +580,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               filled: true,
               fillColor: isDark ? AppColors.darkSurface : Colors.white,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: isCompact ? 13 : 16),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(30),
                 borderSide: BorderSide(
@@ -583,12 +608,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             },
           ),
 
-          const SizedBox(height: 24),
+          SizedBox(height: isCompact ? 16 : 22),
 
           // Bouton Recevoir le lien
           SizedBox(
             width: double.infinity,
-            height: 52,
+            height: isCompact ? 48 : 52,
             child: ElevatedButton(
               onPressed: authState.isLoading ? null : _handleSendEmailLink,
               style: ElevatedButton.styleFrom(
@@ -617,7 +642,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
 
-          const SizedBox(height: 24),
+          SizedBox(height: isCompact ? 16 : 22),
 
           // Pied de page Inscription
           Center(child: _buildFooterRegister(isDark)),
